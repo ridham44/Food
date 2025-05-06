@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="x-apple-disable-message-reformatting">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+  <title>Daily Report</title>
+  <link href="https://fonts.googleapis.com/css?family=Montserrat" rel="stylesheet" media="screen">
+  <style>
+    body {
+      margin: 0;
+      width: 100%;
+      padding: 0;
+      word-break: break-word;
+      -webkit-font-smoothing: antialiased;
+      background-color: #eceff1;
+      font-family: 'Montserrat', 'Segoe UI', Arial, sans-serif;
+      line-height: 1.6;
+      text-align: left;
+    }
+
+    .hover-underline:hover {
+      text-decoration: underline !important;
+    }
+
+    @media (max-width: 600px) {
+      .sm-w-full {
+        width: 100% !important;
+      }
+
+      .sm-px-24 {
+        padding-left: 24px !important;
+        padding-right: 24px !important;
+      }
+
+      .sm-leading-32 {
+        line-height: 32px !important;
+      }
+    }
+
+    .report-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+
+    .report-table th,
+    .report-table td {
+      padding: 12px;
+      text-align: left;
+      border: 1px solid #ddd;
+    }
+
+    .report-table th {
+      background-color: #f4f4f4;
+      color: #333;
+      font-weight: bold;
+    }
+
+    .report-table tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+
+    .report-table tr:hover {
+      background-color: #f1f1f1;
+    }
+
+    .header {
+      background-color: #ffffff;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .header img {
+      max-width: 150px;
+      height: auto;
+    }
+
+    .footer {
+      background-color: #eceff1;
+      padding: 20px;
+      text-align: center;
+      font-size: 12px;
+      color: #888;
+    }
+
+    .footer a {
+      color: #888;
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+
+<body>
+  <div style="display:none;">Daily Report</div>
+  <div role="article" aria-roledescription="email" aria-label="Daily Report" lang="en">
+    <!-- Header Section -->
+    <table style="width: 100%; font-family: 'Montserrat', 'Segoe UI', Arial, sans-serif;" cellpadding="0"
+      cellspacing="0" role="presentation">
+      <tr>
+        <td align="center" style="background-color: #eceff1;">
+          <table class="sm-w-full" cellpadding="0" cellspacing="0" role="presentation">
+            <tr>
+              <td align="center" class="sm-px-24">
+                <table style="width: 100%;" cellpadding="0" cellspacing="0" role="presentation">
+                  <tr>
+                    <td class="sm-px-24"
+                      style="border-radius: 4px; background-color: #ffffff; padding: 48px; text-align: left; font-size: 16px; line-height: 24px; color: #626262;">
+                      <p style="font-weight: 700; color: #2f648e; font-size: 24px; margin: 0;">Daily Report</p>
+                      <p style="font-size: 20px; font-weight: 600;">Hello {{firstName}},</p>
+                      <p class="sm-leading-32" style="font-size: 18px; font-weight: 400; color: #263238; margin: 0;">
+                        Date: {{dueDate}}</p>
+
+                      <!-- Table with formatted data -->
+                      <table class="report-table" cellpadding="0" cellspacing="0" role="presentation">
+                        <thead>
+                          <tr>
+                            <th>Name</th>
+                            <th>Lead</th>
+                            <th>Customer</th>
+                            <th>Contact</th>
+                            <th>To-do</th>
+                            <th>Call</th>
+                            <th>Meeting</th>
+                          </tr>
+                        </thead>
+                        {{tableBody}}
+                      </table>
+
+                      <p style="margin: 0 0 16px;">All the best, <br>The Report Team</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="height: 20px;"></td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </div>
+</body>
+
+</html>
