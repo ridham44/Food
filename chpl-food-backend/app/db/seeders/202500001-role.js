@@ -15,7 +15,30 @@ module.exports = {
                     createdAt: '2025-02-01 09:49:44',
                     updatedAt: '2025-02-01 09:49:44',
                 },
+
+                {
+                    id: '6cff3da0-02d8-11ef-8c8d-74563c332522',
+                    name: 'Tenant',
+                    type: '2',
+                    isAdmin: '0',
+                    remark: 'Main Tenant',
+                    status: '1',
+                    createdAt: '2025-05-12 09:49:44',
+                    updatedAt: '2025-05-12 09:49:44',
+                },
+
+                {
+                    id: '6cff3da0-02d8-11ef-8c8d-74563c33253',
+                    name: 'User',
+                    type: '3',
+                    isAdmin: '0',
+                    remark: 'Main User',
+                    status: '1',
+                    createdAt: '2025-05-12 09:49:44',
+                    updatedAt: '2025-05-12 09:49:44',
+                },
             ],
+
             {}
         );
     },

@@ -10,11 +10,11 @@ module.exports = (sequelize, Sequelize) => {
                 defaultValue: Sequelize.UUIDV4,
             },
             name: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(50),
                 allowNull: false,
             },
             stateCode: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(5),
                 allowNull: true,
             },
             countryId: {

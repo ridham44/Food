@@ -12,11 +12,11 @@ module.exports = (sequelize, Sequelize) => {
                 defaultValue: Sequelize.UUIDV4,
             },
             firstName: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(20),
                 allowNull: false,
             },
             lastName: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(20),
                 allowNull: false,
             },
             fullName: {
@@ -52,22 +52,22 @@ module.exports = (sequelize, Sequelize) => {
                 },
             },
             countryCode: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(3),
                 allowNull: true,
             },
             mobile: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(15),
                 allowNull: false,
             },
             email: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(50),
                 allowNull: false,
                 set(value) {
                     this.setDataValue('email', value?.toLowerCase());
                 },
             },
             shortCode: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(5),
                 allowNull: false,
             },
             profileImage: {
@@ -75,14 +75,14 @@ module.exports = (sequelize, Sequelize) => {
                 allowNull: true,
             },
             password: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(100),
                 allowNull: false,
                 set(value) {
                     this.setDataValue('password', bcrypt.hashSync(value, 10));
                 },
             },
             passwordShow: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(100),
                 allowNull: false,
             },
             address: {
@@ -126,7 +126,7 @@ module.exports = (sequelize, Sequelize) => {
                 },
             },
             zipCode: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(10),
                 allowNull: true,
             },
             gender: {
@@ -167,6 +167,7 @@ module.exports = (sequelize, Sequelize) => {
         },
         {
             tableName: 'user',
+            underscored: false,
             customOptions: {
                 createdBy: { value: true },
                 updatedBy: { value: true },
@@ -178,15 +179,15 @@ module.exports = (sequelize, Sequelize) => {
             },
             scopes: {
                 withPassword: {
-                    attributes: {
-                        include: ['password'],
-                    },
+                    attributes: { include: ['password'] },
+                },
+                withoutTenant: {
+                    where: {},
                 },
             },
         }
     );
-
-    User.hasTenantCondition();
+    // User.hasTenantCondition();
 
     return User;
 };

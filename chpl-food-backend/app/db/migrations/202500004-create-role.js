@@ -9,14 +9,14 @@ module.exports = {
                 defaultValue: Sequelize.UUIDV4,
             },
             name: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(50),
                 allowNull: false,
             },
             type: {
                 type: Sequelize.ENUM('1', '2', '3'),
                 allowNull: false,
                 defaultValue: '3',
-                comment: '1 for AdminUser, 2 for Tenant, 3 for Store',
+                comment: '1 for AdminUser, 2 for Tenant, 3 for customer',
             },
             isAdmin: {
                 type: Sequelize.BOOLEAN,

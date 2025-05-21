@@ -4,31 +4,18 @@ const { expressValidate } = require('../../../utils/lib/common-function');
 const { validationRules, updateValidations } = require('./lib/validation');
 const controller = require('./lib/controller');
 
-// Create country
 router.post('/', auth, validationRules(), expressValidate, controller.create);
 
-// Update country
 router.put('/:id', auth, updateValidations(), expressValidate, controller.update);
 
-// Delete country
 router.delete('/:id', auth, controller.delete);
 
-// Get all countries
 router.get('/', auth, controller.findAll);
 
-// Get country by ID
 router.get('/:id', auth, controller.findById);
 
-// Filter countries (pagination, search, etc.)
-router.post('/country-filter', auth, controller.countryFiltration);
+router.post('/menu-filter', auth, controller.menuFiltration);
 
-// Get dropdown filter options
-router.get('/country-filter/options', auth, controller.countryForFilter);
-
-// Get country options (e.g., for dropdowns)
-router.get('/options', auth, controller.findAll);
-
-// Update country status
-router.put('/status/:id', auth, controller.updateStatus);
+router.get('/menu-filter/options', auth, controller.menuForFilter);
 
 module.exports = router;

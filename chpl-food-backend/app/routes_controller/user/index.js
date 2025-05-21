@@ -54,37 +54,37 @@ const uploads = multer({
     fileFilter: fileFilter,
 });
 
-// Login With Password
-router.post('/login/with-password', loginRules(), expressValidate, controller.loginWithPassword);
+// Create user
+router.post('/', auth, uploads.single('profileImage'), multerMiddleware, createUserRules(), expressValidate, controller.create);
 
-// Login With Auth
-router.post('/login/with-auth', loginWithAuthRules(), expressValidate, controller.loginWithSocial);
-
-// create user
-router.post('/user', auth, uploads.single('profileImage'), multerMiddleware, createUserRules(), expressValidate, controller.create);
-
-// get all user
+// Get all users (paginated with filter)
 router.post('/user-filter', auth, controller.userFiltration);
 
-// filter options
+// Get filter dropdown options
 router.get('/user-filter/options', auth, controller.userForFilter);
 
-// get user
-router.get('/user/:id', auth, controller.findById);
+// Get user by ID
+router.get('/:id', auth, controller.findById);
 
-// update user
-router.put('/user/:id', auth, uploads.single('profileImage'), multerMiddleware, updateUserRules(), expressValidate, controller.update);
+// Update user
+router.put('/:id', auth, uploads.single('profileImage'), multerMiddleware, updateUserRules(), expressValidate, controller.update);
 
-// update user status
-router.put('/user/status/:id', auth, controller.updateStatus);
+// Update user status
+router.put('/status/:id', auth, controller.updateStatus);
 
-// delete user
-router.delete('/user/:id', auth, controller.delete);
+// Delete user
+router.delete('/:id', auth, controller.delete);
 
-// change password
+// Change user password (profile)
 router.put('/profile/change-password', auth, changePassword(), expressValidate, controller.changePassword);
 
-// forgot-password
+// Forgot password
 router.put('/forgot-password', controller.forgotPassword);
+
+// Login with password
+router.post('/login/with-password', loginRules(), expressValidate, controller.loginWithPassword);
+
+// Login with auth (e.g. social login)
+router.post('/login/with-auth', loginWithAuthRules(), expressValidate, controller.loginWithSocial);
 
 module.exports = router;

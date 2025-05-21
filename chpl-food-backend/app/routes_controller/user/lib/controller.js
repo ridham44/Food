@@ -86,7 +86,7 @@ exports.loginWithPassword = async (req, res) => {
             browserDetail: req.headers['user-agent'],
             isLogin: enums.isLogin.Login,
             deviceType: isMobile ? enums.deviceType.Mobile : enums.deviceType.Web,
-            tenantId: user.tenantId,
+             tenantId: user?.Tenant?.id,
         };
 
         const responseData = {

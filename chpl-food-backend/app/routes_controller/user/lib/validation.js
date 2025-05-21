@@ -1,10 +1,7 @@
 const { body } = require('express-validator');
 
 const loginRules = () => {
-    return [
-        body('email').notEmpty().withMessage('Email is required').isEmail().withMessage('Enter valid email.'),
-        body('password').notEmpty().withMessage('Password is required'),
-    ];
+    return [body('email').notEmpty().withMessage('Email is required'), body('password').notEmpty().withMessage('Password is required')];
 };
 
 const loginWithAuthRules = () => {

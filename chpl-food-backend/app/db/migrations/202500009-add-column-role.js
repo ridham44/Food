@@ -13,16 +13,6 @@ module.exports = {
                 onUpdate: 'CASCADE',
                 onDelete: 'RESTRICT',
             }),
-            queryInterface.addColumn('role', 'storeId', {
-                type: Sequelize.UUID,
-                references: {
-                    model: 'store',
-                    key: 'id',
-                },
-                allowNull: true,
-                onUpdate: 'CASCADE',
-                onDelete: 'RESTRICT',
-            }),
             queryInterface.addColumn('role', 'createdBy', {
                 type: Sequelize.UUID,
                 references: {
@@ -51,9 +41,6 @@ module.exports = {
             queryInterface.removeColumn('role', 'createdBy'),
             queryInterface.removeColumn('role', 'updatedBy'),
             queryInterface.removeColumn('role', 'tenantId'),
-            queryInterface.removeColumn('role', 'storeId'),
-
-
         ]);
     },
 };

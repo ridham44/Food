@@ -9,35 +9,35 @@ module.exports = {
                 defaultValue: Sequelize.UUIDV4,
             },
             shortCode: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(10),
                 allowNull: false,
             },
             companyName: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(50),
                 allowNull: false,
             },
             contactPerson: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(50),
                 allowNull: true,
             },
             countryCode: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(3),
                 allowNull: true,
             },
             mobile: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(15),
                 allowNull: false,
             },
             phoneCountryCode: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(3),
                 allowNull: true,
             },
             phone: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(15),
                 allowNull: true,
             },
             email: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(100),
                 allowNull: false,
                 unique: false,
             },
@@ -73,15 +73,15 @@ module.exports = {
                 onDelete: 'RESTRICT',
             },
             zipCode: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(10),
                 allowNull: true,
             },
             gstNumber: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(15),
                 allowNull: true,
             },
             panNumber: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(10),
                 allowNull: true,
             },
             frontImage: {

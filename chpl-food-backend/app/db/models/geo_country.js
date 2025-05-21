@@ -10,19 +10,19 @@ module.exports = (sequelize, Sequelize) => {
                 defaultValue: Sequelize.UUIDV4,
             },
             name: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(50),
                 allowNull: false,
             },
             countryCode: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(10),
                 allowNull: false,
             },
             currencyCode: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(6),
                 allowNull: false,
             },
             telephonePrefix: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(5),
                 allowNull: false,
             },
             flag: {

@@ -10,14 +10,14 @@ module.exports = (sequelize, Sequelize) => {
                 defaultValue: Sequelize.UUIDV4,
             },
             name: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(50),
                 allowNull: false,
             },
             type: {
                 type: Sequelize.ENUM('1', '2', '3'),
                 allowNull: false,
                 defaultValue: '3',
-                comment: '1 for AdminUser, 2 for Tenant, 3 for Store',
+                comment: '1 for AdminUser, 2 for Tenant, 3 for customer',
             },
             isAdmin: {
                 type: Sequelize.BOOLEAN,
@@ -37,22 +37,22 @@ module.exports = (sequelize, Sequelize) => {
             tenantId: {
                 type: Sequelize.UUID,
                 allowNull: true,
-                association: {
-                    model: 'Tenant',
-                    key: 'id',
-                    onUpdate: 'CASCADE',
-                    onDelete: 'RESTRICT',
-                    belongsToAlias: 'Tenant',
-                    hasManyAlias: 'Role',
-                },
             },
             createdAt: {
                 allowNull: false,
                 type: Sequelize.DATE,
             },
+            createdBy: {
+                type: Sequelize.UUID,
+                allowNull: false,
+            },
             updatedAt: {
                 allowNull: true,
                 type: Sequelize.DATE,
+            },
+            updatedBy: {
+                type: Sequelize.UUID,
+                allowNull: true,
             },
         },
         {

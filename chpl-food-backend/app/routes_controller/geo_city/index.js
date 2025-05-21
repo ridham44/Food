@@ -2,27 +2,36 @@ const router = require('express').Router();
 const controller = require('./lib/controller');
 const auth = require('../../middlewares/middleware');
 const { expressValidate } = require('../../../utils/lib/common-function');
-const { validationRules,updateValidations } = require('./lib/validation');
+const { validationRules, updateValidations } = require('./lib/validation');
 
-router.post('/city', auth, validationRules(), expressValidate, controller.create);
+// Create city
+router.post('/', auth, validationRules(), expressValidate, controller.create);
 
-router.put('/city/:id', auth, updateValidations(), expressValidate, controller.update);
+// Update city
+router.put('/:id', auth, updateValidations(), expressValidate, controller.update);
 
-router.delete('/city/:id', auth, controller.delete);
+// Delete city
+router.delete('/:id', auth, controller.delete);
 
+// Get all cities
+router.get('/', auth, controller.findAll);
+
+// Get city by ID
+router.get('/:id', auth, controller.findById);
+
+// Filter cities (pagination, search, etc.)
 router.post('/city-filter', auth, controller.cityFiltration);
 
+// Get filter dropdown options
 router.get('/city-filter/options', auth, controller.cityForFilter);
 
-router.get('/city/options', auth, controller.findAll);
+// Get all city options (e.g., for dropdowns)
+router.get('/options', auth, controller.findAll);
 
-router.get('/city', auth, controller.findAll);
+// Cascade fetch: get all cities for a state ID
+router.get('/cascade/:id', auth, controller.findAll);
 
-// get all state by state id
-router.get('/city/cascade/:id', auth, controller.findAll);
-
-router.get('/city/:id', auth, controller.findById);
-
-router.put('/city/status/:id', auth, controller.updateStatus);
+// Update city status
+router.put('/status/:id', auth, controller.updateStatus);
 
 module.exports = router;

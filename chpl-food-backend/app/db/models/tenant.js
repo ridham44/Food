@@ -10,35 +10,35 @@ module.exports = (sequelize, Sequelize) => {
                 defaultValue: Sequelize.UUIDV4,
             },
             shortCode: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(10),
                 allowNull: false,
             },
             companyName: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(50),
                 allowNull: false,
             },
             contactPerson: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(50),
                 allowNull: true,
             },
             countryCode: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(3),
                 allowNull: true,
             },
             mobile: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(15),
                 allowNull: false,
             },
             phoneCountryCode: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(3),
                 allowNull: true,
             },
             phone: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(15),
                 allowNull: true,
             },
             email: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(100),
                 allowNull: false,
                 set(value) {
                     this.setDataValue('email', value?.toLowerCase());
@@ -85,15 +85,15 @@ module.exports = (sequelize, Sequelize) => {
                 },
             },
             zipCode: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(10),
                 allowNull: true,
             },
             gstNumber: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(15),
                 allowNull: true,
             },
             panNumber: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(10),
                 allowNull: true,
             },
             frontImage: {
@@ -136,9 +136,29 @@ module.exports = (sequelize, Sequelize) => {
                 allowNull: false,
                 onCreate: sequelize.literal('CURRENT_TIMESTAMP'),
             },
+            createdBy: {
+                type: Sequelize.UUID,
+                allowNull: false,
+                association: {
+                    model: 'User',
+                    key: 'id',
+                    onUpdate: 'CASCADE',
+                    onDelete: 'RESTRICT',
+                },
+            },
             updatedAt: {
                 type: Sequelize.DATE,
                 onUpdate: sequelize.literal('CURRENT_TIMESTAMP'),
+            },
+            updatedBy: {
+                type: Sequelize.UUID,
+                allowNull: true,
+                association: {
+                    model: 'User',
+                    key: 'id',
+                    onUpdate: 'CASCADE',
+                    onDelete: 'RESTRICT',
+                },
             },
             approvedAt: {
                 type: Sequelize.DATE,
@@ -152,8 +172,6 @@ module.exports = (sequelize, Sequelize) => {
                     key: 'id',
                     onUpdate: 'CASCADE',
                     onDelete: 'RESTRICT',
-                    belongsToAlias: 'UserApproved',
-                    hasManyAlias: 'TenantApproved',
                 },
             },
             rejectedAt: {
@@ -168,11 +186,14 @@ module.exports = (sequelize, Sequelize) => {
                     key: 'id',
                     onUpdate: 'CASCADE',
                     onDelete: 'RESTRICT',
-                    belongsToAlias: 'UserRejected',
-                    hasManyAlias: 'TenantRejected',
                 },
             },
+            rejectedReason: {
+                type: Sequelize.TEXT,
+                allowNull: true,
+            },
         },
+
         {
             tableName: 'tenant',
             customOptions: {

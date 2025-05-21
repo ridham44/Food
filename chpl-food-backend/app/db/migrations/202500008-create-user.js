@@ -8,15 +8,6 @@ module.exports = {
                 allowNull: false,
                 defaultValue: Sequelize.UUIDV4,
             },
-            storeId: {
-                type: Sequelize.UUID,
-                references: {
-                    model: 'store',
-                    key: 'id',
-                },
-                onUpdate: 'CASCADE',
-                onDelete: 'RESTRICT',
-            },
             tenantId: {
                 type: Sequelize.UUID,
                 references: {
@@ -36,15 +27,15 @@ module.exports = {
                 onDelete: 'RESTRICT',
             },
             shortCode: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(5),
                 allowNull: false,
             },
             firstName: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(20),
                 allowNull: false,
             },
             lastName: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(20),
                 allowNull: false,
             },
             gender: {
@@ -53,23 +44,23 @@ module.exports = {
                 defaultValue: 'male',
             },
             countryCode: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(3),
                 allowNull: true,
             },
             mobile: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(15),
                 allowNull: false,
             },
             email: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(50),
                 allowNull: false,
             },
             password: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(100),
                 allowNull: false,
             },
             passwordShow: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(100),
                 allowNull: false,
             },
             profileImage: {
@@ -108,7 +99,7 @@ module.exports = {
                 onDelete: 'RESTRICT',
             },
             zipCode: {
-                type: Sequelize.STRING,
+                type: Sequelize.STRING(10),
                 allowNull: true,
             },
             birthDate: {
