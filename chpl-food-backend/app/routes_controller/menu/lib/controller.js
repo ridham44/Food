@@ -5,23 +5,14 @@ const db = require('../../../db/models');
 exports.create = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
-        const { perentId, name, price, filePath, tenantId } = req.body;
-        const payload = req.body;
-        payload.createdBy = req.user.id;
-        const allowedMenuFields = ['parentId', 'name', 'price', 'filePath', 'tenantId', 'createdAt', 'createdBy', 'updatedAt', 'updatedBy'];
-
-        const extraFields = Object.keys(payload).filter((key) => !allowedMenuFields.includes(key));
-        if (extraFields.length) {
-            return res.status(status.BadRequest).json({ message: `Invalid fields: ${extraFields.join(', ')}` });
-        }
-
+        const { parentId, name, price, filePath, tenantId } = req.body;
         const menu = await db.Menu.create(
             {
-                perentId,
-                name,
-                price,
-                filePath,
-                tenantId,
+                parentId: parentId,
+                name: name,
+                price: price,
+                filePath: filePath,
+                tenantId: tenantId,
                 createdBy: req.user.id,
             },
             { transaction }
@@ -36,19 +27,10 @@ exports.create = async (req, res) => {
 };
 
 exports.update = async (req, res) => {
-    const payload = req.body;
-    payload.createdBy = req.user.id;
-    const allowedMenuFields = ['parentId', 'name', 'price', 'filePath', 'tenantId', 'createdAt', 'createdBy', 'updatedAt', 'updatedBy'];
-
-    const extraFields = Object.keys(payload).filter((key) => !allowedMenuFields.includes(key));
-    if (extraFields.length) {
-        return res.status(status.BadRequest).json({ message: `Invalid fields: ${extraFields.join(', ')}` });
-    }
-
     const transaction = await db.sequelize.transaction();
     try {
         const { id } = req.params;
-        const { perentId, name, price, filePath, tenantId } = req.body;
+        const { parentId, name, price, filePath, tenantId } = req.body;
 
         const menu = await db.Menu.findByPk(id);
         if (!menu) {
@@ -57,12 +39,12 @@ exports.update = async (req, res) => {
         }
 
         menu.set({
-            perentId,
-            name,
-            price,
-            filePath,
-            tenantId,
-            updatedBy: req.user.id,
+            parentId: parentId,
+            name: name,
+            price: price,
+            filePath: filePath,
+            tenantId: tenantId,
+            createdBy: req.user.id,
         });
 
         await menu.save({ transaction });

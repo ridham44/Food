@@ -86,8 +86,7 @@ exports.loginWithPassword = async (req, res) => {
             browserDetail: req.headers['user-agent'],
             isLogin: enums.isLogin.Login,
             deviceType: isMobile ? enums.deviceType.Mobile : enums.deviceType.Web,
-            tenantId: user?.Tenant?.id,
-            createdBy: user?.id,
+            tenantId: user.tenantId,
         };
 
         const responseData = {
@@ -290,7 +289,7 @@ exports.userFiltration = async (req, res) => {
         if (body) userFilter = await findWithFilters.findWithFilters(body, db.User);
 
         let whereCondition = {
-            id: { [Op.ne]: user.id },
+            id:{ [Op.ne]: user.id },
             ...userFilter.filterCondition,
         };
 
@@ -492,7 +491,7 @@ exports.create = async (req, res) => {
             disableTenantCheck: true,
             transaction,
         });
-
+ 
         if (!checkRoleExist) {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'Role not found!' });
@@ -524,42 +523,6 @@ exports.create = async (req, res) => {
             createdBy: user.id,
         };
 
-        const payload = req.body;
-        payload.createdBy = req.user.id;
-        const allowedUserFields = [
-            'tenantId',
-            'roleId',
-            'shortCode',
-            'firstName',
-            'lastName',
-            'gender',
-            'countryCode',
-            'mobile',
-            'email',
-            'password',
-            'passwordShow',
-            'profileImage',
-            'address',
-            'countryId',
-            'stateId',
-            'cityId',
-            'zipCode',
-            'birthDate',
-            'anniversaryDate',
-            'notificationPlayerId',
-            'deviceTokenId',
-            'status',
-            'createdAt',
-            'createdBy',
-            'updatedAt',
-            'updatedBy',
-        ];
-
-        const extraFields = Object.keys(payload).filter((key) => !allowedUserFields.includes(key));
-        if (extraFields.length) {
-            return res.status(status.BadRequest).json({ message: `Invalid fields: ${extraFields.join(', ')}` });
-        }
-
         await db.User.create(userPayload, { transaction });
 
         await transaction.commit();
@@ -573,41 +536,6 @@ exports.create = async (req, res) => {
 
 // update user
 exports.update = async (req, res) => {
-    const payload = req.body;
-    payload.createdBy = req.user.id;
-    const allowedUserFields = [
-        'tenantId',
-        'roleId',
-        'shortCode',
-        'firstName',
-        'lastName',
-        'gender',
-        'countryCode',
-        'mobile',
-        'email',
-        'password',
-        'passwordShow',
-        'profileImage',
-        'address',
-        'countryId',
-        'stateId',
-        'cityId',
-        'zipCode',
-        'birthDate',
-        'anniversaryDate',
-        'notificationPlayerId',
-        'deviceTokenId',
-        'status',
-        'createdAt',
-        'createdBy',
-        'updatedAt',
-        'updatedBy',
-    ];
-
-    const extraFields = Object.keys(payload).filter((key) => !allowedUserFields.includes(key));
-    if (extraFields.length) {
-        return res.status(status.BadRequest).json({ message: `Invalid fields: ${extraFields.join(', ')}` });
-    }
     const transaction = await db.sequelize.transaction();
     try {
         const { params, body, file, user } = req;

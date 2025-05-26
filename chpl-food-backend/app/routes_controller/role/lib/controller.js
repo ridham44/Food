@@ -7,33 +7,14 @@ exports.create = async (req, res) => {
     try {
         const { name, type, isAdmin, remark, status: statusValue, tenantId } = req.body;
 
-        const payload = req.body;
-        payload.createdBy = req.user.id;
-        const allowedRoleFields = [
-            'name',
-            'type',
-            'isAdmin',
-            'remark',
-            'status',
-            'createdAt',
-            'updatedAt',
-            'tenantId',
-            'createdBy',
-            'updatedBy',
-        ];
-        const extraFields = Object.keys(payload).filter((key) => !allowedRoleFields.includes(key));
-        if (extraFields.length) {
-            return res.status(status.BadRequest).json({ message: `Invalid fields: ${extraFields.join(', ')}` });
-        }
-
         const role = await db.Role.create(
             {
-                name,
-                type,
-                isAdmin,
-                remark,
+                name: name,
+                type: type,
+                isAdmin: isAdmin,
+                remark: remark,
                 status: statusValue,
-                tenantId,
+                tenantId: tenantId,
                 createdBy: req.user.id,
             },
             { transaction }
@@ -48,25 +29,6 @@ exports.create = async (req, res) => {
 };
 
 exports.update = async (req, res) => {
-    const payload = req.body;
-    payload.createdBy = req.user.id;
-    const allowedRoleFields = [
-        'name',
-        'type',
-        'isAdmin',
-        'remark',
-        'status',
-        'createdAt',
-        'updatedAt',
-        'tenantId',
-        'createdBy',
-        'updatedBy',
-    ];
-    const extraFields = Object.keys(payload).filter((key) => !allowedRoleFields.includes(key));
-    if (extraFields.length) {
-        return res.status(status.BadRequest).json({ message: `Invalid fields: ${extraFields.join(', ')}` });
-    }
-
     const transaction = await db.sequelize.transaction();
     try {
         const { name, type, isAdmin, remark, status: statusValue, tenantId } = req.body;
@@ -91,13 +53,13 @@ exports.update = async (req, res) => {
         }
 
         role.set({
-            name,
-            type,
-            isAdmin,
-            remark,
+            name: name,
+            type: type,
+            isAdmin: isAdmin,
+            remark: remark,
             status: statusValue,
-            tenantId,
-            updatedBy: req.user.id,
+            tenantId: tenantId,
+            createdBy: req.user.id,
         });
 
         await role.save({ transaction });

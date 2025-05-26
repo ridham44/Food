@@ -7,20 +7,12 @@ exports.create = async (req, res) => {
     try {
         const { title, key, value, remark, status: statusValue } = req.body;
 
-        const payload = req.body;
-        payload.createdBy = req.user.id;
-        const allowedSettingFields = ['title', 'key', 'value', 'remark', 'status', 'createdAt', 'createdBy', 'updatedAt', 'updatedBy'];
-        const extraFields = Object.keys(payload).filter((key) => !allowedSettingFields.includes(key));
-        if (extraFields.length) {
-            return res.status(status.BadRequest).json({ message: `Invalid fields: ${extraFields.join(', ')}` });
-        }
-
         const setting = await db.Setting.create(
             {
-                title,
-                key,
-                value,
-                remark,
+                title: title,
+                key: key,
+                value: value,
+                remark: remark,
                 status: statusValue,
                 createdBy: req.user.id,
             },
@@ -68,12 +60,12 @@ exports.update = async (req, res) => {
         }
 
         setting.set({
-            title,
-            key,
-            value,
-            remark,
+            title: title,
+            key: key,
+            value: value,
+            remark: remark,
             status: statusValue,
-            updatedBy: req.user.id,
+            createdBy: req.user.id,
         });
 
         await setting.save({ transaction });

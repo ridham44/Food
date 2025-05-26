@@ -4,55 +4,65 @@ const db = require('../../../db/models');
 exports.create = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
-        const payload = req.body;
-        payload.createdBy = req.user.id;
+        const {
+            tenantId,
+            roleId,
+            shortCode,
+            firstName,
+            lastName,
+            gender,
+            countryCode,
+            mobile,
+            email,
+            password,
+            passwordShow,
+            profileImage,
+            address,
+            countryId,
+            stateId,
+            cityId,
+            zipCode,
+            birthDate,
+            anniversaryDate,
+            notificationPlayerId,
+            deviceTokenId,
+            status: statusValue,
+        } = req.body;
 
-        const allowedTenantFields = [
-            'shortCode',
-            'companyName',
-            'contactPerson',
-            'countryCode',
-            'mobile',
-            'phoneCountryCode',
-            'phone',
-            'email',
-            'address',
-            'countryId',
-            'stateId',
-            'cityId',
-            'zipCode',
-            'gstNumber',
-            'panNumber',
-            'frontImage',
-            'backImage',
-            'website',
-            'termAndCondition',
-            'returnAndExchange',
-            'status',
-            'emailVerified',
-            'emailVerifiedAt',
-            'createdAt',
-            'updatedAt',
-            'approvedAt',
-            'rejectedAt',
-            'createdBy',
-            'updatedBy',
-            'approvedBy',
-            'rejectedBy',
-            'rejectedReason',
-        ];
-        const extraFields = Object.keys(payload).filter((key) => !allowedTenantFields.includes(key));
-        if (extraFields.length) {
-            return res.status(status.BadRequest).json({ message: `Invalid fields: ${extraFields.join(', ')}` });
-        }
+        const user = await db.User.create(
+            {
+                tenantId: tenantId,
+                roleId: roleId,
+                shortCode: shortCode,
+                firstName: firstName,
+                lastName: lastName,
+                gender: gender,
+                countryCode: countryCode,
+                mobile: mobile,
+                email: email,
+                password: password,
+                passwordShow: passwordShow,
+                profileImage: profileImage,
+                address: address,
+                countryId: countryId,
+                stateId: stateId,
+                cityId: cityId,
+                zipCode: zipCode,
+                birthDate: birthDate,
+                anniversaryDate: anniversaryDate,
+                notificationPlayerId: notificationPlayerId,
+                deviceTokenId: deviceTokenId,
+                status: statusValue,
+                createdBy: req.user.id,
+            },
+            { transaction }
+        );
 
-        const tenant = await db.Tenant.create(payload, { transaction });
         await transaction.commit();
-
-        return res.status(status.OK).json({ message: 'Tenant created successfully', data: tenant });
+        return res.status(status.OK).json({ message: 'User created successfully!', data: user });
     } catch (error) {
         await transaction.rollback();
-        return common.throwException(error, 'Create Tenant', req, res);
+        return common.throwException(error, 'Create User API', req, res);
     }
 };
 
@@ -61,45 +71,6 @@ exports.update = async (req, res) => {
     try {
         const { id } = req.params;
         const payload = req.body;
-
-        const allowedTenantFields = [
-            'shortCode',
-            'companyName',
-            'contactPerson',
-            'countryCode',
-            'mobile',
-            'phoneCountryCode',
-            'phone',
-            'email',
-            'address',
-            'countryId',
-            'stateId',
-            'cityId',
-            'zipCode',
-            'gstNumber',
-            'panNumber',
-            'frontImage',
-            'backImage',
-            'website',
-            'termAndCondition',
-            'returnAndExchange',
-            'status',
-            'emailVerified',
-            'emailVerifiedAt',
-            'createdAt',
-            'updatedAt',
-            'approvedAt',
-            'rejectedAt',
-            'createdBy',
-            'updatedBy',
-            'approvedBy',
-            'rejectedBy',
-            'rejectedReason',
-        ];
-        const extraFields = Object.keys(payload).filter((key) => !allowedTenantFields.includes(key));
-        if (extraFields.length) {
-            return res.status(status.BadRequest).json({ message: `Invalid fields: ${extraFields.join(', ')}` });
-        }
 
         const tenant = await db.Tenant.findByPk(id);
         if (!tenant) {
