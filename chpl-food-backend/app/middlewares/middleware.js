@@ -5,20 +5,16 @@ const { setContextValues } = require('../db/audit-logger/utils');
 
 const authenticateUser = async (req, res, next) => {
     try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(status.Unauthorized).json({ message: 'Unauthorized: Missing or malformed token.' });
+        var token = req.headers.authorization.split(' ')[1] || null;
+        if (!token) {
+            return res.status(status.Unauthorized).json({ message: 'Unauthorized access.' });
         }
-
-        const token = authHeader.split(' ')[1];
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET_ADMIN);
-        if (!decoded) {
-            return res.status(status.Unauthorized).json({ message: 'Unauthorized: Invalid token.' });
-        }
-        
-        console.log('Decoded token:', decoded);
 
+        if (!decoded) {
+            return res.status(status.Unauthorized).json({ message: 'Unauthorized access.' });
+        }
         const user = await db.User.scope('withPassword').findOne({
             attributes: {
                 exclude: ['password', 'passwordShow', 'createdAt', 'createdBy', 'updatedAt', 'updatedBy'],
@@ -28,27 +24,27 @@ const authenticateUser = async (req, res, next) => {
                 {
                     model: db.Role,
                     as: 'Role',
-                    required: false,
                     attributes: ['id', 'name', 'isAdmin', 'type'],
                     where: {
                         status: '1',
                     },
+                    required: false,
                 },
                 {
                     model: db.Tenant,
                     as: 'Tenant',
-                    required: false,
                     attributes: ['id'],
                     where: {
                         status: '1',
                     },
+                    required: false,
                 },
             ],
             disableTenantCheck: true,
         });
         if (!user) {
             return res.status(status.Unauthorized).json({
-                message: 'Unauthorized access not user.',
+                message: 'Unauthorized access.',
             });
         }
 
@@ -57,7 +53,7 @@ const authenticateUser = async (req, res, next) => {
         // let namespace = getNamespace(config.clsNamespace);
         return setContextValues(req, req.user, next);
     } catch (err) {
-        return res.status(status.Unauthorized).json({ message: 'Unauthorized access.' + err.message });
+        return res.status(status.Unauthorized).json({ message: 'Unauthorized access.' });
     }
 };
 
