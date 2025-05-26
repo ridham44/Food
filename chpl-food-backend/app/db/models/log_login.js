@@ -23,7 +23,7 @@ module.exports = (sequelize, Sequelize) => {
             },
             logoutAt: {
                 type: Sequelize.DATE,
-                allowNull: false,
+                allowNull: true,
             },
             sessionDuration: {
                 type: Sequelize.STRING,
@@ -66,6 +66,8 @@ module.exports = (sequelize, Sequelize) => {
         },
         {
             tableName: 'log_login',
+            underscored: false,
+            timestamps: false,
         }
     );
 

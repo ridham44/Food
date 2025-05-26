@@ -23,10 +23,6 @@ var morgan = require('morgan');
 const { responseOverwrite } = require('./app/db/audit-logger/utils');
 // const { initSocket } = require('./app/routes_controller/myoperator/webSocket');
 
-app.use(cors());
-app.use(express.json());
-app.use(bodyParser.json());
-
 //* App Route Versions
 const V1Routes = '/api/v1';
 
@@ -102,7 +98,6 @@ app.use(
 );
 
 //* App Routes
-app.use('/api/v1', require('./app/routes_controller'));
 app.use(V1Routes, require('./app/routes_controller'));
 
 app.get('/', (req, res) => {
