@@ -7,6 +7,45 @@ exports.create = async (req, res) => {
         const payload = req.body;
         payload.createdBy = req.user.id;
 
+        const allowedTenantFields = [
+            'shortCode',
+            'companyName',
+            'contactPerson',
+            'countryCode',
+            'mobile',
+            'phoneCountryCode',
+            'phone',
+            'email',
+            'address',
+            'countryId',
+            'stateId',
+            'cityId',
+            'zipCode',
+            'gstNumber',
+            'panNumber',
+            'frontImage',
+            'backImage',
+            'website',
+            'termAndCondition',
+            'returnAndExchange',
+            'status',
+            'emailVerified',
+            'emailVerifiedAt',
+            'createdAt',
+            'updatedAt',
+            'approvedAt',
+            'rejectedAt',
+            'createdBy',
+            'updatedBy',
+            'approvedBy',
+            'rejectedBy',
+            'rejectedReason',
+        ];
+        const extraFields = Object.keys(payload).filter((key) => !allowedTenantFields.includes(key));
+        if (extraFields.length) {
+            return res.status(status.BadRequest).json({ message: `Invalid fields: ${extraFields.join(', ')}` });
+        }
+
         const tenant = await db.Tenant.create(payload, { transaction });
         await transaction.commit();
 
@@ -22,6 +61,45 @@ exports.update = async (req, res) => {
     try {
         const { id } = req.params;
         const payload = req.body;
+
+        const allowedTenantFields = [
+            'shortCode',
+            'companyName',
+            'contactPerson',
+            'countryCode',
+            'mobile',
+            'phoneCountryCode',
+            'phone',
+            'email',
+            'address',
+            'countryId',
+            'stateId',
+            'cityId',
+            'zipCode',
+            'gstNumber',
+            'panNumber',
+            'frontImage',
+            'backImage',
+            'website',
+            'termAndCondition',
+            'returnAndExchange',
+            'status',
+            'emailVerified',
+            'emailVerifiedAt',
+            'createdAt',
+            'updatedAt',
+            'approvedAt',
+            'rejectedAt',
+            'createdBy',
+            'updatedBy',
+            'approvedBy',
+            'rejectedBy',
+            'rejectedReason',
+        ];
+        const extraFields = Object.keys(payload).filter((key) => !allowedTenantFields.includes(key));
+        if (extraFields.length) {
+            return res.status(status.BadRequest).json({ message: `Invalid fields: ${extraFields.join(', ')}` });
+        }
 
         const tenant = await db.Tenant.findByPk(id);
         if (!tenant) {
@@ -80,7 +158,6 @@ exports.findById = async (req, res) => {
 
 exports.findAll = async (req, res) => {
     try {
-        console.log('findAll tenant called');   
         const tenants = await db.Tenant.findAll({ order: [['createdAt', 'DESC']] });
         return res.status(status.OK).json({ data: tenants });
     } catch (error) {

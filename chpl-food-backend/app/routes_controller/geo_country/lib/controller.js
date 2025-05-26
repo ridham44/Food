@@ -6,6 +6,25 @@ exports.create = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
         const { name, countryCode, currencyCode, telephonePrefix, flag, description } = req.body;
+        const payload = req.body;
+        payload.createdBy = req.user.id;
+        const allowedCountryFields = [
+            'name',
+            'countryCode',
+            'currencyCode',
+            'telephonePrefix',
+            'flag',
+            'description',
+            'status',
+            'createdAt',
+            'updatedAt',
+        ];
+
+        const extraFields = Object.keys(payload).filter((key) => !allowedCountryFields.includes(key));
+        if (extraFields.length) {
+            return res.status(status.BadRequest).json({ message: `Invalid fields: ${extraFields.join(', ')}` });
+        }
+
         const country = await db.GeoCountry.create(
             {
                 name: name,
@@ -27,18 +46,38 @@ exports.create = async (req, res) => {
     }
 };
 exports.update = async (req, res) => {
+    const payload = req.body;
+    payload.createdBy = req.user.id;
+    const allowedCountryFields = [
+        'name',
+        'countryCode',
+        'currencyCode',
+        'telephonePrefix',
+        'flag',
+        'description',
+        'status',
+        'createdAt',
+        'updatedAt',
+    ];
+
+    const extraFields = Object.keys(payload).filter((key) => !allowedCountryFields.includes(key));
+    if (extraFields.length) {
+        return res.status(status.BadRequest).json({ message: `Invalid fields: ${extraFields.join(', ')}` });
+    }
+
     const transaction = await db.sequelize.transaction();
     try {
         const { name, countryCode, currencyCode, telephonePrefix, flag, description } = req.body;
         const existingData = await db.GeoCountry.findOne({
-            where:{
-                id:{[Op.ne]:req.params.id},name:name
-            }
-        })
-        if(existingData){
+            where: {
+                id: { [Op.ne]: req.params.id },
+                name: name,
+            },
+        });
+        if (existingData) {
             return res.status(status.Conflict).json({
-                message:'Country Already exists!'
-            })
+                message: 'Country Already exists!',
+            });
         }
         const countryData = {
             name: name,

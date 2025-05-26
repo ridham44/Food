@@ -6,6 +6,14 @@ exports.create = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
         const { perentId, name, price, filePath, tenantId } = req.body;
+        const payload = req.body;
+        payload.createdBy = req.user.id;
+        const allowedMenuFields = ['parentId', 'name', 'price', 'filePath', 'tenantId', 'createdAt', 'createdBy', 'updatedAt', 'updatedBy'];
+
+        const extraFields = Object.keys(payload).filter((key) => !allowedMenuFields.includes(key));
+        if (extraFields.length) {
+            return res.status(status.BadRequest).json({ message: `Invalid fields: ${extraFields.join(', ')}` });
+        }
 
         const menu = await db.Menu.create(
             {
@@ -28,6 +36,15 @@ exports.create = async (req, res) => {
 };
 
 exports.update = async (req, res) => {
+    const payload = req.body;
+    payload.createdBy = req.user.id;
+    const allowedMenuFields = ['parentId', 'name', 'price', 'filePath', 'tenantId', 'createdAt', 'createdBy', 'updatedAt', 'updatedBy'];
+
+    const extraFields = Object.keys(payload).filter((key) => !allowedMenuFields.includes(key));
+    if (extraFields.length) {
+        return res.status(status.BadRequest).json({ message: `Invalid fields: ${extraFields.join(', ')}` });
+    }
+
     const transaction = await db.sequelize.transaction();
     try {
         const { id } = req.params;

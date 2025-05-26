@@ -7,6 +7,15 @@ exports.create = async (req, res) => {
     try {
         const { name, cityCode, countryId, stateId, description } = req.body;
 
+        const payload = req.body;
+        payload.createdBy = req.user.id;
+        const allowedCityFields = ['name', 'cityCode', 'countryId', 'stateId', 'description', 'status', 'createdAt', 'updatedAt'];
+
+        const extraFields = Object.keys(payload).filter((key) => !allowedCityFields.includes(key));
+        if (extraFields.length) {
+            return res.status(status.BadRequest).json({ message: `Invalid fields: ${extraFields.join(', ')}` });
+        }
+
         const country = await db.GeoCountry.findOne({ where: { id: countryId } });
         if (!country) {
             await transaction.rollback();
@@ -37,6 +46,15 @@ exports.create = async (req, res) => {
     }
 };
 exports.update = async (req, res) => {
+    const payload = req.body;
+    payload.createdBy = req.user.id;
+    const allowedCityFields = ['name', 'cityCode', 'countryId', 'stateId', 'description', 'status', 'createdAt', 'updatedAt'];
+
+    const extraFields = Object.keys(payload).filter((key) => !allowedCityFields.includes(key));
+    if (extraFields.length) {
+        return res.status(status.BadRequest).json({ message: `Invalid fields: ${extraFields.join(', ')}` });
+    }
+
     const transaction = await db.sequelize.transaction();
 
     const { name, cityCode, countryId, stateId, description } = req.body;
@@ -59,14 +77,15 @@ exports.update = async (req, res) => {
             return res.status(status.InternalServerError).json({ message: 'No state found!!' });
         }
         const existingData = await db.GeoCity.findOne({
-            where:{
-               id:{[Op.ne]:req.params.id},name:name
-            }
-        })
-        if(existingData){
+            where: {
+                id: { [Op.ne]: req.params.id },
+                name: name,
+            },
+        });
+        if (existingData) {
             return res.status(status.Conflict).json({
-                message:'City already exists'
-            })
+                message: 'City already exists',
+            });
         }
         const cityData = {
             name: name,

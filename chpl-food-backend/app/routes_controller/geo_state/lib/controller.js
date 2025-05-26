@@ -7,6 +7,16 @@ exports.create = async (req, res) => {
     const { name, stateCode, countryId, description } = req.body;
     try {
         const country = await db.GeoCountry.findOne({ where: { id: countryId } });
+
+        const payload = req.body;
+        payload.createdBy = req.user.id;
+        const allowedStateFields = ['name', 'stateCode', 'countryId', 'description', 'status', 'createdAt', 'updatedAt'];
+
+        const extraFields = Object.keys(payload).filter((key) => !allowedStateFields.includes(key));
+        if (extraFields.length) {
+            return res.status(status.BadRequest).json({ message: `Invalid fields: ${extraFields.join(', ')}` });
+        }
+
         if (!country) {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'No country found!!' });
@@ -31,6 +41,15 @@ exports.create = async (req, res) => {
     }
 };
 exports.update = async (req, res) => {
+    const payload = req.body;
+    payload.createdBy = req.user.id;
+    const allowedStateFields = ['name', 'stateCode', 'countryId', 'description', 'status', 'createdAt', 'updatedAt'];
+
+    const extraFields = Object.keys(payload).filter((key) => !allowedStateFields.includes(key));
+    if (extraFields.length) {
+        return res.status(status.BadRequest).json({ message: `Invalid fields: ${extraFields.join(', ')}` });
+    }
+
     const transaction = await db.sequelize.transaction();
     try {
         const { name, stateCode, countryId, description } = req.body;
@@ -52,14 +71,15 @@ exports.update = async (req, res) => {
             return res.status(status.NotFound).json({ message: 'No country found!!' });
         }
         const existingName = await db.GeoState.findOne({
-            where:{
-                id:{[Op.ne]:id},name:name
-            }
-        })
-        if(existingName){
+            where: {
+                id: { [Op.ne]: id },
+                name: name,
+            },
+        });
+        if (existingName) {
             return res.status(status.Conflict).json({
-                message:'State already exists'
-            })
+                message: 'State already exists',
+            });
         }
         const stateData = {
             name: name,
