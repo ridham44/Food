@@ -5,6 +5,7 @@ exports.create = async (req, res) => {
     const transaction = await db.sequelize.transaction();
 
     try {
+        
         const { name, cityCode, countryId, stateId, description } = req.body;
 
         const payload = req.body;
