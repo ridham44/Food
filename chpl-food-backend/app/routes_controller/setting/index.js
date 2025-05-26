@@ -4,20 +4,28 @@ const { expressValidate } = require('../../../utils/lib/common-function');
 const { validationRules, updateValidations } = require('./lib/validation');
 const controller = require('./lib/controller');
 
-router.post('/', auth, validationRules(), expressValidate, controller.create);
+// Create setting
+router.post('/setting', auth, validationRules(), expressValidate, controller.create);
 
-router.put('/:id', auth, updateValidations(), expressValidate, controller.update);
+// Update setting
+router.put('/setting/:id', auth, updateValidations(), expressValidate, controller.update);
 
-router.delete('/:id', auth, controller.delete);
+// Delete setting
+router.delete('/setting/:id', auth, controller.delete);
 
-router.get('/', auth, controller.findAll);
+// Get all settings
+router.get('/setting', auth, controller.findAll);
 
-router.get('/:id', auth, controller.findById);
-
+// Setting filter options
 router.get('/setting-filter/options', auth, controller.settingForFilter);
 
+// Setting filtration
 router.post('/setting-filter', auth, controller.settingFiltration);
 
-router.put('/status/:id', auth, controller.updateStatus);
+// Update setting status
+router.put('/setting/status/:id', auth, controller.updateStatus);
+
+// Get setting by ID
+router.get('/setting/:id', auth, controller.findById);
 
 module.exports = router;

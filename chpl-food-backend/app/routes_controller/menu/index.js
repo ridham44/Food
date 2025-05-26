@@ -4,18 +4,25 @@ const { expressValidate } = require('../../../utils/lib/common-function');
 const { validationRules, updateValidations } = require('./lib/validation');
 const controller = require('./lib/controller');
 
-router.post('/', auth, validationRules(), expressValidate, controller.create);
+// Create menu
+router.post('/menu', auth, validationRules(), expressValidate, controller.create);
 
-router.put('/:id', auth, updateValidations(), expressValidate, controller.update);
+// Update menu
+router.put('/menu/:id', auth, updateValidations(), expressValidate, controller.update);
 
-router.delete('/:id', auth, controller.delete);
+// Delete menu
+router.delete('/menu/:id', auth, controller.delete);
 
-router.get('/', auth, controller.findAll);
+// Get all menus
+router.get('/menu', auth, controller.findAll);
 
-router.get('/:id', auth, controller.findById);
+// Get menu by ID
+router.get('/menu/:id', auth, controller.findById);
 
+// Menu filtration
 router.post('/menu-filter', auth, controller.menuFiltration);
 
+// Menu filter options
 router.get('/menu-filter/options', auth, controller.menuForFilter);
 
 module.exports = router;

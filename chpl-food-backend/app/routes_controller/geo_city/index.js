@@ -1,37 +1,34 @@
 const router = require('express').Router();
-const controller = require('./lib/controller');
 const auth = require('../../middlewares/middleware');
 const { expressValidate } = require('../../../utils/lib/common-function');
-const { validationRules, updateValidations } = require('./lib/validation');
+const { validationRules ,updateValidations} = require('./lib/validation');
+const controller = require('./lib/controller');
 
-// Create city
-router.post('/', auth, validationRules(), expressValidate, controller.create);
+// create country
+router.post('/country', auth, validationRules(), expressValidate, controller.create);
 
-// Update city
-router.put('/:id', auth, updateValidations(), expressValidate, controller.update);
+// update country
+router.put('/country/:id', auth, updateValidations(), expressValidate, controller.update);
 
-// Delete city
-router.delete('/:id', auth, controller.delete);
+// delete country
+router.delete('/country/:id', auth, controller.delete);
 
-// Get all cities
-router.get('/', auth, controller.findAll);
+// get all with filter
+router.post('/country-filter', auth, controller.countryFiltration);
 
-// Get city by ID
-router.get('/:id', auth, controller.findById);
+// get filter options
+router.get('/country-filter/options', auth, controller.countryForFilter);
 
-// Filter cities (pagination, search, etc.)
-router.post('/city-filter', auth, controller.cityFiltration);
+// get all country
+router.get('/country', auth, controller.findAll);
 
-// Get filter dropdown options
-router.get('/city-filter/options', auth, controller.cityForFilter);
+//get country Options
+router.get('/country/options', auth, controller.findAll);
 
-// Get all city options (e.g., for dropdowns)
-router.get('/options', auth, controller.findAll);
+// find by id
+router.get('/country/:id', auth, controller.findById);
 
-// Cascade fetch: get all cities for a state ID
-router.get('/cascade/:id', auth, controller.findAll);
-
-// Update city status
-router.put('/status/:id', auth, controller.updateStatus);
+// update country status
+router.put('/country/status/:id', auth, controller.updateStatus);
 
 module.exports = router;

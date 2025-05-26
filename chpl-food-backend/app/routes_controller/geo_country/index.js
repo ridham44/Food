@@ -1,34 +1,27 @@
 const router = require('express').Router();
+const controller = require('./lib/controller');
 const auth = require('../../middlewares/middleware');
 const { expressValidate } = require('../../../utils/lib/common-function');
-const { validationRules, updateValidations } = require('./lib/validation');
-const controller = require('./lib/controller');
+const { validationRules,updateValidations } = require('./lib/validation');
 
-// Create country
-router.post('/', auth, validationRules(), expressValidate, controller.create);
+router.post('/city', auth, validationRules(), expressValidate, controller.create);
 
-// Update country
-router.put('/:id', auth, updateValidations(), expressValidate, controller.update);
+router.put('/city/:id', auth, updateValidations(), expressValidate, controller.update);
 
-// Delete country
-router.delete('/:id', auth, controller.delete);
+router.delete('/city/:id', auth, controller.delete);
 
-// Get all countries
-router.get('/', auth, controller.findAll);
+router.post('/city-filter', auth, controller.cityFiltration);
 
-// Get country by ID
-router.get('/:id', auth, controller.findById);
+router.get('/city-filter/options', auth, controller.cityForFilter);
 
-// Filter countries (pagination, search, etc.)
-router.post('/country-filter', auth, controller.countryFiltration);
+router.get('/city/options', auth, controller.findAll);
 
-// Get dropdown filter options
-router.get('/country-filter/options', auth, controller.countryForFilter);
+router.get('/city', auth, controller.findAll);
 
-// Get country options (e.g., for dropdowns)
-router.get('/options', auth, controller.findAll);
+router.get('/city/cascade/:id', auth, controller.findAll);
 
-// Update country status
-router.put('/status/:id', auth, controller.updateStatus);
+router.get('/city/:id', auth, controller.findById);
+
+router.put('/city/status/:id', auth, controller.updateStatus);
 
 module.exports = router;

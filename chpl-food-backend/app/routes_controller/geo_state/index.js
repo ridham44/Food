@@ -2,36 +2,36 @@ const router = require('express').Router();
 const controller = require('./lib/controller');
 const auth = require('../../middlewares/middleware');
 const { expressValidate } = require('../../../utils/lib/common-function');
-const { validationRules, updateValidations } = require('./lib/validation');
+const { validationRules,updateValidations } = require('./lib/validation');
 
-// Create state
-router.post('/', auth, validationRules(), expressValidate, controller.create);
+//create state
+router.post('/state', auth, validationRules(), expressValidate, controller.create);
 
-// Update state
-router.put('/:id', auth, updateValidations(), expressValidate, controller.update);
+//update state
+router.put('/state/:id', auth,updateValidations(),expressValidate, controller.update);
 
-// Delete state
-router.delete('/:id', auth, controller.delete);
+//delete state
+router.delete('/state/:id', auth, controller.delete);
 
-// Get all states
-router.get('/', auth, controller.findAll);
-
-// Get state by ID
-router.get('/:id', auth, controller.findById);
-
-// Filter states (pagination, search, etc.)
+//get all with filter
 router.post('/state-filter', auth, controller.stateFiltration);
 
-// Get filter dropdown options
+//get filter options
 router.get('/state-filter/options', auth, controller.stateForFilter);
 
-// Get all states by country ID (cascading)
-router.get('/cascade/:id', auth, controller.findAll);
+//get all state
+router.get('/state', auth, controller.findAll);
 
-// Get state options for dropdown
-router.get('/options', auth, controller.findAll);
+// get all state by country id
+router.get('/state/cascade/:id', auth, controller.findAll);
 
-// Update state status
-router.put('/status/:id', auth, controller.updateStatus);
+//get state options
+router.get('/state/options', auth, controller.findAll);
+
+//find by id
+router.get('/state/:id', auth, controller.findById);
+
+//update state status
+router.put('/state/status/:id', auth, controller.updateStatus);
 
 module.exports = router;

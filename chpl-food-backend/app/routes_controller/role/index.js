@@ -4,21 +4,28 @@ const { expressValidate } = require('../../../utils/lib/common-function');
 const { validationRules, updateValidations } = require('./lib/validation');
 const controller = require('./lib/controller');
 
-router.post('/', auth, validationRules(), expressValidate, controller.create);
+// Create role
+router.post('/role', auth, validationRules(), expressValidate, controller.create);
 
-router.put('/:id', auth, updateValidations(), expressValidate, controller.update);
+// Update role
+router.put('/role/:id', auth, updateValidations(), expressValidate, controller.update);
 
-router.delete('/:id', auth, controller.delete);
+// Delete role
+router.delete('/role/:id', auth, controller.delete);
 
-router.get('/', auth, controller.findAll);
+// Get all roles
+router.get('/role', auth, controller.findAll);
 
-router.get('/:id', auth, controller.findById);
-
+// Role filter options
 router.get('/role-filter/options', auth, controller.roleForFilter);
 
+// Role filtration
 router.post('/role-filter', auth, controller.roleFiltration);
 
-router.put('/status/:id', auth, controller.updateStatus);
+// Update role status
+router.put('/role/status/:id', auth, controller.updateStatus);
 
+// Get role by ID
+router.get('/role/:id', auth, controller.findById);
 
 module.exports = router;

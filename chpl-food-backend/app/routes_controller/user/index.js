@@ -54,37 +54,37 @@ const uploads = multer({
     fileFilter: fileFilter,
 });
 
-// Create user
-router.post('/', auth, uploads.single('profileImage'), multerMiddleware, createUserRules(), expressValidate, controller.create);
-
-// Get all users (paginated with filter)
-router.post('/user-filter', auth, controller.userFiltration);
-
-// Get filter dropdown options
-router.get('/user-filter/options', auth, controller.userForFilter);
-
-// Get user by ID
-router.get('/:id', auth, controller.findById);
-
-// Update user
-router.put('/:id', auth, uploads.single('profileImage'), multerMiddleware, updateUserRules(), expressValidate, controller.update);
-
-// Update user status
-router.put('/status/:id', auth, controller.updateStatus);
-
-// Delete user
-router.delete('/:id', auth, controller.delete);
-
-// Change user password (profile)
-router.put('/profile/change-password', auth, changePassword(), expressValidate, controller.changePassword);
-
-// Forgot password
-router.put('/forgot-password', controller.forgotPassword);
-
-// Login with password
+// Login With Password
 router.post('/login/with-password', loginRules(), expressValidate, controller.loginWithPassword);
 
-// Login with auth (e.g. social login)
+// Login With Auth
 router.post('/login/with-auth', loginWithAuthRules(), expressValidate, controller.loginWithSocial);
+
+// create user
+router.post('/user', auth, uploads.single('profileImage'), multerMiddleware, createUserRules(), expressValidate, controller.create);
+
+// get all user
+router.post('/user-filter', auth, controller.userFiltration);
+
+// filter options
+router.get('/user-filter/options', auth, controller.userForFilter);
+
+// get user
+router.get('/user/:id', auth, controller.findById);
+
+// update user
+router.put('/user/:id', auth, uploads.single('profileImage'), multerMiddleware, updateUserRules(), expressValidate, controller.update);
+
+// update user status
+router.put('/user/status/:id', auth, controller.updateStatus);
+
+// delete user
+router.delete('/user/:id', auth, controller.delete);
+
+// change password
+router.put('/profile/change-password', auth, changePassword(), expressValidate, controller.changePassword);
+
+// forgot-password
+router.put('/forgot-password', controller.forgotPassword);
 
 module.exports = router;
