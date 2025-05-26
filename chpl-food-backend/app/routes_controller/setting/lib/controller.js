@@ -28,14 +28,6 @@ exports.create = async (req, res) => {
 };
 
 exports.update = async (req, res) => {
-    const payload = req.body;
-    payload.createdBy = req.user.id;
-    const allowedSettingFields = ['title', 'key', 'value', 'remark', 'status', 'createdAt', 'createdBy', 'updatedAt', 'updatedBy'];
-    const extraFields = Object.keys(payload).filter((key) => !allowedSettingFields.includes(key));
-    if (extraFields.length) {
-        return res.status(status.BadRequest).json({ message: `Invalid fields: ${extraFields.join(', ')}` });
-    }
-
     const transaction = await db.sequelize.transaction();
     try {
         const { title, key, value, remark, status: statusValue } = req.body;
