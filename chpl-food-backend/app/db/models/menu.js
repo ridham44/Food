@@ -34,22 +34,18 @@ module.exports = (sequelize, Sequelize) => {
                 allowNull: false,
                 defaultValue: sequelize.literal('CURRENT_TIMESTAMP'),
             },
-            createdBy: {
-                type: Sequelize.UUID,
-                allowNull: false,
-            },
             updatedAt: {
                 type: Sequelize.DATE,
                 defaultValue: sequelize.literal('CURRENT_TIMESTAMP'),
                 allowNull: true,
             },
-            updatedBy: {
-                type: Sequelize.UUID,
-                allowNull: true,
-            },
         },
         {
             tableName: 'menu',
+            customOptions: {
+                createdBy: { value: true },
+                updatedBy: { value: true },
+            },
         }
     );
 

@@ -36,31 +36,6 @@ module.exports = (sequelize, Sequelize) => {
                 allowNull: false,
                 defaultValue: sequelize.literal('CURRENT_TIMESTAMP'),
             },
-            createdBy: {
-                type: Sequelize.UUID,
-                allowNull: false,
-                association: {
-                    model: 'User',
-                    key: 'id',
-                    onUpdate: 'CASCADE',
-                    onDelete: 'RESTRICT',
-                    belongsToAlias: 'CreatedByUser',
-                    hasManyAlias: 'CreatedSettings',
-                },
-            },
-            updatedBy: {
-                type: Sequelize.UUID,
-                allowNull: true,
-                association: {
-                    model: 'User',
-                    key: 'id',
-                    onUpdate: 'CASCADE',
-                    onDelete: 'RESTRICT',
-                    belongsToAlias: 'UpdatedByUser',
-                    hasManyAlias: 'UpdatedSettings',
-                },
-            },
-
             updatedAt: {
                 type: Sequelize.DATE,
                 defaultValue: sequelize.literal('CURRENT_TIMESTAMP'),
@@ -70,6 +45,10 @@ module.exports = (sequelize, Sequelize) => {
 
         {
             tableName: 'setting',
+            customOptions: {
+                createdBy: { value: true },
+                updatedBy: { value: true },
+            },
         }
     );
 

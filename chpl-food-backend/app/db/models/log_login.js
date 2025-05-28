@@ -51,23 +51,14 @@ module.exports = (sequelize, Sequelize) => {
                 allowNull: false,
                 defaultValue: sequelize.literal('CURRENT_TIMESTAMP'),
             },
-            createdBy: {
-                type: Sequelize.UUID,
-                allowNull: false,
-                association: {
-                    model: 'User',
-                    key: 'id',
-                    onUpdate: 'CASCADE',
-                    onDelete: 'RESTRICT',
-                    belongsToAlias: 'User',
-                    hasManyAlias: 'LogLogin',
-                },
-            },
         },
         {
             tableName: 'log_login',
             underscored: false,
             timestamps: false,
+            customOptions: {
+                createdBy: { value: true },
+            },
         }
     );
 
