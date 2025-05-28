@@ -3,36 +3,34 @@ const bcrypt = require('bcryptjs');
 const db = require('../../db/models');
 const { status } = require('../../../utils');
 const { Op } = require('sequelize');
+const { Enums } = require('../../../utils/lib/enums');
 
 exports.login = async (req, res) => {
     try {
         const { identifier, password } = req.body;
 
         if (!identifier || !password) {
-            return res.status(400).json({ message: 'Email or mobile number and password are required.' });
+            return res.status(status.BadRequest).json({ message: 'Email or mobile number and password are required.' });
         }
 
         const user = await db.User.scope(['withPassword', 'withoutTenant']).findOne({
             where: {
-                [Op.or]: [
-                    { email: identifier },
-                    { mobile: identifier }
-                ],
-                status: '1'
+                [Op.or]: [{ email: identifier }, { mobile: identifier }],
+                status: Enums.Status.get('Active').value,
             },
             include: [
                 {
                     model: db.Role,
                     as: 'Role',
                     required: false,
-                    where: { status: '1' },
+                    where: { status: Enums.Status.get('Active').value },
                     disableTenantCheck: true,
                 },
                 {
                     model: db.Tenant,
                     as: 'Tenant',
                     required: false,
-                    where: { status: '1' },
+                    where: { status: Enums.Status.get('Active').value },
                     disableTenantCheck: true,
                 },
             ],
