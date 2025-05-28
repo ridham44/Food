@@ -105,67 +105,37 @@ exports.update = async (req, res) => {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'Tenant not found' });
         }
-
-        tenant.shortCode = shortCode;
-        tenant.companyName = companyName;
-        tenant.contactPerson = contactPerson;
-        tenant.countryCode = countryCode;
-        tenant.mobile = mobile;
-        tenant.phoneCountryCode = phoneCountryCode;
-        tenant.phone = phone;
-        tenant.email = email;
-        tenant.address = address;
-        tenant.countryId = countryId;
-        tenant.stateId = stateId;
-        tenant.cityId = cityId;
-        tenant.zipCode = zipCode;
-        tenant.gstNumber = gstNumber;
-        tenant.panNumber = panNumber;
-        tenant.frontImage = frontImage;
-        tenant.backImage = backImage;
-        tenant.website = website;
-        tenant.termAndCondition = termAndCondition;
-        tenant.returnAndExchange = returnAndExchange;
-        tenant.status = statusValue;
-        tenant.emailVerified = emailVerified;
-        tenant.emailVerifiedAt = emailVerifiedAt;
-        tenant.approvedAt = approvedAt;
-        tenant.rejectedAt = rejectedAt;
-        tenant.approvedBy = approvedBy;
-        tenant.rejectedBy = rejectedBy;
-        tenant.rejectedReason = rejectedReason;
-        tenant.updatedBy = req.user.id;
-
-        tenant.shortCode = shortCode;
-        tenant.companyName = companyName;
-        tenant.contactPerson = contactPerson;
-        tenant.countryCode = countryCode;
-        tenant.mobile = mobile;
-        tenant.phoneCountryCode = phoneCountryCode;
-        tenant.phone = phone;
-        tenant.email = email;
-        tenant.address = address;
-        tenant.countryId = countryId;
-        tenant.stateId = stateId;
-        tenant.cityId = cityId;
-        tenant.zipCode = zipCode;
-        tenant.gstNumber = gstNumber;
-        tenant.panNumber = panNumber;
-        tenant.frontImage = frontImage;
-        tenant.backImage = backImage;
-        tenant.website = website;
-        tenant.termAndCondition = termAndCondition;
-        tenant.returnAndExchange = returnAndExchange;
-        tenant.status = statusValue;
-        tenant.emailVerified = emailVerified;
-        tenant.emailVerifiedAt = emailVerifiedAt;
-        tenant.approvedAt = approvedAt;
-        tenant.rejectedAt = rejectedAt;
-        tenant.approvedBy = approvedBy;
-        tenant.rejectedBy = rejectedBy;
-        tenant.rejectedReason = rejectedReason;
-        tenant.updatedBy = req.user.id;
-
+        tenant.set({
+            shortCode: shortCode,
+            companyName: companyName,
+            contactPerson: contactPerson,
+            countryCode: countryCode,
+            mobile: mobile,
+            phoneCountryCode: phoneCountryCode,
+            phone: phone,
+            email: email,
+            address: address,
+            countryId: countryId,
+            stateId: stateId,
+            cityId: cityId,
+            zipCode: zipCode,
+            gstNumber: gstNumber,
+            panNumber: panNumber,
+            frontImage: frontImage,
+            backImage: backImage,
+            website: website,
+            termAndCondition: termAndCondition,
+            returnAndExchange: returnAndExchange,
+            status: statusValue,
+            emailVerified: emailVerified,
+            emailVerifiedAt: emailVerifiedAt,
+            approvedAt: approvedAt,
+            rejectedAt: rejectedAt,
+            approvedBy: approvedBy,
+            rejectedBy: rejectedBy,
+            rejectedReason: rejectedReason,
+            updatedBy: req.user.id,
+        });
         await tenant.save({ transaction });
         await transaction.commit();
 
