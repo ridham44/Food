@@ -100,12 +100,41 @@ exports.update = async (req, res) => {
             rejectedBy,
             rejectedReason,
         } = req.body;
-
         const tenant = await db.Tenant.findByPk(id);
         if (!tenant) {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'Tenant not found' });
         }
+
+        tenant.shortCode = shortCode;
+        tenant.companyName = companyName;
+        tenant.contactPerson = contactPerson;
+        tenant.countryCode = countryCode;
+        tenant.mobile = mobile;
+        tenant.phoneCountryCode = phoneCountryCode;
+        tenant.phone = phone;
+        tenant.email = email;
+        tenant.address = address;
+        tenant.countryId = countryId;
+        tenant.stateId = stateId;
+        tenant.cityId = cityId;
+        tenant.zipCode = zipCode;
+        tenant.gstNumber = gstNumber;
+        tenant.panNumber = panNumber;
+        tenant.frontImage = frontImage;
+        tenant.backImage = backImage;
+        tenant.website = website;
+        tenant.termAndCondition = termAndCondition;
+        tenant.returnAndExchange = returnAndExchange;
+        tenant.status = statusValue;
+        tenant.emailVerified = emailVerified;
+        tenant.emailVerifiedAt = emailVerifiedAt;
+        tenant.approvedAt = approvedAt;
+        tenant.rejectedAt = rejectedAt;
+        tenant.approvedBy = approvedBy;
+        tenant.rejectedBy = rejectedBy;
+        tenant.rejectedReason = rejectedReason;
+        tenant.updatedBy = req.user.id;
 
         tenant.shortCode = shortCode;
         tenant.companyName = companyName;
