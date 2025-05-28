@@ -136,29 +136,9 @@ module.exports = (sequelize, Sequelize) => {
                 allowNull: false,
                 onCreate: sequelize.literal('CURRENT_TIMESTAMP'),
             },
-            createdBy: {
-                type: Sequelize.UUID,
-                allowNull: false,
-                association: {
-                    model: 'User',
-                    key: 'id',
-                    onUpdate: 'CASCADE',
-                    onDelete: 'RESTRICT',
-                },
-            },
             updatedAt: {
                 type: Sequelize.DATE,
                 onUpdate: sequelize.literal('CURRENT_TIMESTAMP'),
-            },
-            updatedBy: {
-                type: Sequelize.UUID,
-                allowNull: true,
-                association: {
-                    model: 'User',
-                    key: 'id',
-                    onUpdate: 'CASCADE',
-                    onDelete: 'RESTRICT',
-                },
             },
             approvedAt: {
                 type: Sequelize.DATE,
@@ -193,7 +173,6 @@ module.exports = (sequelize, Sequelize) => {
                 allowNull: true,
             },
         },
-
         {
             tableName: 'tenant',
             customOptions: {
