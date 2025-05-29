@@ -4,8 +4,11 @@ const db = require('../../db/models');
 const { status } = require('../../../utils');
 const { Op } = require('sequelize');
 const Enums = require('../../../utils/lib/enums');
+const common = require('../../../utils/lib/common-function');
+
 
 exports.login = async (req, res) => {
+    const t = await db.sequelize.transaction();
     try {
         const { identifier, password } = req.body;
         const activeStatus = Enums.Status.get('Active').value;
@@ -46,16 +49,46 @@ exports.login = async (req, res) => {
             return res.status(status.Unauthorized).json({ message: 'Invalid password.' });
         }
 
-        const token = jwt.sign({ user: { id: user.id } }, process.env.JWT_SECRET_ADMIN, {
-            expiresIn: '1d',
-        });
+        const token = jwt.sign(
+            { user: { id: user.id } },
+            process.env.JWT_SECRET_ADMIN,
+            { expiresIn: '1d' }
+        );
+
+        const userAgent = req.headers['user-agent'] || '';
+        const isMobile = /Mobi|Android|iPhone|iPad|iPod|IEMobile|Opera Mini/i.test(userAgent);
+
+        const latestLoginData = {
+            userId: user.id,
+            loginAt: new Date(),
+            logoutAt: null,
+            sessionDuration: null,
+            ipAddress: common.getUserIP(req),
+            browserDetail: userAgent,
+            isLogin: Enums.isLogin.Login,
+            deviceType: isMobile ? Enums.deviceType.Mobile : Enums.deviceType.Web,
+            tenantId: user?.Tenant?.id,
+            createdBy: user.id,
+        };
+
+        await db.LogLogin.create(latestLoginData, { transaction: t });
+
+        await t.commit();
 
         return res.status(status.OK).json({
             message: 'Login successful',
-            token,
+            accessToken: token,
+            userData: {
+                id: user.id,
+                email: user.email,
+                mobile: user.mobile,
+                role: user.Role ? user.Role.name : null,
+                tenant: user.Tenant ? user.Tenant.name : null,
+            },
         });
     } catch (error) {
         console.error('Login error:', error);
+        await t.rollback();
         return res.status(status.ServerError || 500).json({
             message: 'Login failed',
             error: error.message,
