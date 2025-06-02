@@ -84,7 +84,9 @@ exports.findById = async (req, res) => {
     try {
         const { id } = req.params;
         const menu = await db.Menu.findByPk(id);
-        if (!menu) return res.status(status.NotFound).json({ message: 'Menu not found!' });
+        if (!menu) {
+            return res.status(status.NotFound).json({ message: 'Menu not found!' });
+        }
         return res.status(status.OK).json({ data: menu });
     } catch (error) {
         return common.throwException(error, 'Find Menu By ID', req, res);
