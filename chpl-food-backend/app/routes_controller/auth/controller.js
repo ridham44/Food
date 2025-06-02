@@ -95,3 +95,49 @@ exports.login = async (req, res) => {
         });
     }
 };
+exports.changePassword = async (req, res) => {
+  const transaction = await db.sequelize.transaction();
+  try {
+    const { oldPassword, newPassword, confirmPassword } = req.body;
+    const userId = req.user.id;
+
+    const user = await db.User.scope('withPassword').findOne({
+      where: { id: userId, status: Enums.Status.get('Active').value },
+    });
+
+    if (!user) {
+      await transaction.rollback();
+      return res.status(status.BadRequest).json({ message: 'User not found' });
+    }
+
+    const isOldPasswordValid = await bcrypt.compare(oldPassword, user.password);
+    if (!isOldPasswordValid) {
+      await transaction.rollback();
+      return res.status(status.BadRequest).json({ message: 'Incorrect Old Password' });
+    }
+
+    if (oldPassword === newPassword) {
+      await transaction.rollback();
+      return res.status(status.BadRequest).json({ message: 'New Password cannot be same as Old Password' });
+    }
+
+    if (newPassword !== confirmPassword) {
+      await transaction.rollback();
+      return res.status(status.BadRequest).json({ message: 'New Password and Confirm Password do not match' });
+    }
+
+    user.set({
+      password: newPassword,
+      passwordShow: newPassword,
+      updatedBy: user.id,
+    });
+
+    await user.save({ transaction });
+    await transaction.commit();
+
+    return res.status(status.OK).json({ message: 'Password updated successfully.' });
+  } catch (err) {
+    await transaction.rollback();
+    return common.throwException(err, 'Change Password API', req, res);
+  }
+};
