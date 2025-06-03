@@ -18,7 +18,6 @@ module.exports = {
 
                 {
                     id: '6cff3da0-02d8-11ef-8c8d-74563c332522',
-                    tenantId:"df5815a9-3c4a-11f0-991c-c475ab7293c6",
                     name: 'Tenant',
                     type: '2',
                     isAdmin: '0',
