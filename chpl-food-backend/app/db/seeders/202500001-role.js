@@ -7,6 +7,7 @@ module.exports = {
             [
                 {
                     id: '6cff3d9f-02d8-11ef-8c8d-74563c332521',
+                    tenantId : '07c97d5c-4108-11f0-96fd-c475ab7293c6',
                     name: 'Main Admin',
                     type: '1',
                     isAdmin: '1',
@@ -18,6 +19,7 @@ module.exports = {
 
                 {
                     id: '6cff3da0-02d8-11ef-8c8d-74563c332522',
+                    tenantId : '07c97d5c-4108-11f0-96fd-c475ab7293c6',
                     name: 'Tenant',
                     type: '2',
                     isAdmin: '0',
@@ -29,6 +31,7 @@ module.exports = {
 
                 {
                     id: '6cff3da0-02d8-11ef-8c8d-74563c33253',
+                    tenantId : '07c97d5c-4108-11f0-96fd-c475ab7293c6',
                     name: 'User',
                     type: '3',
                     isAdmin: '0',
