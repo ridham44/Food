@@ -212,3 +212,26 @@ exports.updateStatus = async (req, res) => {
         return common.throwException(error, 'Update Status', req, res);
     }
 };
+
+exports.findByCreatedUserId = async (req, res) => {
+    try {
+        if (!req.user) {
+            return res.status(status.Unauthorized).json({ message: 'Unauthorized' });
+        }
+
+        const { userId } = req.params;
+
+        if (!userId) {
+            return res.status(status.BadRequest).json({ message: 'User ID is required.' });
+        }
+
+        const tenants = await db.Tenant.findAll({
+            where: { createdBy: userId },
+            order: [['createdAt', 'DESC']],
+        });
+
+        return res.status(status.OK).json({ data: tenants });
+    } catch (error) {
+        return common.throwException(error, 'Find Tenant By Created User ID', req, res);
+    }
+};

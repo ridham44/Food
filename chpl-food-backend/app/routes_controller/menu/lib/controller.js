@@ -66,7 +66,7 @@ exports.delete = async (req, res) => {
             return res.status(status.NotFound).json({ message: 'Menu not found!' });
         }
 
-        const hasChildren = await db.Menu.findOne({ where: { perentId: id } });
+        const hasChildren = await db.Menu.findOne({ where: { parentId: id } });
         if (hasChildren) {
             return res.status(status.Conflict).json({ message: 'Menu has child entries and cannot be deleted.' });
         }

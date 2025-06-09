@@ -28,4 +28,7 @@ router.put('/setting/status/:id', auth, controller.updateStatus);
 // Get setting by ID
 router.get('/setting/:id', auth, controller.findById);
 
+// Finding settings by created user ID
+router.get('/setting/by-user/:userId',auth, controller.findByCreatedUserId);
+
 module.exports = router;

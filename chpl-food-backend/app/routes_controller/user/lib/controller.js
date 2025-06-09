@@ -11,7 +11,7 @@ exports.loginWithPassword = async (req, res) => {
     try {
         const { body } = req;
 
-        const userType = req.headers.usertype || 12;
+        // const userType = req.headers.usertype || 12;
 
         const user = await db.User.scope('withPassword').findOne({
             where: {
@@ -23,7 +23,7 @@ exports.loginWithPassword = async (req, res) => {
                     as: 'Role',
                     attributes: ['id', 'name'],
                     where: {
-                        type: userType,
+                        //  type: userType,
                     },
                 },
                 {
@@ -86,7 +86,8 @@ exports.loginWithPassword = async (req, res) => {
             browserDetail: req.headers['user-agent'],
             isLogin: enums.isLogin.Login,
             deviceType: isMobile ? enums.deviceType.Mobile : enums.deviceType.Web,
-            tenantId: user.tenantId,
+            tenantId: user?.Tenant?.id,
+            createdBy: user?.id,
         };
 
         const responseData = {
@@ -289,7 +290,7 @@ exports.userFiltration = async (req, res) => {
         if (body) userFilter = await findWithFilters.findWithFilters(body, db.User);
 
         let whereCondition = {
-            id:{ [Op.ne]: user.id },
+            id: { [Op.ne]: user.id },
             ...userFilter.filterCondition,
         };
 
@@ -491,7 +492,7 @@ exports.create = async (req, res) => {
             disableTenantCheck: true,
             transaction,
         });
- 
+
         if (!checkRoleExist) {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'Role not found!' });
@@ -510,7 +511,7 @@ exports.create = async (req, res) => {
             shortCode: body.shortCode || 'MYCOPOS00010',
             gender: body.gender,
             countryCode: body.countryCode,
-            profileImage: file ? `/${file.path}` : null,
+            profileImage: file ? `/${file.path.replace(/\\/g, '/')}` : null,
             address: body.address,
             countryId: body.countryId,
             stateId: body.stateId,
@@ -739,7 +740,6 @@ exports.forgotPassword = async (req, res) => {
         if (!user) {
             return res.status(status.NotFound).json({ message: 'Invalid Email Address' });
         }
-
         // Generate new password
         const newPassword = generateRandomPassword();
 

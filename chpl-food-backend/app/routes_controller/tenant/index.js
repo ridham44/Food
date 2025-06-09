@@ -104,4 +104,8 @@ router.post('/tenant-filter', auth, controller.tenantFiltration);
 // Update tenant status
 router.put('/tenant/status/:id', auth, controller.updateStatus);
 
+// Finding tenants by created user ID
+router.get('/tenant/by-user/:userId',auth, controller.findByCreatedUserId);
+
+
 module.exports = router;

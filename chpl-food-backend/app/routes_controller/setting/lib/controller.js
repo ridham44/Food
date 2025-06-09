@@ -177,3 +177,20 @@ exports.settingForFilter = async (req, res) => {
         return common.throwException(error, 'Setting Filter Config', req, res);
     }
 };
+exports.findByCreatedUserId = async (req, res) => {
+    try {
+        if (!req.user) {
+            return res.status(status.Unauthorized).json({ message: 'Unauthorized' });
+        }
+        const { userId } = req.params;
+
+        const settings = await db.Setting.findAll({
+            where: { createdBy: userId },
+            order: [['createdAt', 'DESC']],
+        });
+
+        return res.status(status.OK).json({ data: settings });
+    } catch (error) {
+        return common.throwException(error, 'Find Settings by Created User ID API', req, res);
+    }
+};
