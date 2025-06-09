@@ -16,7 +16,7 @@ module.exports = {
     roleType: {
         AdminUser: '1',
         Tenant: '2',
-        Store: '3',
+        Customer: '3',
     },
     EmailType: {
         Gmail: '0',

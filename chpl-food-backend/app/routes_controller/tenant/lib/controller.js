@@ -31,11 +31,6 @@ exports.create = async (req, res) => {
                 status: body.status,
                 emailVerified: body.emailVerified,
                 emailVerifiedAt: body.emailVerifiedAt,
-                approvedAt: body.approvedAt,
-                rejectedAt: body.rejectedAt,
-                approvedBy: body.approvedBy,
-                rejectedBy: body.rejectedBy,
-                rejectedReason: body.rejectedReason,
                 updatedBy: user.id,
             },
             { transaction }
@@ -85,11 +80,6 @@ exports.update = async (req, res) => {
             status: body.status,
             emailVerified: body.emailVerified,
             emailVerifiedAt: body.emailVerifiedAt,
-            approvedAt: body.approvedAt,
-            rejectedAt: body.rejectedAt,
-            approvedBy: body.approvedBy,
-            rejectedBy: body.rejectedBy,
-            rejectedReason: body.rejectedReason,
             updatedBy: user.id,
         });
 
@@ -193,7 +183,13 @@ exports.updateStatus = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
         const { id } = req.params;
-        const { status: newStatus } = req.body;
+        const { status: newStatus, rejectedReason } = req.body;
+
+        const role = await db.Role.findByPk(req.user.roleId);
+        if (!role || !role.name.toLowerCase().includes('admin')) {
+            await transaction.rollback();
+            return res.status(status.Forbidden).json({ message: `Only admin can update status.` });
+        }
 
         const tenant = await db.Tenant.findByPk(id);
         if (!tenant) {
@@ -201,11 +197,43 @@ exports.updateStatus = async (req, res) => {
             return res.status(status.NotFound).json({ message: 'Tenant not found' });
         }
 
+        // Status-specific handling
+        if (newStatus === 1) {
+            // Approved
+            tenant.approvedAt = new Date();
+            tenant.approvedBy = req.user.id;
+            tenant.rejectedAt = null;
+            tenant.rejectedBy = null;
+            tenant.rejectedReason = null;
+        } else if (newStatus === 3) {
+            // Rejected
+            if (!rejectedReason) {
+                await transaction.rollback();
+                return res.status(status.BadRequest).json({ message: 'rejectedReason is required for status = Rejected' });
+            }
+            tenant.rejectedAt = new Date();
+            tenant.rejectedBy = req.user.id;
+            tenant.rejectedReason = rejectedReason;
+            tenant.approvedAt = null;
+            tenant.approvedBy = null;
+        } else if (newStatus === 0 || newStatus === 2) {
+            // Pending or InProgress
+            tenant.approvedAt = null;
+            tenant.approvedBy = null;
+            tenant.rejectedAt = null;
+            tenant.rejectedBy = null;
+            tenant.rejectedReason = null;
+        } else {
+            await transaction.rollback();
+            return res.status(status.BadRequest).json({ message: 'Invalid status value' });
+        }
+
         tenant.status = newStatus;
         tenant.updatedBy = req.user.id;
-        await tenant.save({ transaction });
 
+        await tenant.save({ transaction });
         await transaction.commit();
+
         return res.status(status.OK).json({ message: 'Status updated successfully', data: tenant });
     } catch (error) {
         await transaction.rollback();
