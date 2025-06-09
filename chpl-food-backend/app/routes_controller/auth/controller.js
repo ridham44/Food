@@ -138,3 +138,23 @@ exports.changePassword = async (req, res) => {
         return common.throwException(err, 'Change Password API', req, res);
     }
 };
+exports.findUserByCreatedUserId = async (req, res) => {
+    try {
+        if (!req.user) {
+            return res.status(status.Unauthorized).json({ message: 'Unauthorized' });
+        }
+        const { userId } = req.params;
+        if (!userId) {
+            return res.status(status.BadRequest).json({ message: 'User ID is required.' });
+        }
+
+        const user = await db.User.findAll({
+            where: { createdBy: userId },
+            order: [['createdAt', 'DESC']],
+        });
+
+        return res.status(status.OK).json({ data: user });
+    } catch (error) {
+        return common.throwException(error, 'Find Users By Created User ID', req, res);
+    }
+};
