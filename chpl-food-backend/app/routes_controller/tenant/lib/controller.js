@@ -183,7 +183,8 @@ exports.updateStatus = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
         const { id } = req.params;
-        const { status: newStatus, rejectedReason } = req.body;
+        const newStatus = String(req.body.status);
+        const { rejectedReason } = req.body;
 
         const role = await db.Role.findByPk(req.user.roleId);
         if (!role || !role.name.toLowerCase().includes('admin')) {
@@ -198,14 +199,14 @@ exports.updateStatus = async (req, res) => {
         }
 
         // Status-specific handling
-        if (newStatus === 1) {
+        if (newStatus === '1') {
             // Approved
             tenant.approvedAt = new Date();
             tenant.approvedBy = req.user.id;
             tenant.rejectedAt = null;
             tenant.rejectedBy = null;
             tenant.rejectedReason = null;
-        } else if (newStatus === 3) {
+        } else if (newStatus === '3') {
             // Rejected
             if (!rejectedReason) {
                 await transaction.rollback();
@@ -216,7 +217,7 @@ exports.updateStatus = async (req, res) => {
             tenant.rejectedReason = rejectedReason;
             tenant.approvedAt = null;
             tenant.approvedBy = null;
-        } else if (newStatus === 0 || newStatus === 2) {
+        } else if (newStatus === '0' || newStatus === '2') {
             // Pending or InProgress
             tenant.approvedAt = null;
             tenant.approvedBy = null;
