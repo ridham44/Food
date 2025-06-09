@@ -42,9 +42,6 @@ module.exports = {
     async down(queryInterface, Sequelize) {
         await queryInterface.bulkDelete(
             'user',
-            {
-                id: '5f5e3582-4108-11f0-96fd-c475ab7293c6',
-            },
             {}
         );
     },

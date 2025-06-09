@@ -48,9 +48,6 @@ module.exports = {
     async down(queryInterface, Sequelize) {
         await queryInterface.bulkDelete(
             'tenant',
-            {
-                id: '07c97d5c-4108-11f0-96fd-c475ab7293c6',
-            },
             {}
         );
     },
