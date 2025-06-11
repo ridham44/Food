@@ -36,24 +36,7 @@ const validationRules = () => {
 
 const updateValidations = () => {
     return [
-        body('name')
-            .notEmpty()
-            .trim()
-            .withMessage('Menu name is required')
-            .custom(async (value, { req }) => {
-                const existing = await db.Menu.findOne({
-                    where: {
-                        name: value,
-                        tenantId: req.body.tenantId,
-                        id: { [db.Sequelize.Op.ne]: req.params.id },
-                    },
-                });
-                if (existing) {
-                    return Promise.reject('Another menu with this name already exists for this tenant.');
-                }
-                return true;
-            }),
-
+        body('name').notEmpty().withMessage('Menu name is required').trim(),
 
         body('perentId')
             .optional({ nullable: true })

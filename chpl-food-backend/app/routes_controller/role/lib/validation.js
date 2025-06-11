@@ -49,26 +49,7 @@ const validationRules = () => {
 
 const updateValidations = () => {
     return [
-        body('name')
-            .notEmpty()
-            .trim()
-            .withMessage('Role name is required')
-            .custom(async (value, { req }) => {
-                try {
-                    const role = await db.Role.findOne({
-                        where: {
-                            name: value,
-                            id: { [db.Sequelize.Op.ne]: req.params.id },
-                        },
-                    });
-                    if (role) {
-                        return Promise.reject('Another role with this name already exists!');
-                    }
-                    return true;
-                } catch (error) {
-                    return Promise.reject('Something went wrong!');
-                }
-            }),
+        body('name').notEmpty().withMessage('Menu name is required').trim(),
 
         body('type').optional().isIn(['1', '2', '3']).withMessage('Invalid type. Allowed values: 1 (Admin), 2 (Tenant), 3 (Customer)'),
 
