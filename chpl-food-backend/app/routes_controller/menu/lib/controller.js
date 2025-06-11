@@ -5,15 +5,20 @@ const db = require('../../../db/models');
 exports.create = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
-        const { parentId, name, price, filePath, tenantId } = req.body;
+        const { body, file, user } = req;
+        const tenant = await db.Tenant.findByPk(user.tenantId);
+        if (!tenant) {
+            return res.status(status.BAD_REQUEST).json({ message: 'Invalid tenant' });
+        }
+
         const menu = await db.Menu.create(
             {
-                parentId: parentId,
-                name: name,
-                price: price,
-                filePath: filePath,
-                tenantId: tenantId,
-                createdBy: req.user.id,
+                parentId: body.parentId,
+                name: body.name,
+                price: body.price,
+                filePath: file ? `/${file.path.replace(/\\/g, '/')}` : null,
+                tenantId: user.tenantId,
+                createdBy: user.id,
             },
             { transaction }
         );
@@ -30,7 +35,11 @@ exports.update = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
         const { id } = req.params;
-        const { parentId, name, price, filePath, tenantId } = req.body;
+        const { body, file, user } = req;
+        const tenant = await db.Tenant.findByPk(user.tenantId);
+        if (!tenant) {
+            return res.status(status.BAD_REQUEST).json({ message: 'Invalid tenant' });
+        }
 
         const menu = await db.Menu.findByPk(id);
         if (!menu) {
@@ -39,12 +48,12 @@ exports.update = async (req, res) => {
         }
 
         menu.set({
-            parentId: parentId,
-            name: name,
-            price: price,
-            filePath: filePath,
-            tenantId: tenantId,
-            createdBy: req.user.id,
+            parentId: body.parentId,
+            name: body.name,
+            price: body.price,
+            filePath: file ? `/${file.path.replace(/\\/g, '/')}` : null,
+            tenantId: user.tenantId,
+            createdBy: user.id,
         });
 
         await menu.save({ transaction });

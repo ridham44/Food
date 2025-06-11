@@ -16,18 +16,6 @@ const validationRules = () => {
                 }
                 return true;
             }),
-
-        body('tenantId')
-            .notEmpty()
-            .withMessage('Tenant ID is required')
-            .custom(async (value) => {
-                const tenant = await db.Tenant.findByPk(value);
-                if (!tenant) {
-                    return Promise.reject('Invalid tenant ID');
-                }
-                return true;
-            }),
-
         body('perentId')
             .optional({ nullable: true })
             .custom(async (value) => {
@@ -66,16 +54,6 @@ const updateValidations = () => {
                 return true;
             }),
 
-        body('tenantId')
-            .notEmpty()
-            .withMessage('Tenant ID is required')
-            .custom(async (value) => {
-                const tenant = await db.Tenant.findByPk(value);
-                if (!tenant) {
-                    return Promise.reject('Invalid tenant ID');
-                }
-                return true;
-            }),
 
         body('perentId')
             .optional({ nullable: true })

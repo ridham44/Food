@@ -5,15 +5,16 @@ const db = require('../../../db/models');
 exports.create = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
-        const { name, countryCode, currencyCode, telephonePrefix, flag, description } = req.body;
+        const { body, file } = req;
+
         const country = await db.GeoCountry.create(
             {
-                name: name,
-                countryCode: countryCode,
-                currencyCode: currencyCode,
-                telephonePrefix: telephonePrefix,
-                flag: flag,
-                description: description,
+                name: body.name,
+                countryCode: body.countryCode,
+                currencyCode: body.currencyCode,
+                telephonePrefix: body.telephonePrefix,
+                flag: file ? `/${file.path.replace(/\\/g, '/')}` : null,
+                description: body.description,
             },
             { transaction }
         );
@@ -29,24 +30,25 @@ exports.create = async (req, res) => {
 exports.update = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
-        const { name, countryCode, currencyCode, telephonePrefix, flag, description } = req.body;
+        const { body, file } = req;
         const existingData = await db.GeoCountry.findOne({
-            where:{
-                id:{[Op.ne]:req.params.id},name:name
-            }
-        })
-        if(existingData){
+            where: {
+                id: { [Op.ne]: req.params.id },
+                name: body.name,
+            },
+        });
+        if (existingData) {
             return res.status(status.Conflict).json({
-                message:'Country Already exists!'
-            })
+                message: 'Country Already exists!',
+            });
         }
         const countryData = {
-            name: name,
-            countryCode: countryCode,
-            currencyCode: currencyCode,
-            telephonePrefix: telephonePrefix,
-            flag: flag,
-            description: description,
+            name: body.name,
+            countryCode: body.countryCode,
+            currencyCode: body.currencyCode,
+            telephonePrefix: body.telephonePrefix,
+            flag: file ? `/${file.path.replace(/\\/g, '/')}` : null,
+            description: body.description,
         };
         const country = await db.GeoCountry.findOne({
             where: {

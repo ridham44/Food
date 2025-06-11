@@ -5,17 +5,17 @@ const db = require('../../../db/models');
 exports.create = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
-        const { name, type, isAdmin, remark, status: statusValue, tenantId } = req.body;
+        const { body, user } = req;
 
         const role = await db.Role.create(
             {
-                name: name,
-                type: type,
-                isAdmin: isAdmin,
-                remark: remark,
-                status: statusValue,
-                tenantId: tenantId,
-                createdBy: req.user.id,
+                name: body.name,
+                type: body.type,
+                isAdmin: body.isAdmin,
+                remark: body.remark,
+                status: body.statusValue,
+                tenantId: user.tenantId,
+                createdBy: user.id,
             },
             { transaction }
         );
@@ -31,7 +31,7 @@ exports.create = async (req, res) => {
 exports.update = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
-        const { name, type, isAdmin, remark, status: statusValue, tenantId } = req.body;
+        const { body, user } = req;
         const { id } = req.params;
 
         const role = await db.Role.findByPk(id, { transaction });
@@ -43,7 +43,7 @@ exports.update = async (req, res) => {
         const duplicate = await db.Role.findOne({
             where: {
                 id: { [Op.ne]: id },
-                name: name,
+                name: body.name,
             },
         });
 
@@ -53,13 +53,13 @@ exports.update = async (req, res) => {
         }
 
         role.set({
-            name: name,
-            type: type,
-            isAdmin: isAdmin,
-            remark: remark,
-            status: statusValue,
-            tenantId: tenantId,
-            createdBy: req.user.id,
+            name: body.name,
+            type: body.type,
+            isAdmin: body.isAdmin,
+            remark: body.remark,
+            status: body.status,
+            tenantId: user.tenantId,
+            createdBy: user.id,
         });
 
         await role.save({ transaction });
