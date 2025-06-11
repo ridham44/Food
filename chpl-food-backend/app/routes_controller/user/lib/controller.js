@@ -289,7 +289,7 @@ exports.userFiltration = async (req, res) => {
         if (body) userFilter = await findWithFilters.findWithFilters(body, db.User);
 
         let whereCondition = {
-            id:{ [Op.ne]: user.id },
+            id: { [Op.ne]: user.id },
             ...userFilter.filterCondition,
         };
 
@@ -491,7 +491,7 @@ exports.create = async (req, res) => {
             disableTenantCheck: true,
             transaction,
         });
- 
+
         if (!checkRoleExist) {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'Role not found!' });
@@ -510,7 +510,7 @@ exports.create = async (req, res) => {
             shortCode: body.shortCode || 'MYCOPOS00010',
             gender: body.gender,
             countryCode: body.countryCode,
-            profileImage: file ? `/${file.path}` : null,
+            profileImage: file ? `/${file.path.replace(/\\/g, '/')}` : null,
             address: body.address,
             countryId: body.countryId,
             stateId: body.stateId,
@@ -624,7 +624,7 @@ exports.update = async (req, res) => {
             shortCode: checkExist.shortCode,
             gender: body.gender,
             countryCode: body.countryCode || checkExist.countryCode,
-            profileImage: file ? `/${file.path}` : checkExist.profileImage,
+            profileImage: file ? `/${file.path.replace(/\\/g, '/')}` : checkExist.profileImage,
             address: body.address || checkExist.address,
             countryId: body.countryId || checkExist.countryId,
             stateId: body.stateId || checkExist.stateId,
