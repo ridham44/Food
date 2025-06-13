@@ -2,13 +2,13 @@ const router = require('express').Router();
 const controller = require('./lib/controller');
 const auth = require('../../middlewares/middleware');
 const { expressValidate } = require('../../../utils/lib/common-function');
-const { validationRules,updateValidations } = require('./lib/validation');
+const { validationRules, updateValidations } = require('./lib/validation');
 
 //create state
 router.post('/state', auth, validationRules(), expressValidate, controller.create);
 
 //update state
-router.put('/state/:id', auth,updateValidations(),expressValidate, controller.update);
+router.put('/state/:id', auth, updateValidations(), expressValidate, controller.update);
 
 //delete state
 router.delete('/state/:id', auth, controller.delete);
@@ -33,5 +33,8 @@ router.get('/state/:id', auth, controller.findById);
 
 //update state status
 router.put('/state/status/:id', auth, controller.updateStatus);
+
+// Finding with date
+router.post('/state/date-filter', auth, controller.dateFiltration);
 
 module.exports = router;

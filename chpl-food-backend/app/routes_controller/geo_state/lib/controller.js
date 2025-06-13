@@ -52,14 +52,15 @@ exports.update = async (req, res) => {
             return res.status(status.NotFound).json({ message: 'No country found!!' });
         }
         const existingName = await db.GeoState.findOne({
-            where:{
-                id:{[Op.ne]:id},name:name
-            }
-        })
-        if(existingName){
+            where: {
+                id: { [Op.ne]: id },
+                name: name,
+            },
+        });
+        if (existingName) {
             return res.status(status.Conflict).json({
-                message:'State already exists'
-            })
+                message: 'State already exists',
+            });
         }
         const stateData = {
             name: name,
@@ -228,5 +229,64 @@ exports.findAll = async (req, res) => {
     } catch (err) {
         await transaction.rollback();
         return common.throwException(err, 'Get State', req, res);
+    }
+};
+exports.dateFiltration = async (req, res) => {
+    const transaction = await db.sequelize.transaction();
+    try {
+        const { body } = req;
+        const { fromDate, toDate, page = 1, limit = 10, countryId } = body;
+
+        if ((fromDate && isNaN(Date.parse(fromDate))) || (toDate && isNaN(Date.parse(toDate)))) {
+            return res.status(status.BadRequest).json({
+                message: 'Invalid date format. Please use YYYY-MM-DD format for fromDate and toDate.',
+            });
+        }
+
+        let whereCondition = {};
+        let stateFilter = {};
+
+        if (body) {
+            stateFilter = await findWithFilters.findWithFilters(body, db.GeoState);
+        }
+
+        if (fromDate && toDate) {
+            whereCondition.createdAt = {
+                [Op.between]: [new Date(fromDate + ' 00:00:00'), new Date(toDate + ' 23:59:59')],
+            };
+        } else if (fromDate) {
+            whereCondition.createdAt = {
+                [Op.gte]: new Date(fromDate + ' 00:00:00'),
+            };
+        } else if (toDate) {
+            whereCondition.createdAt = {
+                [Op.lte]: new Date(toDate + ' 23:59:59'),
+            };
+        }
+
+        if (countryId) {
+            whereCondition.countryId = countryId;
+        }
+
+        whereCondition = {
+            ...whereCondition,
+            ...stateFilter.filterCondition,
+        };
+
+        const offset = (parseInt(page) - 1) * parseInt(limit);
+
+        const states = await db.GeoState.findAndCountAll({
+            where: whereCondition,
+            limit: parseInt(limit),
+            offset: offset,
+            order: [['createdAt', 'DESC']],
+            transaction,
+        });
+
+        await transaction.commit();
+        return res.status(status.OK).json({ data: states });
+    } catch (error) {
+        await transaction.rollback();
+        return common.throwException(error, 'State Date Filter API', req, res);
     }
 };

@@ -1,5 +1,6 @@
 const { status, common, dbCommon, findWithFilters } = require('../../../../utils');
 const db = require('../../../db/models');
+const { Op } = require('sequelize');
 
 exports.create = async (req, res) => {
     const transaction = await db.sequelize.transaction();
@@ -262,5 +263,120 @@ exports.findByCreatedUserId = async (req, res) => {
         return res.status(status.OK).json({ data: tenants });
     } catch (error) {
         return common.throwException(error, 'Find Tenant By Created User ID', req, res);
+    }
+};
+
+exports.dateFiltration = async (req, res) => {
+    const transaction = await db.sequelize.transaction();
+    try {
+        const { body } = req;
+        const { fromDate, toDate, page = 1, limit = 10 } = body;
+
+        if ((fromDate && isNaN(Date.parse(fromDate))) || (toDate && isNaN(Date.parse(toDate)))) {
+            return res.status(status.BadRequest).json({
+                message: 'Invalid date format. Please use YYYY-MM-DD format for fromDate and toDate.',
+            });
+        }
+
+        let whereCondition = {};
+        let tenantFilter = {};
+
+        if (body) {
+            tenantFilter = await findWithFilters.findWithFilters(body, db.Tenant);
+        }
+
+        if (fromDate && toDate) {
+            whereCondition.createdAt = {
+                [Op.between]: [new Date(fromDate + ' 00:00:00'), new Date(toDate + ' 23:59:59')],
+            };
+        } else if (fromDate) {
+            whereCondition.createdAt = {
+                [Op.gte]: new Date(fromDate + ' 00:00:00'),
+            };
+        } else if (toDate) {
+            whereCondition.createdAt = {
+                [Op.lte]: new Date(toDate + ' 23:59:59'),
+            };
+        }
+
+        whereCondition = {
+            ...whereCondition,
+            ...tenantFilter.filterCondition,
+        };
+
+        const offset = (parseInt(page) - 1) * parseInt(limit);
+
+        const tenants = await db.Tenant.findAndCountAll({
+            where: whereCondition,
+            limit: parseInt(limit),
+            offset: offset,
+            order: [['createdAt', 'DESC']],
+            transaction,
+        });
+
+        await transaction.commit();
+        return res.status(status.OK).json({ data: tenants });
+    } catch (error) {
+        await transaction.rollback();
+        return common.throwException(error, 'Tenant Date Filter API', req, res);
+    }
+};
+
+exports.approvedDateFilter = async (req, res) => {
+    const transaction = await db.sequelize.transaction();
+    try {
+        const { body } = req;
+        const { fromDate, toDate, page = 1, limit = 10 } = body;
+
+        if ((fromDate && isNaN(Date.parse(fromDate))) || (toDate && isNaN(Date.parse(toDate)))) {
+            return res.status(status.BadRequest).json({
+                message: 'Invalid date format. Please use YYYY-MM-DD format for fromDate and toDate.',
+            });
+        }
+
+        let whereCondition = {
+            approvedAt: { [Op.ne]: null },
+        };
+
+        let tenantFilter = {};
+
+        if (body) {
+            tenantFilter = await findWithFilters.findWithFilters(body, db.Tenant);
+        }
+
+        if (fromDate && toDate) {
+            whereCondition.approvedAt = {
+                [Op.between]: [new Date(fromDate + ' 00:00:00'), new Date(toDate + ' 23:59:59')],
+            };
+        } else if (fromDate) {
+            whereCondition.approvedAt = {
+                [Op.gte]: new Date(fromDate + ' 00:00:00'),
+            };
+        } else if (toDate) {
+            whereCondition.approvedAt = {
+                [Op.lte]: new Date(toDate + ' 23:59:59'),
+            };
+        }
+
+        whereCondition = {
+            ...whereCondition,
+            ...tenantFilter.filterCondition,
+        };
+
+        const offset = (parseInt(page) - 1) * parseInt(limit);
+
+        const tenants = await db.Tenant.findAndCountAll({
+            where: whereCondition,
+            limit: parseInt(limit),
+            offset: offset,
+            order: [['approvedAt', 'DESC']],
+            transaction,
+        });
+
+        await transaction.commit();
+        return res.status(status.OK).json({ data: tenants });
+    } catch (error) {
+        await transaction.rollback();
+        return common.throwException(error, 'Tenant Approved Date Filter API', req, res);
     }
 };

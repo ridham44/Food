@@ -28,4 +28,7 @@ router.put('/role/status/:id', auth, controller.updateStatus);
 // Get role by ID
 router.get('/role/:id', auth, controller.findById);
 
+// Finding with date
+router.post('/role/date-filter', auth, controller.dateFiltration);
+
 module.exports = router;

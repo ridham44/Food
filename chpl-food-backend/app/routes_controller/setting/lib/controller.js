@@ -194,3 +194,59 @@ exports.findByCreatedUserId = async (req, res) => {
         return common.throwException(error, 'Find Settings by Created User ID API', req, res);
     }
 };
+
+exports.dateFiltration = async (req, res) => {
+    const transaction = await db.sequelize.transaction();
+    try {
+        const { body } = req;
+        const { fromDate, toDate, page = 1, limit = 10 } = body;
+
+        if ((fromDate && isNaN(Date.parse(fromDate))) || (toDate && isNaN(Date.parse(toDate)))) {
+            return res.status(status.BadRequest).json({
+                message: 'Invalid date format. Please use YYYY-MM-DD format for fromDate and toDate.',
+            });
+        }
+
+        let whereCondition = {};
+        let settingFilter = {};
+
+        if (body) {
+            settingFilter = await findWithFilters.findWithFilters(body, db.Setting);
+        }
+
+        if (fromDate && toDate) {
+            whereCondition.createdAt = {
+                [Op.between]: [new Date(fromDate + ' 00:00:00'), new Date(toDate + ' 23:59:59')],
+            };
+        } else if (fromDate) {
+            whereCondition.createdAt = {
+                [Op.gte]: new Date(fromDate + ' 00:00:00'),
+            };
+        } else if (toDate) {
+            whereCondition.createdAt = {
+                [Op.lte]: new Date(toDate + ' 23:59:59'),
+            };
+        }
+
+        whereCondition = {
+            ...whereCondition,
+            ...settingFilter.filterCondition,
+        };
+
+        const offset = (parseInt(page) - 1) * parseInt(limit);
+
+        const settings = await db.Setting.findAndCountAll({
+            where: whereCondition,
+            limit: parseInt(limit),
+            offset: offset,
+            order: [['createdAt', 'DESC']],
+            transaction,
+        });
+
+        await transaction.commit();
+        return res.status(status.OK).json({ data: settings });
+    } catch (error) {
+        await transaction.rollback();
+        return common.throwException(error, 'Setting Date Filter API', req, res);
+    }
+};

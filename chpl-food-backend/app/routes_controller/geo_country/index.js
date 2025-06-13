@@ -83,4 +83,7 @@ router.get('/country/:id', auth, controller.findById);
 // update country status
 router.put('/country/status/:id', auth, controller.updateStatus);
 
+// Finding with date
+router.post('/country/date-filter', auth, controller.dateFiltration);
+
 module.exports = router;

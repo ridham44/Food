@@ -6,8 +6,7 @@ const auth = require('../../middlewares/middleware');
 router.post('/login', controller.login);
 // Change password route
 router.post('/change-password', auth, controller.changePassword);
-
-// Find users by created user ID
-router.get('/user/by-user/:userId',auth, controller.findUserByCreatedUserId);
+// Finding with date
+router.post('/user/date-filter', auth, controller.dateFiltration);
 
 module.exports = router;

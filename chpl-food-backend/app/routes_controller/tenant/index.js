@@ -105,7 +105,12 @@ router.post('/tenant-filter', auth, controller.tenantFiltration);
 router.put('/tenant/status/:id', auth, controller.updateStatus);
 
 // Finding tenants by created user ID
-router.get('/tenant/by-user/:userId',auth, controller.findByCreatedUserId);
+router.get('/tenant/by-user/:userId', auth, controller.findByCreatedUserId);
 
+// Finding with date
+router.post('/tenant/date-filter', auth, controller.dateFiltration);
+
+// Finding with date for approved tenants
+router.post('/tenant/approved-date-filter', auth, controller.approvedDateFilter);
 
 module.exports = router;

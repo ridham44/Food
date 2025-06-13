@@ -180,3 +180,59 @@ exports.roleForFilter = async (req, res) => {
         return common.throwException(error, 'Role Filter Config', req, res);
     }
 };
+
+exports.dateFiltration = async (req, res) => {
+    const transaction = await db.sequelize.transaction();
+    try {
+        const { body } = req;
+        const { fromDate, toDate, page = 1, limit = 10 } = body;
+
+        if ((fromDate && isNaN(Date.parse(fromDate))) || (toDate && isNaN(Date.parse(toDate)))) {
+            return res.status(status.BadRequest).json({
+                message: 'Invalid date format. Please use YYYY-MM-DD format for fromDate and toDate.',
+            });
+        }
+
+        let whereCondition = {};
+        let roleFilter = {};
+
+        if (body) {
+            roleFilter = await findWithFilters.findWithFilters(body, db.Role);
+        }
+
+        if (fromDate && toDate) {
+            whereCondition.createdAt = {
+                [Op.between]: [new Date(fromDate + ' 00:00:00'), new Date(toDate + ' 23:59:59')],
+            };
+        } else if (fromDate) {
+            whereCondition.createdAt = {
+                [Op.gte]: new Date(fromDate + ' 00:00:00'),
+            };
+        } else if (toDate) {
+            whereCondition.createdAt = {
+                [Op.lte]: new Date(toDate + ' 23:59:59'),
+            };
+        }
+
+        whereCondition = {
+            ...whereCondition,
+            ...roleFilter.filterCondition,
+        };
+
+        const offset = (parseInt(page) - 1) * parseInt(limit);
+
+        const roles = await db.Role.findAndCountAll({
+            where: whereCondition,
+            limit: parseInt(limit),
+            offset: offset,
+            order: [['createdAt', 'DESC']],
+            transaction,
+        });
+
+        await transaction.commit();
+        return res.status(status.OK).json({ data: roles });
+    } catch (error) {
+        await transaction.rollback();
+        return common.throwException(error, 'Role Date Filter API', req, res);
+    }
+};

@@ -59,14 +59,15 @@ exports.update = async (req, res) => {
             return res.status(status.InternalServerError).json({ message: 'No state found!!' });
         }
         const existingData = await db.GeoCity.findOne({
-            where:{
-               id:{[Op.ne]:req.params.id},name:name
-            }
-        })
-        if(existingData){
+            where: {
+                id: { [Op.ne]: req.params.id },
+                name: name,
+            },
+        });
+        if (existingData) {
             return res.status(status.Conflict).json({
-                message:'City already exists'
-            })
+                message: 'City already exists',
+            });
         }
         const cityData = {
             name: name,
@@ -238,5 +239,65 @@ exports.findAll = async (req, res) => {
     } catch (err) {
         await transaction.rollback();
         return common.throwException(err, 'Get City', req, res);
+    }
+};
+
+exports.dateFiltration = async (req, res) => {
+    const transaction = await db.sequelize.transaction();
+    try {
+        const { body } = req;
+        const { fromDate, toDate, page = 1, limit = 10, stateId } = body;
+
+        if ((fromDate && isNaN(Date.parse(fromDate))) || (toDate && isNaN(Date.parse(toDate)))) {
+            return res.status(status.BadRequest).json({
+                message: 'Invalid date format. Please use YYYY-MM-DD format for fromDate and toDate.',
+            });
+        }
+
+        let whereCondition = {};
+        let cityFilter = {};
+
+        if (body) {
+            cityFilter = await findWithFilters.findWithFilters(body, db.GeoCity);
+        }
+
+        if (fromDate && toDate) {
+            whereCondition.createdAt = {
+                [Op.between]: [new Date(fromDate + ' 00:00:00'), new Date(toDate + ' 23:59:59')],
+            };
+        } else if (fromDate) {
+            whereCondition.createdAt = {
+                [Op.gte]: new Date(fromDate + ' 00:00:00'),
+            };
+        } else if (toDate) {
+            whereCondition.createdAt = {
+                [Op.lte]: new Date(toDate + ' 23:59:59'),
+            };
+        }
+
+        if (stateId) {
+            whereCondition.stateId = stateId;
+        }
+
+        whereCondition = {
+            ...whereCondition,
+            ...cityFilter.filterCondition,
+        };
+
+        const offset = (parseInt(page) - 1) * parseInt(limit);
+
+        const cities = await db.GeoCity.findAndCountAll({
+            where: whereCondition,
+            limit: parseInt(limit),
+            offset: offset,
+            order: [['createdAt', 'DESC']],
+            transaction,
+        });
+
+        await transaction.commit();
+        return res.status(status.OK).json({ data: cities });
+    } catch (error) {
+        await transaction.rollback();
+        return common.throwException(error, 'City Filter Api', req, res);
     }
 };

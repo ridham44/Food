@@ -29,6 +29,9 @@ router.put('/setting/status/:id', auth, controller.updateStatus);
 router.get('/setting/:id', auth, controller.findById);
 
 // Finding settings by created user ID
-router.get('/setting/by-user/:userId',auth, controller.findByCreatedUserId);
+router.get('/setting/by-user/:userId', auth, controller.findByCreatedUserId);
+
+// Finding with date
+router.post('/setting/date-filter', auth, controller.dateFiltration);
 
 module.exports = router;

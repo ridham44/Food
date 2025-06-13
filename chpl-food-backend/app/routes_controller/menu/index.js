@@ -73,4 +73,7 @@ router.post('/menu-filter', auth, controller.menuFiltration);
 // Menu filter options
 router.get('/menu-filter/options', auth, controller.menuForFilter);
 
+// Finding with date
+router.post('/menu/date-filter', auth, controller.dateFiltration);
+
 module.exports = router;

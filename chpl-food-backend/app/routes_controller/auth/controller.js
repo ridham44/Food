@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const db = require('../../db/models');
-const { status } = require('../../../utils');
+const { status, findWithFilters } = require('../../../utils');
 const { Op } = require('sequelize');
 const Enums = require('../../../utils/lib/enums');
 const common = require('../../../utils/lib/common-function');
@@ -43,9 +43,47 @@ exports.login = async (req, res) => {
             return res.status(status.Unauthorized).json({ message: 'Invalid email or mobile number.' });
         }
 
-        const passwordMatch = await bcrypt.compare(password, user.password);
+        const passwordMatch = await bcrypt.compareSync(password, user.password);
         if (!passwordMatch) {
             return res.status(status.Unauthorized).json({ message: 'Invalid password.' });
+        }
+
+        const RATE_LIMIT_COUNT = 2;
+        const RATE_LIMIT_WINDOW_MINUTES = 10;
+
+        let recentLogins = [];
+
+        try {
+            recentLogins = await db.sequelize.query(
+                `
+        SELECT createdAt
+        FROM log_login
+        WHERE createdBy = :userId
+          AND createdAt >= DATE_SUB(NOW(), INTERVAL 10 MINUTE)
+          AND isLogin = true
+        ORDER BY createdAt ASC
+        `,
+                {
+                    replacements: { userId: user.id },
+                    type: db.Sequelize.QueryTypes.SELECT,
+                }
+            );
+        } catch (err) {
+            console.error('Rate limit query failed:', err);
+            return res.status(500).json({ message: 'Rate limit check failed' });
+        }
+
+        if (recentLogins.length >= RATE_LIMIT_COUNT) {
+            const firstLoginTime = new Date(recentLogins[0].createdAt);
+            const nextAllowedTime = new Date(firstLoginTime.getTime() + RATE_LIMIT_WINDOW_MINUTES * 60 * 1000);
+            const now = new Date();
+            const waitSeconds = Math.ceil((nextAllowedTime - now) / 1000);
+
+            if (waitSeconds > 0) {
+                return res.status(429).json({
+                    message: `Too many logins. Try again in ${waitSeconds} seconds.`,
+                });
+            }
         }
 
         const token = jwt.sign({ user: { id: user.id } }, process.env.JWT_SECRET_ADMIN, { expiresIn: '1d' });
@@ -105,12 +143,11 @@ exports.changePassword = async (req, res) => {
             return res.status(status.BadRequest).json({ message: 'User not found' });
         }
 
-        const isOldPasswordValid = await bcrypt.compare(oldPassword, user.password);
+        const isOldPasswordValid = await bcrypt.compareSync(oldPassword, user.password);
         if (!isOldPasswordValid) {
             await transaction.rollback();
             return res.status(status.BadRequest).json({ message: 'Incorrect Old Password' });
         }
-
         if (oldPassword === newPassword) {
             await transaction.rollback();
             return res.status(status.BadRequest).json({ message: 'New Password cannot be same as Old Password' });
@@ -121,10 +158,8 @@ exports.changePassword = async (req, res) => {
             return res.status(status.BadRequest).json({ message: 'New Password and Confirm Password do not match' });
         }
 
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
-
         user.set({
-            password: hashedPassword,
+            password: newPassword,
             passwordShow: newPassword,
             updatedBy: user.id,
         });
@@ -138,23 +173,59 @@ exports.changePassword = async (req, res) => {
         return common.throwException(err, 'Change Password API', req, res);
     }
 };
-exports.findUserByCreatedUserId = async (req, res) => {
+
+exports.dateFiltration = async (req, res) => {
+    const transaction = await db.sequelize.transaction();
     try {
-        if (!req.user) {
-            return res.status(status.Unauthorized).json({ message: 'Unauthorized' });
-        }
-        const { userId } = req.params;
-        if (!userId) {
-            return res.status(status.BadRequest).json({ message: 'User ID is required.' });
+        const { body } = req;
+        const { fromDate, toDate, page = 1, limit = 10 } = body;
+
+        if ((fromDate && isNaN(Date.parse(fromDate))) || (toDate && isNaN(Date.parse(toDate)))) {
+            return res.status(status.BadRequest).json({
+                message: 'Invalid date format. Please use YYYY-MM-DD format for fromDate and toDate.',
+            });
         }
 
-        const user = await db.User.findAll({
-            where: { createdBy: userId },
+        let whereCondition = {};
+        let userFilter = {};
+
+        if (body) {
+            userFilter = await findWithFilters.findWithFilters(body, db.User);
+        }
+
+        if (fromDate && toDate) {
+            whereCondition.createdAt = {
+                [Op.between]: [new Date(fromDate + ' 00:00:00'), new Date(toDate + ' 23:59:59')],
+            };
+        } else if (fromDate) {
+            whereCondition.createdAt = {
+                [Op.gte]: new Date(fromDate + ' 00:00:00'),
+            };
+        } else if (toDate) {
+            whereCondition.createdAt = {
+                [Op.lte]: new Date(toDate + ' 23:59:59'),
+            };
+        }
+
+        whereCondition = {
+            ...whereCondition,
+            ...userFilter.filterCondition,
+        };
+
+        const offset = (parseInt(page) - 1) * parseInt(limit);
+
+        const users = await db.User.findAndCountAll({
+            where: whereCondition,
+            limit: parseInt(limit),
+            offset: offset,
             order: [['createdAt', 'DESC']],
+            transaction,
         });
 
-        return res.status(status.OK).json({ data: user });
+        await transaction.commit();
+        return res.status(status.OK).json({ data: users });
     } catch (error) {
-        return common.throwException(error, 'Find Users By Created User ID', req, res);
+        await transaction.rollback();
+        return common.throwException(error, 'User Date Filter API', req, res);
     }
 };
