@@ -48,44 +48,6 @@ exports.login = async (req, res) => {
             return res.status(status.Unauthorized).json({ message: 'Invalid password.' });
         }
 
-        const RATE_LIMIT_COUNT = 2;
-        const RATE_LIMIT_WINDOW_MINUTES = 10;
-
-        let recentLogins = [];
-
-        try {
-            recentLogins = await db.sequelize.query(
-                `
-        SELECT createdAt
-        FROM log_login
-        WHERE createdBy = :userId
-          AND createdAt >= DATE_SUB(NOW(), INTERVAL 10 MINUTE)
-          AND isLogin = true
-        ORDER BY createdAt ASC
-        `,
-                {
-                    replacements: { userId: user.id },
-                    type: db.Sequelize.QueryTypes.SELECT,
-                }
-            );
-        } catch (err) {
-            console.error('Rate limit query failed:', err);
-            return res.status(500).json({ message: 'Rate limit check failed' });
-        }
-
-        if (recentLogins.length >= RATE_LIMIT_COUNT) {
-            const firstLoginTime = new Date(recentLogins[0].createdAt);
-            const nextAllowedTime = new Date(firstLoginTime.getTime() + RATE_LIMIT_WINDOW_MINUTES * 60 * 1000);
-            const now = new Date();
-            const waitSeconds = Math.ceil((nextAllowedTime - now) / 1000);
-
-            if (waitSeconds > 0) {
-                return res.status(429).json({
-                    message: `Too many logins. Try again in ${waitSeconds} seconds.`,
-                });
-            }
-        }
-
         const token = jwt.sign({ user: { id: user.id } }, process.env.JWT_SECRET_ADMIN, { expiresIn: '1d' });
 
         const userAgent = req.headers['user-agent'] || '';
