@@ -59,7 +59,7 @@ exports.update = async (req, res) => {
             remark: body.remark,
             status: body.status,
             tenantId: user.tenantId,
-            createdBy: user.id,
+            updatedBy: user.id,
         });
 
         await role.save({ transaction });

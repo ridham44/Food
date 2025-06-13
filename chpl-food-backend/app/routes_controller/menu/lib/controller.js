@@ -54,7 +54,7 @@ exports.update = async (req, res) => {
             price: body.price,
             filePath: file ? `/${file.path.replace(/\\/g, '/')}` : null,
             tenantId: user.tenantId,
-            createdBy: user.id,
+            updatedBy: user.id,
         });
 
         await menu.save({ transaction });

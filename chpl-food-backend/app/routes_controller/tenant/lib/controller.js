@@ -32,7 +32,7 @@ exports.create = async (req, res) => {
                 status: body.status,
                 emailVerified: body.emailVerified,
                 emailVerifiedAt: body.emailVerifiedAt,
-                updatedBy: user.id,
+                createdBy: user.id,
             },
             { transaction }
         );

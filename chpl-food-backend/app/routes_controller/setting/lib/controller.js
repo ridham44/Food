@@ -57,7 +57,7 @@ exports.update = async (req, res) => {
             value: value,
             remark: remark,
             status: statusValue,
-            createdBy: req.user.id,
+            updatedBy: req.user.id,
         });
 
         await setting.save({ transaction });
