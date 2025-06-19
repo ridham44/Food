@@ -7,10 +7,8 @@ const { expressValidate } = require('../../../utils/lib/common-function');
 const { validationRules, updateValidations } = require('./lib/validation');
 const { status } = require('../../../utils');
 
-// Allowed image MIME types
 const allowedType = ['image/png', 'image/jpeg', 'image/jpg'];
 
-// Multer storage config
 const fileStorage = multer.diskStorage({
     destination: function (req, file, cb) {
         const dir = `./uploads/menu`;
@@ -25,7 +23,6 @@ const fileStorage = multer.diskStorage({
     },
 });
 
-// File filter
 const fileFilter = (req, file, cb) => {
     if (allowedType.includes(file.mimetype)) {
         return cb(null, true);
@@ -35,7 +32,6 @@ const fileFilter = (req, file, cb) => {
     }
 };
 
-// Multer middleware
 const multerMiddleware = (err, req, res, next) => {
     if (err instanceof multer.MulterError) {
         return res.status(status.InternalServerError).json({ message: 'File upload error!', error: err.message });
@@ -49,7 +45,6 @@ const multerMiddleware = (err, req, res, next) => {
     next();
 };
 
-// Multer upload config
 const uploads = multer({
     storage: fileStorage,
     fileFilter: fileFilter,
@@ -74,6 +69,6 @@ router.post('/menu-filter', auth, controller.menuFiltration);
 router.get('/menu-filter/options', auth, controller.menuForFilter);
 
 // Finding with date
-router.post('/menu/date-filter', auth, controller.dateFiltration);
+router.post('/menu/filter', auth, controller.filtration);
 
 module.exports = router;

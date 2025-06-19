@@ -56,7 +56,7 @@ module.exports = (sequelize, Sequelize) => {
         }
     );
 
-    Role.hasTenantCondition();
+    Role.hasTenantCondition(false);
 
     return Role;
 };

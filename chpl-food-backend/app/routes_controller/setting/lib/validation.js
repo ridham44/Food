@@ -37,26 +37,7 @@ const updateValidations = () => {
     return [
         body('title').notEmpty().trim().withMessage('Title is required'),
 
-        body('key')
-            .notEmpty()
-            .trim()
-            .withMessage('Key is required')
-            .custom(async (value, { req }) => {
-                try {
-                    const setting = await db.Setting.findOne({
-                        where: {
-                            key: value,
-                            id: { [db.Sequelize.Op.ne]: req.params.id },
-                        },
-                    });
-                    if (setting) {
-                        return Promise.reject('Another setting with this key already exists!');
-                    }
-                    return true;
-                } catch (error) {
-                    return Promise.reject('Something went wrong while validating the key!');
-                }
-            }),
+        body('key').notEmpty().trim().withMessage('Key is required'),
 
         body('value').optional().isString().withMessage('Value must be a string'),
 

@@ -266,39 +266,90 @@ exports.findByCreatedUserId = async (req, res) => {
     }
 };
 
-exports.dateFiltration = async (req, res) => {
+exports.filtration = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
         const { body } = req;
-        const { fromDate, toDate, page = 1, limit = 10 } = body;
+        const {
+            createdFrom,
+            createdTo,
+            approvedFrom,
+            approvedTo,
+            countryCode,
+            mobile,
+            phone,
+            email,
+            status: tenantStatus,
+            page = 1,
+            limit = 10,
+        } = body;
 
-        if ((fromDate && isNaN(Date.parse(fromDate))) || (toDate && isNaN(Date.parse(toDate)))) {
+        const isInvalidDate = (date) => date && isNaN(Date.parse(date));
+        if (isInvalidDate(createdFrom) || isInvalidDate(createdTo) || isInvalidDate(approvedFrom) || isInvalidDate(approvedTo)) {
             return res.status(status.BadRequest).json({
-                message: 'Invalid date format. Please use YYYY-MM-DD format for fromDate and toDate.',
+                message: 'Invalid date format. Use YYYY-MM-DD for created/approved dates.',
+            });
+        }
+
+        if (countryCode && (typeof countryCode !== 'string' || countryCode.length > 3)) {
+            return res.status(status.BadRequest).json({
+                message: 'Invalid countryCode. Must be a 2–3 character string.',
+            });
+        }
+
+        if (mobile && (typeof mobile !== 'string' || mobile.length < 8 || mobile.length > 15)) {
+            return res.status(status.BadRequest).json({
+                message: 'Invalid mobile number. Must be between 8 and 15 digits.',
+            });
+        }
+
+        if (phone && (typeof phone !== 'string' || phone.length < 6 || phone.length > 15)) {
+            return res.status(status.BadRequest).json({
+                message: 'Invalid phone number. Must be between 6 and 15 digits.',
+            });
+        }
+
+        if (email && !/^\S+@\S+\.\S+$/.test(email)) {
+            return res.status(status.BadRequest).json({
+                message: 'Invalid email format.',
+            });
+        }
+
+        if (tenantStatus !== undefined && !['0', '1', '2', '3', 0, 1, 2, 3].includes(tenantStatus)) {
+            return res.status(status.BadRequest).json({
+                message: 'Invalid status. Must be 0, 1, 2, or 3.',
             });
         }
 
         let whereCondition = {};
-        let tenantFilter = {};
 
-        if (body) {
-            tenantFilter = await findWithFilters.findWithFilters(body, db.Tenant);
+        if (createdFrom && createdTo) {
+            whereCondition.createdAt = {
+                [Op.between]: [new Date(createdFrom + ' 00:00:00'), new Date(createdTo + ' 23:59:59')],
+            };
+        } else if (createdFrom) {
+            whereCondition.createdAt = { [Op.gte]: new Date(createdFrom + ' 00:00:00') };
+        } else if (createdTo) {
+            whereCondition.createdAt = { [Op.lte]: new Date(createdTo + ' 23:59:59') };
         }
 
-        if (fromDate && toDate) {
-            whereCondition.createdAt = {
-                [Op.between]: [new Date(fromDate + ' 00:00:00'), new Date(toDate + ' 23:59:59')],
+        if (approvedFrom && approvedTo) {
+            whereCondition.approvedAt = {
+                [Op.between]: [new Date(approvedFrom + ' 00:00:00'), new Date(approvedTo + ' 23:59:59')],
             };
-        } else if (fromDate) {
-            whereCondition.createdAt = {
-                [Op.gte]: new Date(fromDate + ' 00:00:00'),
-            };
-        } else if (toDate) {
-            whereCondition.createdAt = {
-                [Op.lte]: new Date(toDate + ' 23:59:59'),
-            };
+        } else if (approvedFrom) {
+            whereCondition.approvedAt = { [Op.gte]: new Date(approvedFrom + ' 00:00:00') };
+        } else if (approvedTo) {
+            whereCondition.approvedAt = { [Op.lte]: new Date(approvedTo + ' 23:59:59') };
         }
 
+        if (countryCode) whereCondition.countryCode = countryCode;
+        if (mobile) whereCondition.mobile = mobile;
+        if (phone) whereCondition.phone = phone;
+        if (email) whereCondition.email = email;
+        if (tenantStatus !== undefined) whereCondition.status = tenantStatus.toString();
+
+        const tenantFilter = await findWithFilters.findWithFilters(body, db.Tenant);
         whereCondition = {
             ...whereCondition,
             ...tenantFilter.filterCondition,
@@ -318,65 +369,6 @@ exports.dateFiltration = async (req, res) => {
         return res.status(status.OK).json({ data: tenants });
     } catch (error) {
         await transaction.rollback();
-        return common.throwException(error, 'Tenant Date Filter API', req, res);
-    }
-};
-
-exports.approvedDateFilter = async (req, res) => {
-    const transaction = await db.sequelize.transaction();
-    try {
-        const { body } = req;
-        const { fromDate, toDate, page = 1, limit = 10 } = body;
-
-        if ((fromDate && isNaN(Date.parse(fromDate))) || (toDate && isNaN(Date.parse(toDate)))) {
-            return res.status(status.BadRequest).json({
-                message: 'Invalid date format. Please use YYYY-MM-DD format for fromDate and toDate.',
-            });
-        }
-
-        let whereCondition = {
-            approvedAt: { [Op.ne]: null },
-        };
-
-        let tenantFilter = {};
-
-        if (body) {
-            tenantFilter = await findWithFilters.findWithFilters(body, db.Tenant);
-        }
-
-        if (fromDate && toDate) {
-            whereCondition.approvedAt = {
-                [Op.between]: [new Date(fromDate + ' 00:00:00'), new Date(toDate + ' 23:59:59')],
-            };
-        } else if (fromDate) {
-            whereCondition.approvedAt = {
-                [Op.gte]: new Date(fromDate + ' 00:00:00'),
-            };
-        } else if (toDate) {
-            whereCondition.approvedAt = {
-                [Op.lte]: new Date(toDate + ' 23:59:59'),
-            };
-        }
-
-        whereCondition = {
-            ...whereCondition,
-            ...tenantFilter.filterCondition,
-        };
-
-        const offset = (parseInt(page) - 1) * parseInt(limit);
-
-        const tenants = await db.Tenant.findAndCountAll({
-            where: whereCondition,
-            limit: parseInt(limit),
-            offset: offset,
-            order: [['approvedAt', 'DESC']],
-            transaction,
-        });
-
-        await transaction.commit();
-        return res.status(status.OK).json({ data: tenants });
-    } catch (error) {
-        await transaction.rollback();
-        return common.throwException(error, 'Tenant Approved Date Filter API', req, res);
+        return common.throwException(error, 'Tenant Filtration API', req, res);
     }
 };

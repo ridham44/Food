@@ -9,5 +9,7 @@ router.use('/', require('./tenant'));
 router.use('/', require('./role'));
 router.use('/', require('./menu'));
 router.use('/', require('./setting'));
+router.use('/', require('./permission'));
+router.use('/', require('./menu_admin'));
 
 module.exports = router;

@@ -195,23 +195,26 @@ exports.findByCreatedUserId = async (req, res) => {
     }
 };
 
-exports.dateFiltration = async (req, res) => {
+exports.filtration = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
-        const { body } = req;
-        const { fromDate, toDate, page = 1, limit = 10 } = body;
+        const { fromDate, toDate, page = 1, limit = 10, status: settingStatus } = req.body;
 
         if ((fromDate && isNaN(Date.parse(fromDate))) || (toDate && isNaN(Date.parse(toDate)))) {
             return res.status(status.BadRequest).json({
                 message: 'Invalid date format. Please use YYYY-MM-DD format for fromDate and toDate.',
             });
         }
-
+        if (settingStatus !== undefined && settingStatus !== 0 && settingStatus !== 1 && settingStatus !== '0' && settingStatus !== '1') {
+            return res.status(status.BadRequest).json({
+                message: 'Invalid status. Must be either 0 (Inactive) or 1 (Active).',
+            });
+        }
         let whereCondition = {};
         let settingFilter = {};
 
-        if (body) {
-            settingFilter = await findWithFilters.findWithFilters(body, db.Setting);
+        if (req.body) {
+            settingFilter = await findWithFilters.findWithFilters(req.body, db.Setting);
         }
 
         if (fromDate && toDate) {
@@ -226,6 +229,9 @@ exports.dateFiltration = async (req, res) => {
             whereCondition.createdAt = {
                 [Op.lte]: new Date(toDate + ' 23:59:59'),
             };
+        }
+        if (settingStatus !== undefined) {
+            whereCondition.status = settingStatus.toString();
         }
 
         whereCondition = {

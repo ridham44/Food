@@ -32,6 +32,6 @@ router.get('/setting/:id', auth, controller.findById);
 router.get('/setting/by-user/:userId', auth, controller.findByCreatedUserId);
 
 // Finding with date
-router.post('/setting/date-filter', auth, controller.dateFiltration);
+router.post('/setting/filter', auth, controller.filtration);
 
 module.exports = router;

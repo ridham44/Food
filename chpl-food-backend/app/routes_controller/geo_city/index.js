@@ -24,6 +24,6 @@ router.get('/city/:id', auth, controller.findById);
 
 router.put('/city/status/:id', auth, controller.updateStatus);
 
-router.post('/city/date-filter', auth, controller.dateFiltration);
+router.post('/city/filter', auth, controller.filtration);
 
 module.exports = router;

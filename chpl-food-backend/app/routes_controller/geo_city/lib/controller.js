@@ -242,11 +242,10 @@ exports.findAll = async (req, res) => {
     }
 };
 
-exports.dateFiltration = async (req, res) => {
+exports.filtration = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
-        const { body } = req;
-        const { fromDate, toDate, page = 1, limit = 10, stateId } = body;
+        const { fromDate, toDate, page = 1, limit = 10, stateId, cityCode, status: cityStatus } = req.body;
 
         if ((fromDate && isNaN(Date.parse(fromDate))) || (toDate && isNaN(Date.parse(toDate)))) {
             return res.status(status.BadRequest).json({
@@ -254,11 +253,23 @@ exports.dateFiltration = async (req, res) => {
             });
         }
 
+        if (cityCode && cityCode.length !== 3) {
+            return res.status(status.BadRequest).json({
+                message: 'cityCode must be exactly 3 characters long.',
+            });
+        }
+
+        if (cityStatus !== undefined && cityStatus !== 0 && cityStatus !== 1 && cityStatus !== '0' && cityStatus !== '1') {
+            return res.status(status.BadRequest).json({
+                message: 'Invalid status. Must be either 0 (Inactive) or 1 (Active).',
+            });
+        }
+
         let whereCondition = {};
         let cityFilter = {};
 
-        if (body) {
-            cityFilter = await findWithFilters.findWithFilters(body, db.GeoCity);
+        if (req.body) {
+            cityFilter = await findWithFilters.findWithFilters(req.body, db.GeoCity);
         }
 
         if (fromDate && toDate) {
@@ -279,6 +290,14 @@ exports.dateFiltration = async (req, res) => {
             whereCondition.stateId = stateId;
         }
 
+        if (cityCode) {
+            whereCondition.cityCode = cityCode;
+        }
+
+        if (cityStatus !== undefined) {
+            whereCondition.status = cityStatus.toString();
+        }
+
         whereCondition = {
             ...whereCondition,
             ...cityFilter.filterCondition,
@@ -297,7 +316,9 @@ exports.dateFiltration = async (req, res) => {
         await transaction.commit();
         return res.status(status.OK).json({ data: cities });
     } catch (error) {
-        await transaction.rollback();
-        return common.throwException(error, 'City Filter Api', req, res);
+        if (transaction && !transaction.finished) {
+            await transaction.rollback();
+        }
+        return common.throwException(error, 'City Filter API', req, res);
     }
 };

@@ -240,11 +240,10 @@ exports.findAll = async (req, res) => {
     }
 };
 
-exports.dateFiltration = async (req, res) => {
+exports.filtration = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
-        const { body } = req;
-        const { fromDate, toDate, page = 1, limit = 10 } = body;
+        const { fromDate, toDate, page = 1, limit = 10, telephonePrefix, currencyCode, status: countryStatus } = req.body;
 
         if ((fromDate && isNaN(Date.parse(fromDate))) || (toDate && isNaN(Date.parse(toDate)))) {
             return res.status(status.BadRequest).json({
@@ -252,11 +251,29 @@ exports.dateFiltration = async (req, res) => {
             });
         }
 
+        if (telephonePrefix && telephonePrefix.length !== 3) {
+            return res.status(status.BadRequest).json({
+                message: 'telephonePrefix must be exactly 3 characters long.',
+            });
+        }
+
+        if (currencyCode && currencyCode.length !== 3) {
+            return res.status(status.BadRequest).json({
+                message: 'currencyCode must be exactly 3 characters long.',
+            });
+        }
+
+        if (countryStatus !== undefined && countryStatus !== 0 && countryStatus !== 1 && countryStatus !== '0' && countryStatus !== '1') {
+            return res.status(status.BadRequest).json({
+                message: 'Invalid status. Must be either 0 (Inactive) or 1 (Active).',
+            });
+        }
+
         let whereCondition = {};
         let countryFilter = {};
 
-        if (body) {
-            countryFilter = await findWithFilters.findWithFilters(body, db.GeoCountry);
+        if (req.body) {
+            countryFilter = await findWithFilters.findWithFilters(req.body, db.GeoCountry);
         }
 
         if (fromDate && toDate) {
@@ -271,6 +288,18 @@ exports.dateFiltration = async (req, res) => {
             whereCondition.createdAt = {
                 [Op.lte]: new Date(toDate + ' 23:59:59'),
             };
+        }
+
+        if (telephonePrefix) {
+            whereCondition.telephonePrefix = telephonePrefix;
+        }
+
+        if (currencyCode) {
+            whereCondition.currencyCode = currencyCode;
+        }
+
+        if (countryStatus !== undefined) {
+            whereCondition.status = countryStatus.toString();
         }
 
         whereCondition = {

@@ -181,11 +181,10 @@ exports.roleForFilter = async (req, res) => {
     }
 };
 
-exports.dateFiltration = async (req, res) => {
+exports.filtration = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
-        const { body } = req;
-        const { fromDate, toDate, page = 1, limit = 10 } = body;
+        const { fromDate, toDate, page = 1, limit = 10, isAdmin, type, status: roleStatus } = req.body;
 
         if ((fromDate && isNaN(Date.parse(fromDate))) || (toDate && isNaN(Date.parse(toDate)))) {
             return res.status(status.BadRequest).json({
@@ -193,11 +192,29 @@ exports.dateFiltration = async (req, res) => {
             });
         }
 
+        if (isAdmin !== undefined && isAdmin !== 0 && isAdmin !== 1 && isAdmin !== '0' && isAdmin !== '1') {
+            return res.status(status.BadRequest).json({
+                message: 'isAdmin must be either 0 or 1.',
+            });
+        }
+
+        if (type !== undefined && !['1', '2', '3', 1, 2, 3].includes(type)) {
+            return res.status(status.BadRequest).json({
+                message: 'type must be 1 (AdminUser), 2 (Tenant), or 3 (Customer).',
+            });
+        }
+
+        if (roleStatus !== undefined && roleStatus !== 0 && roleStatus !== 1 && roleStatus !== '0' && roleStatus !== '1') {
+            return res.status(status.BadRequest).json({
+                message: 'status must be either 0 or 1.',
+            });
+        }
+
         let whereCondition = {};
         let roleFilter = {};
 
-        if (body) {
-            roleFilter = await findWithFilters.findWithFilters(body, db.Role);
+        if (req.body) {
+            roleFilter = await findWithFilters.findWithFilters(req.body, db.Role);
         }
 
         if (fromDate && toDate) {
@@ -212,6 +229,18 @@ exports.dateFiltration = async (req, res) => {
             whereCondition.createdAt = {
                 [Op.lte]: new Date(toDate + ' 23:59:59'),
             };
+        }
+
+        if (isAdmin !== undefined) {
+            whereCondition.isAdmin = parseInt(isAdmin);
+        }
+
+        if (type !== undefined) {
+            whereCondition.type = type.toString();
+        }
+
+        if (roleStatus !== undefined) {
+            whereCondition.status = roleStatus.toString();
         }
 
         whereCondition = {

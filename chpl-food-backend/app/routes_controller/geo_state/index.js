@@ -35,6 +35,6 @@ router.get('/state/:id', auth, controller.findById);
 router.put('/state/status/:id', auth, controller.updateStatus);
 
 // Finding with date
-router.post('/state/date-filter', auth, controller.dateFiltration);
+router.post('/state/filter', auth, controller.filtration);
 
 module.exports = router;

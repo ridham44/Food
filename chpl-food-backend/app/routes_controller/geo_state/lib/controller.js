@@ -231,11 +231,10 @@ exports.findAll = async (req, res) => {
         return common.throwException(err, 'Get State', req, res);
     }
 };
-exports.dateFiltration = async (req, res) => {
+exports.filtration = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
-        const { body } = req;
-        const { fromDate, toDate, page = 1, limit = 10, countryId } = body;
+        const { fromDate, toDate, page = 1, limit = 10, countryId, stateCode, status: stateStatus } = req.body;
 
         if ((fromDate && isNaN(Date.parse(fromDate))) || (toDate && isNaN(Date.parse(toDate)))) {
             return res.status(status.BadRequest).json({
@@ -243,11 +242,23 @@ exports.dateFiltration = async (req, res) => {
             });
         }
 
+        if (stateCode && stateCode.length >= 3) {
+            return res.status(status.BadRequest).json({
+                message: 'stateCode must be exactly 3 characters long.',
+            });
+        }
+
+        if (stateStatus !== undefined && stateStatus !== 0 && stateStatus !== 1 && stateStatus !== '0' && stateStatus !== '1') {
+            return res.status(status.BadRequest).json({
+                message: 'Invalid status. Must be either 0 (Inactive) or 1 (Active).',
+            });
+        }
+
         let whereCondition = {};
         let stateFilter = {};
 
-        if (body) {
-            stateFilter = await findWithFilters.findWithFilters(body, db.GeoState);
+        if (req.body) {
+            stateFilter = await findWithFilters.findWithFilters(req.body, db.GeoState);
         }
 
         if (fromDate && toDate) {
@@ -268,6 +279,13 @@ exports.dateFiltration = async (req, res) => {
             whereCondition.countryId = countryId;
         }
 
+        if (stateCode) {
+            whereCondition.stateCode = stateCode;
+        }
+        if (stateStatus !== undefined) {
+            whereCondition.status = stateStatus.toString();
+        }
+
         whereCondition = {
             ...whereCondition,
             ...stateFilter.filterCondition,
@@ -286,7 +304,9 @@ exports.dateFiltration = async (req, res) => {
         await transaction.commit();
         return res.status(status.OK).json({ data: states });
     } catch (error) {
-        await transaction.rollback();
+        if (transaction && !transaction.finished) {
+            await transaction.rollback();
+        }
         return common.throwException(error, 'State Date Filter API', req, res);
     }
 };

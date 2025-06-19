@@ -1,4 +1,3 @@
-//const { Op } = require('sequelize');
 const { status, common, findWithFilters } = require('../../../../utils');
 const db = require('../../../db/models');
 const { Op } = require('sequelize');
@@ -47,7 +46,17 @@ exports.update = async (req, res) => {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'Menu not found!' });
         }
-
+        const existingName = await db.Menu.findOne({
+            where: {
+                id: { [Op.ne]: id },
+                name: body.name,
+            },
+        });
+        if (existingName) {
+            return res.status(status.Conflict).json({
+                message: 'Menu already exists',
+            });
+        }
         menu.set({
             parentId: body.parentId,
             name: body.name,
@@ -156,11 +165,10 @@ exports.menuForFilter = async (req, res) => {
     }
 };
 
-exports.dateFiltration = async (req, res) => {
+exports.filtration = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
-        const { body } = req;
-        const { fromDate, toDate, page = 1, limit = 10 } = body;
+        const { fromDate, toDate, page = 1, limit = 10, minPrice, maxPrice } = req.body;
 
         if ((fromDate && isNaN(Date.parse(fromDate))) || (toDate && isNaN(Date.parse(toDate)))) {
             return res.status(status.BadRequest).json({
@@ -168,11 +176,17 @@ exports.dateFiltration = async (req, res) => {
             });
         }
 
+        if ((minPrice && isNaN(minPrice)) || (maxPrice && isNaN(maxPrice))) {
+            return res.status(status.BadRequest).json({
+                message: 'minPrice and maxPrice must be valid numbers.',
+            });
+        }
+
         let whereCondition = {};
         let menuFilter = {};
 
-        if (body) {
-            menuFilter = await findWithFilters.findWithFilters(body, db.Menu);
+        if (req.body) {
+            menuFilter = await findWithFilters.findWithFilters(req.body, db.Menu);
         }
 
         if (fromDate && toDate) {
@@ -186,6 +200,20 @@ exports.dateFiltration = async (req, res) => {
         } else if (toDate) {
             whereCondition.createdAt = {
                 [Op.lte]: new Date(toDate + ' 23:59:59'),
+            };
+        }
+
+        if (minPrice && maxPrice) {
+            whereCondition.price = {
+                [Op.between]: [parseFloat(minPrice), parseFloat(maxPrice)],
+            };
+        } else if (minPrice) {
+            whereCondition.price = {
+                [Op.gte]: parseFloat(minPrice),
+            };
+        } else if (maxPrice) {
+            whereCondition.price = {
+                [Op.lte]: parseFloat(maxPrice),
             };
         }
 
@@ -207,7 +235,9 @@ exports.dateFiltration = async (req, res) => {
         await transaction.commit();
         return res.status(status.OK).json({ data: menus });
     } catch (error) {
-        await transaction.rollback();
+        if (transaction && !transaction.finished) {
+            await transaction.rollback();
+        }
         return common.throwException(error, 'Menu Date Filter API', req, res);
     }
 };

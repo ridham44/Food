@@ -136,11 +136,10 @@ exports.changePassword = async (req, res) => {
     }
 };
 
-exports.dateFiltration = async (req, res) => {
+exports.filtration = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
-        const { body } = req;
-        const { fromDate, toDate, page = 1, limit = 10 } = body;
+        const { fromDate, toDate, page = 1, limit = 10, gender, mobile, email, countryCode } = req.body;
 
         if ((fromDate && isNaN(Date.parse(fromDate))) || (toDate && isNaN(Date.parse(toDate)))) {
             return res.status(status.BadRequest).json({
@@ -148,11 +147,33 @@ exports.dateFiltration = async (req, res) => {
             });
         }
 
+        if (mobile !== undefined) {
+            const mobileStr = mobile.toString();
+            if (mobileStr.length < 8 || mobileStr.length > 15) {
+                return res.status(status.BadRequest).json({
+                    message: 'Invalid mobile number. Must be between 8 and 15 digits.',
+                });
+            }
+            whereCondition.mobile = mobileStr;
+        }
+
+        if (email && !/^\S+@\S+\.\S+$/.test(email)) {
+            return res.status(status.BadRequest).json({
+                message: 'Invalid email format.',
+            });
+        }
+
+        if (countryCode && (typeof countryCode !== 'string' || countryCode.length > 3)) {
+            return res.status(status.BadRequest).json({
+                message: 'Invalid country code. Max length is 3 characters.',
+            });
+        }
+
         let whereCondition = {};
         let userFilter = {};
 
-        if (body) {
-            userFilter = await findWithFilters.findWithFilters(body, db.User);
+        if (req.body) {
+            userFilter = await findWithFilters.findWithFilters(req.body, db.User);
         }
 
         if (fromDate && toDate) {
@@ -168,6 +189,11 @@ exports.dateFiltration = async (req, res) => {
                 [Op.lte]: new Date(toDate + ' 23:59:59'),
             };
         }
+
+        if (gender) whereCondition.gender = gender;
+        if (mobile) whereCondition.mobile = mobile;
+        if (email) whereCondition.email = email;
+        if (countryCode) whereCondition.countryCode = countryCode;
 
         whereCondition = {
             ...whereCondition,
