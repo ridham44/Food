@@ -1,6 +1,7 @@
 const { Op } = require('sequelize');
 const { status, common, dbCommon, findWithFilters } = require('../../../../utils');
 const db = require('../../../db/models');
+const logActivity = require('../../../../utils/lib/auditLog/activityLogger');
 
 exports.create = async (req, res) => {
     const transaction = await db.sequelize.transaction();
@@ -18,6 +19,7 @@ exports.create = async (req, res) => {
             },
             { transaction }
         );
+        await logActivity(req, 'create', country);
         await transaction.commit();
         if (country) {
             return res.status(status.OK).json({ message: 'Country added successfully!' });
@@ -50,22 +52,19 @@ exports.update = async (req, res) => {
             flag: file ? `/${file.path.replace(/\\/g, '/')}` : null,
             description: body.description,
         };
-        const country = await db.GeoCountry.findOne({
-            where: {
-                id: req.params.id,
-            },
-            transaction,
-        });
+        const country = await db.GeoCountry.findOne({ where: { id: req.params.id }, transaction });
         if (!country) {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'Data not found' });
         }
+        const oldData = JSON.parse(JSON.stringify(country.get({ plain: true })));
 
         country.set(countryData);
 
         await country.save({ transaction });
 
         await transaction.commit();
+        await logActivity(req, 'update', country, oldData);
 
         return res.status(status.OK).json({ message: 'Country updated successfully.' });
     } catch (error) {
@@ -97,10 +96,9 @@ exports.delete = async (req, res) => {
                 message: hasChildren.message,
             });
         }
-
         await db.GeoCountry.destroy({ where: { id: req.params.id } });
         await transaction.commit();
-
+        await logActivity(req, 'delete', country);
         return res.status(status.OK).json({ message: 'Country deleted successfully.' });
     } catch (err) {
         await transaction.rollback();
@@ -188,7 +186,7 @@ exports.updateStatus = async (req, res) => {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'Data not found' });
         }
-
+        const oldData = JSON.parse(JSON.stringify(country.get({ plain: true })));
         country.set({
             status: country.status === '1' ? '0' : '1',
             updatedBy: req.user.id,
@@ -197,6 +195,7 @@ exports.updateStatus = async (req, res) => {
         await country.save({ transaction });
 
         await transaction.commit();
+        await logActivity(req, 'update', country, oldData);
 
         res.status(status.OK).json({ message: 'Status updated successfully' });
     } catch (error) {

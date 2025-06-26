@@ -1,6 +1,7 @@
 const { Op } = require('sequelize');
 const { status, common, dbCommon, findWithFilters } = require('../../../../utils');
 const db = require('../../../db/models');
+const logActivity = require('../../../../utils/lib/auditLog/activityLogger');
 
 exports.create = async (req, res) => {
     const transaction = await db.sequelize.transaction();
@@ -22,6 +23,7 @@ exports.create = async (req, res) => {
         );
 
         if (state) {
+            await logActivity(req, 'create', state);
             await transaction.commit();
             return res.status(status.OK).json({ message: 'State added successfully!' });
         }
@@ -62,6 +64,7 @@ exports.update = async (req, res) => {
                 message: 'State already exists',
             });
         }
+        const oldData = JSON.parse(JSON.stringify(country.get({ plain: true })));
         const stateData = {
             name: name,
             stateCode: stateCode,
@@ -74,6 +77,7 @@ exports.update = async (req, res) => {
         await state.save({ transaction });
 
         await transaction.commit();
+        await logActivity(req, 'update', state, oldData);
 
         return res.status(status.OK).json({ message: 'State updated successfully!' });
     } catch (error) {
@@ -100,6 +104,7 @@ exports.delete = async (req, res) => {
         }
         await db.GeoState.destroy({ where: { id: id } });
         await transaction.commit();
+        await logActivity(req, 'delete', state);
 
         return res.status(status.OK).json({ message: 'State deleted successfully.' });
     } catch (error) {
@@ -182,11 +187,14 @@ exports.updateStatus = async (req, res) => {
             await transaction.rollback();
             return res.status(status.BadRequest).json({ message: 'State not found!!' });
         }
+        const oldData = JSON.parse(JSON.stringify(stateData.get({ plain: true })));
+
         stateData.set({
             status: stateData.status === '1' ? '0' : '1',
         });
-        await stateData.save();
+        await stateData.save({ transaction });
         await transaction.commit();
+        await logActivity(req, 'update', stateData, oldData);
         return res.status(status.OK).json({ message: 'Updated Successfully!' });
     } catch (error) {
         await transaction.rollback();

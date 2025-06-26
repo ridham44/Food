@@ -1,6 +1,7 @@
 const { status, common, dbCommon, findWithFilters } = require('../../../../utils');
 const db = require('../../../db/models');
 const { Op } = require('sequelize');
+const logActivity = require('../../../../utils/lib/auditLog/activityLogger');
 
 exports.create = async (req, res) => {
     const transaction = await db.sequelize.transaction();
@@ -38,6 +39,7 @@ exports.create = async (req, res) => {
         );
 
         await transaction.commit();
+        await logActivity(req, 'create', tenant);
         return res.status(status.OK).json({ message: 'Tenant created successfully!', data: tenant });
     } catch (error) {
         await transaction.rollback();
@@ -56,6 +58,7 @@ exports.update = async (req, res) => {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'Tenant not found' });
         }
+        const oldData = JSON.parse(JSON.stringify(tenant.get({ plain: true })));
 
         tenant.set({
             shortCode: body.shortCode,
@@ -86,7 +89,7 @@ exports.update = async (req, res) => {
 
         await tenant.save({ transaction });
         await transaction.commit();
-
+        await logActivity(req, 'update', tenant, oldData);
         return res.status(status.OK).json({ message: 'Tenant updated successfully!', data: tenant });
     } catch (error) {
         await transaction.rollback();
@@ -109,8 +112,9 @@ exports.delete = async (req, res) => {
             return res.status(status.Conflict).json({ message: hasChildren.message });
         }
 
-        await db.Tenant.destroy({ where: { id }, transaction });
+        await db.Tenant.destroy({ where: { id: id } });
         await transaction.commit();
+        await logActivity(req, 'delete', tenant);
 
         return res.status(status.OK).json({ message: 'Tenant deleted successfully' });
     } catch (error) {
@@ -198,17 +202,15 @@ exports.updateStatus = async (req, res) => {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'Tenant not found' });
         }
+        const oldData = JSON.parse(JSON.stringify(tenant.get({ plain: true })));
 
-        // Status-specific handling
         if (newStatus === '1') {
-            // Approved
             tenant.approvedAt = new Date();
             tenant.approvedBy = req.user.id;
             tenant.rejectedAt = null;
             tenant.rejectedBy = null;
             tenant.rejectedReason = null;
         } else if (newStatus === '3') {
-            // Rejected
             if (!rejectedReason) {
                 await transaction.rollback();
                 return res.status(status.BadRequest).json({ message: 'rejectedReason is required for status = Rejected' });
@@ -219,7 +221,6 @@ exports.updateStatus = async (req, res) => {
             tenant.approvedAt = null;
             tenant.approvedBy = null;
         } else if (newStatus === '0' || newStatus === '2') {
-            // Pending or InProgress
             tenant.approvedAt = null;
             tenant.approvedBy = null;
             tenant.rejectedAt = null;
@@ -235,6 +236,7 @@ exports.updateStatus = async (req, res) => {
 
         await tenant.save({ transaction });
         await transaction.commit();
+        await logActivity(req, 'update', tenant, oldData);
 
         return res.status(status.OK).json({ message: 'Status updated successfully', data: tenant });
     } catch (error) {

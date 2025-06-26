@@ -19,6 +19,18 @@ module.exports = (sequelize, Sequelize) => {
                 onUpdate: 'CASCADE',
                 onDelete: 'CASCADE',
             },
+            roleId: {
+                type: Sequelize.UUID,
+                allowNull: false,
+                association: {
+                    model: 'Role',
+                    key: 'id',
+                    onUpdate: 'CASCADE',
+                    onDelete: 'RESTRICT',
+                    belongsToAlias: 'Role',
+                    hasManyAlias: 'Permission',
+                },
+            },
             createdAt: {
                 type: Sequelize.DATE,
                 allowNull: false,

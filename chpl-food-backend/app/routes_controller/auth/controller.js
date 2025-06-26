@@ -16,28 +16,31 @@ exports.login = async (req, res) => {
             return res.status(status.BadRequest).json({ message: 'Email or mobile number and password are required.' });
         }
 
-        const user = await db.User.scope(['withPassword', 'withoutTenant']).findOne({
-            where: {
-                [Op.or]: [{ email: identifier }, { mobile: identifier }],
-                status: activeStatus,
-            },
-            include: [
-                {
-                    model: db.Role,
-                    as: 'Role',
-                    required: false,
-                    where: { status: activeStatus },
-                    disableTenantCheck: true,
+        const user = await db.User.scope(['withPassword'])
+            .unscoped()
+            .findOne({
+                where: {
+                    [Op.or]: [{ email: identifier }, { mobile: identifier }],
+                    status: activeStatus,
                 },
-                {
-                    model: db.Tenant,
-                    as: 'Tenant',
-                    required: false,
-                    where: { status: activeStatus },
-                    disableTenantCheck: true,
-                },
-            ],
-        });
+                include: [
+                    {
+                        model: db.Role,
+                        as: 'Role',
+                        required: false,
+                        where: { status: activeStatus },
+                        disableTenantCheck: true,
+                    },
+                    {
+                        model: db.Tenant,
+                        as: 'Tenant',
+                        required: false,
+                        where: { status: activeStatus },
+                        disableTenantCheck: true,
+                    },
+                ],
+                disableTenantCheck: true,
+            });
 
         if (!user) {
             return res.status(status.Unauthorized).json({ message: 'Invalid email or mobile number.' });

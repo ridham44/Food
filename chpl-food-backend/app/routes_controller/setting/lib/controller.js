@@ -1,6 +1,7 @@
 const { Op } = require('sequelize');
 const { status, common, dbCommon, findWithFilters } = require('../../../../utils');
 const db = require('../../../db/models');
+const logActivity = require('../../../../utils/lib/auditLog/activityLogger');
 
 exports.create = async (req, res) => {
     const transaction = await db.sequelize.transaction();
@@ -18,7 +19,7 @@ exports.create = async (req, res) => {
             },
             { transaction }
         );
-
+        await logActivity(req, 'create', setting);
         await transaction.commit();
         return res.status(status.OK).json({ message: 'Setting created successfully!', data: setting });
     } catch (error) {
@@ -50,6 +51,7 @@ exports.update = async (req, res) => {
             await transaction.rollback();
             return res.status(status.Conflict).json({ message: 'Setting with this key already exists.' });
         }
+        const oldData = JSON.parse(JSON.stringify(setting.get({ plain: true })));
 
         setting.set({
             title: title,
@@ -62,6 +64,7 @@ exports.update = async (req, res) => {
 
         await setting.save({ transaction });
         await transaction.commit();
+        await logActivity(req, 'update', setting, oldData);
         return res.status(status.OK).json({ message: 'Setting updated successfully!', data: setting });
     } catch (error) {
         await transaction.rollback();
@@ -84,9 +87,9 @@ exports.delete = async (req, res) => {
         if (hasChildren.hasChildren) {
             return res.status(status.Conflict).json({ message: hasChildren.message });
         }
-
-        await db.Setting.destroy({ where: { id }, transaction });
+        await db.Setting.destroy({ where: { id: id } });
         await transaction.commit();
+        await logActivity(req, 'delete', setting);
         return res.status(status.OK).json({ message: 'Setting deleted successfully.' });
     } catch (error) {
         await transaction.rollback();
@@ -123,10 +126,12 @@ exports.updateStatus = async (req, res) => {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'Invalid setting ID!' });
         }
+        const oldData = JSON.parse(JSON.stringify(setting.get({ plain: true })));
 
         setting.status = setting.status === '1' ? '0' : '1';
         await setting.save({ transaction });
         await transaction.commit();
+        await logActivity(req, 'update', setting, oldData);
         return res.status(status.OK).json({ message: 'Status updated successfully!' });
     } catch (error) {
         await transaction.rollback();

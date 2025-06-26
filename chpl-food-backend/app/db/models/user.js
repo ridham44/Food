@@ -181,10 +181,14 @@ module.exports = (sequelize, Sequelize) => {
                 withPassword: {
                     attributes: { include: ['password'] },
                 },
+                withoutTenant: {
+                    where: {},
+                },
             },
         }
     );
-     User.hasTenantCondition();
+
+    User.hasTenantCondition();
 
     return User;
 };

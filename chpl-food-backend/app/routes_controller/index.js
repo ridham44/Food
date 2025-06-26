@@ -11,5 +11,6 @@ router.use('/', require('./menu'));
 router.use('/', require('./setting'));
 router.use('/', require('./permission'));
 router.use('/', require('./menu_admin'));
+router.use('/', require('./activity_log'));
 
 module.exports = router;

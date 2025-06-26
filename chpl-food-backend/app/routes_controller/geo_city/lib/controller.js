@@ -1,6 +1,8 @@
 const { Op } = require('sequelize');
 const { status, common, dbCommon, findWithFilters } = require('../../../../utils');
 const db = require('../../../db/models');
+const logActivity = require('../../../../utils/lib/auditLog/activityLogger');
+
 exports.create = async (req, res) => {
     const transaction = await db.sequelize.transaction();
 
@@ -28,6 +30,7 @@ exports.create = async (req, res) => {
             { transaction }
         );
         if (city) {
+            await logActivity(req, 'create', city);
             await transaction.commit();
             return res.status(status.OK).json({ message: 'City added successfully!' });
         }
@@ -42,7 +45,7 @@ exports.update = async (req, res) => {
     const { name, cityCode, countryId, stateId, description } = req.body;
     const { id } = req.params;
     try {
-        const city = await db.GeoCity.findOne({ where: { id: id }, transaction });
+        const city = await db.GeoCity.findOne({ where: { id }, transaction });
         if (!city) {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'City not found!' });
@@ -69,6 +72,8 @@ exports.update = async (req, res) => {
                 message: 'City already exists',
             });
         }
+        const oldData = JSON.parse(JSON.stringify(city.get({ plain: true })));
+
         const cityData = {
             name: name,
             cityCode: cityCode,
@@ -80,6 +85,7 @@ exports.update = async (req, res) => {
         await city.save({ transaction });
 
         await transaction.commit();
+        await logActivity(req, 'update', city, oldData);
 
         return res.status(status.OK).json({ message: 'City updated successfully!' });
     } catch (error) {
@@ -109,6 +115,7 @@ exports.delete = async (req, res) => {
 
         await db.GeoCity.destroy({ where: { id: req.params.id } });
         await transaction.commit();
+        await logActivity(req, 'delete', city);
 
         return res.status(status.OK).json({ message: 'City deleted successfully.' });
     } catch (error) {
@@ -191,12 +198,14 @@ exports.updateStatus = async (req, res) => {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'Enter valid id!!' });
         }
-
+        const oldData = JSON.parse(JSON.stringify(cityData.get({ plain: true })));
         cityData.set({
             status: cityData.status === '1' ? '0' : '1',
         });
 
-        await cityData.save();
+        await cityData.save({ transaction });
+        await logActivity(req, 'update', cityData, oldData);
+
         return res.status(status.OK).json({ message: 'Status updated Successfully!' });
     } catch (error) {
         await transaction.rollback();

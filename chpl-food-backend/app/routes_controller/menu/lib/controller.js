@@ -1,6 +1,7 @@
 const { status, common, findWithFilters } = require('../../../../utils');
 const db = require('../../../db/models');
 const { Op } = require('sequelize');
+const logActivity = require('../../../../utils/lib/auditLog/activityLogger');
 
 exports.create = async (req, res) => {
     const transaction = await db.sequelize.transaction();
@@ -22,7 +23,7 @@ exports.create = async (req, res) => {
             },
             { transaction }
         );
-
+        await logActivity(req, 'create', menu);
         await transaction.commit();
         return res.status(status.OK).json({ message: 'Menu created successfully!', data: menu });
     } catch (error) {
@@ -57,6 +58,7 @@ exports.update = async (req, res) => {
                 message: 'Menu already exists',
             });
         }
+        const oldData = JSON.parse(JSON.stringify(menu.get({ plain: true })));
         menu.set({
             parentId: body.parentId,
             name: body.name,
@@ -68,6 +70,7 @@ exports.update = async (req, res) => {
 
         await menu.save({ transaction });
         await transaction.commit();
+        await logActivity(req, 'update', menu, oldData);
         return res.status(status.OK).json({ message: 'Menu updated successfully!', data: menu });
     } catch (error) {
         await transaction.rollback();
@@ -89,9 +92,9 @@ exports.delete = async (req, res) => {
         if (hasChildren) {
             return res.status(status.Conflict).json({ message: 'Menu has child entries and cannot be deleted.' });
         }
-
-        await db.Menu.destroy({ where: { id }, transaction });
+        await db.Menu.destroy({ where: { id } });
         await transaction.commit();
+        await logActivity(req, 'delete', menu);
         return res.status(status.OK).json({ message: 'Menu deleted successfully.' });
     } catch (error) {
         await transaction.rollback();

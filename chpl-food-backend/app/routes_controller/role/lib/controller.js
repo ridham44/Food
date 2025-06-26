@@ -1,6 +1,7 @@
 const { Op } = require('sequelize');
 const { status, common, dbCommon, findWithFilters } = require('../../../../utils');
 const db = require('../../../db/models');
+const logActivity = require('../../../../utils/lib/auditLog/activityLogger');
 
 exports.create = async (req, res) => {
     const transaction = await db.sequelize.transaction();
@@ -19,7 +20,7 @@ exports.create = async (req, res) => {
             },
             { transaction }
         );
-
+        await logActivity(req, 'create', role);
         await transaction.commit();
         return res.status(status.OK).json({ message: 'Role added successfully!', data: role });
     } catch (error) {
@@ -51,7 +52,7 @@ exports.update = async (req, res) => {
             await transaction.rollback();
             return res.status(status.Conflict).json({ message: 'Role with this name already exists.' });
         }
-
+        const oldData = JSON.parse(JSON.stringify(role.get({ plain: true })));
         role.set({
             name: body.name,
             type: body.type,
@@ -64,6 +65,7 @@ exports.update = async (req, res) => {
 
         await role.save({ transaction });
         await transaction.commit();
+        await logActivity(req, 'update', role, oldData);
         return res.status(status.OK).json({ message: 'Role updated successfully!', data: role });
     } catch (error) {
         await transaction.rollback();
@@ -86,9 +88,9 @@ exports.delete = async (req, res) => {
         if (hasChildren.hasChildren) {
             return res.status(status.Conflict).json({ message: hasChildren.message });
         }
-
-        await db.Role.destroy({ where: { id }, transaction });
+        await db.Role.destroy({ where: { id: id }, transaction });
         await transaction.commit();
+        await logActivity(req, 'delete', role);
         return res.status(status.OK).json({ message: 'Role deleted successfully.' });
     } catch (error) {
         await transaction.rollback();
@@ -125,10 +127,11 @@ exports.updateStatus = async (req, res) => {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'Invalid role ID!' });
         }
-
+        const oldData = JSON.parse(JSON.stringify(role.get({ plain: true })));
         role.status = role.status === '1' ? '0' : '1';
         await role.save({ transaction });
         await transaction.commit();
+        await logActivity(req, 'update', role, oldData);
         return res.status(status.OK).json({ message: 'Status updated successfully!' });
     } catch (error) {
         await transaction.rollback();

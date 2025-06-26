@@ -20,6 +20,12 @@ const validationRules = () => {
     ];
 };
 const updateValidations = () => {
-    return [body('name').notEmpty().trim().withMessage('Name is required!')];
+    return [
+        body('name').notEmpty().trim().withMessage('Name is required!'),
+
+        body('countryId').notEmpty().withMessage('Country ID is required!'),
+
+        body('stateId').notEmpty().withMessage('State ID is required!'),
+    ];
 };
 module.exports = { validationRules, updateValidations };
