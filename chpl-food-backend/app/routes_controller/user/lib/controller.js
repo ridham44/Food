@@ -4,6 +4,7 @@ var jwt = require('jsonwebtoken');
 const { status, common, enums, findWithFilters, removeImage } = require('../../../../utils');
 const { Op } = require('sequelize');
 const { default: axios } = require('axios');
+const logActivity = require('../../../../utils/lib/auditLog/activityLogger');
 
 // Login With password api with POS API
 exports.loginWithPassword = async (req, res) => {
@@ -86,7 +87,8 @@ exports.loginWithPassword = async (req, res) => {
             browserDetail: req.headers['user-agent'],
             isLogin: enums.isLogin.Login,
             deviceType: isMobile ? enums.deviceType.Mobile : enums.deviceType.Web,
-            tenantId: user.tenantId,
+            tenantId: user?.Tenant?.id,
+            createdBy: user?.id,
         };
 
         const responseData = {
@@ -524,6 +526,7 @@ exports.create = async (req, res) => {
         };
 
         await db.User.create(userPayload, { transaction });
+        await logActivity(req, 'create', userPayload);
 
         await transaction.commit();
         return res.status(status.OK).json({ message: 'User created successfully' });
@@ -612,6 +615,7 @@ exports.update = async (req, res) => {
             removeImage(checkExist.profileImage);
             checkExist.profileImage = null;
         }
+        const oldData = JSON.parse(JSON.stringify(checkExist.get({ plain: true })));
 
         const userPayload = {
             firstName: body.firstName,
@@ -641,6 +645,7 @@ exports.update = async (req, res) => {
 
         await checkExist.save({ transaction });
         await transaction.commit();
+        await logActivity(req, 'update', checkExist, oldData);
         return res.status(status.OK).json({ message: 'User updated successfully' });
     } catch (err) {
         await transaction.rollback();
@@ -672,6 +677,7 @@ exports.delete = async (req, res) => {
         }
 
         await checkExist.destroy({ transaction });
+        await logActivity(req, 'delete', checkExist);
 
         await transaction.commit();
         return res.status(status.OK).json({ message: 'User deleted successfully' });
@@ -698,6 +704,7 @@ exports.updateStatus = async (req, res) => {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'User not found!' });
         }
+        const oldData = JSON.parse(JSON.stringify(checkExist.get({ plain: true })));
 
         checkExist.set(
             {
@@ -709,6 +716,7 @@ exports.updateStatus = async (req, res) => {
 
         await checkExist.save({ transaction });
         await transaction.commit();
+        await logActivity(req, 'update', checkExist, oldData);
         return res.status(status.OK).json({ message: 'Status updated successfully' });
     } catch (err) {
         await transaction.rollback();
