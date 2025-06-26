@@ -1,6 +1,7 @@
 const { status, common, dbCommon, findWithFilters } = require('../../../../utils');
 const db = require('../../../db/models');
 const { Op } = require('sequelize');
+const fs = require('fs');
 const logActivity = require('../../../../utils/lib/auditLog/activityLogger');
 
 exports.create = async (req, res) => {
@@ -42,6 +43,12 @@ exports.create = async (req, res) => {
         await logActivity(req, 'create', tenant);
         return res.status(status.OK).json({ message: 'Tenant created successfully!', data: tenant });
     } catch (error) {
+        if (req.files?.frontImage?.[0]?.path && fs.existsSync(req.files.frontImage[0].path)) {
+            fs.unlinkSync(req.files.frontImage[0].path);
+        }
+        if (req.files?.backImage?.[0]?.path && fs.existsSync(req.files.backImage[0].path)) {
+            fs.unlinkSync(req.files.backImage[0].path);
+        }
         await transaction.rollback();
         return common.throwException(error, 'Create Tenant API', req, res);
     }
@@ -56,6 +63,12 @@ exports.update = async (req, res) => {
         const tenant = await db.Tenant.findByPk(id);
         if (!tenant) {
             await transaction.rollback();
+            if (req.files?.frontImage?.[0]?.path && fs.existsSync(req.files.frontImage[0].path)) {
+                fs.unlinkSync(req.files.frontImage[0].path);
+            }
+            if (req.files?.backImage?.[0]?.path && fs.existsSync(req.files.backImage[0].path)) {
+                fs.unlinkSync(req.files.backImage[0].path);
+            }
             return res.status(status.NotFound).json({ message: 'Tenant not found' });
         }
         const oldData = JSON.parse(JSON.stringify(tenant.get({ plain: true })));
@@ -92,6 +105,12 @@ exports.update = async (req, res) => {
         await logActivity(req, 'update', tenant, oldData);
         return res.status(status.OK).json({ message: 'Tenant updated successfully!', data: tenant });
     } catch (error) {
+        if (req.files?.frontImage?.[0]?.path && fs.existsSync(req.files.frontImage[0].path)) {
+            fs.unlinkSync(req.files.frontImage[0].path);
+        }
+        if (req.files?.backImage?.[0]?.path && fs.existsSync(req.files.backImage[0].path)) {
+            fs.unlinkSync(req.files.backImage[0].path);
+        }
         await transaction.rollback();
         return common.throwException(error, 'Update Tenant API', req, res);
     }
@@ -111,7 +130,12 @@ exports.delete = async (req, res) => {
         if (hasChildren.hasChildren) {
             return res.status(status.Conflict).json({ message: hasChildren.message });
         }
-
+        if (tenant.frontImage && fs.existsSync(`.${tenant.frontImage}`)) {
+            fs.unlinkSync(`.${tenant.frontImage}`);
+        }
+        if (tenant.backImage && fs.existsSync(`.${tenant.backImage}`)) {
+            fs.unlinkSync(`.${tenant.backImage}`);
+        }
         await db.Tenant.destroy({ where: { id: id } });
         await transaction.commit();
         await logActivity(req, 'delete', tenant);

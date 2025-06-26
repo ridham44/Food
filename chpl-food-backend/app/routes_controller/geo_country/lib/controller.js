@@ -1,4 +1,5 @@
 const { Op } = require('sequelize');
+const fs = require('fs');
 const { status, common, dbCommon, findWithFilters } = require('../../../../utils');
 const db = require('../../../db/models');
 const logActivity = require('../../../../utils/lib/auditLog/activityLogger');
@@ -25,6 +26,9 @@ exports.create = async (req, res) => {
             return res.status(status.OK).json({ message: 'Country added successfully!' });
         }
     } catch (error) {
+        if (req.file?.path && fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
         await transaction.rollback();
         return common.throwException(error, 'Create update api', req, res);
     }
@@ -40,6 +44,9 @@ exports.update = async (req, res) => {
             },
         });
         if (existingData) {
+            if (req.file?.path && fs.existsSync(req.file.path)) {
+                fs.unlinkSync(req.file.path);
+            }
             return res.status(status.Conflict).json({
                 message: 'Country Already exists!',
             });
@@ -54,6 +61,9 @@ exports.update = async (req, res) => {
         };
         const country = await db.GeoCountry.findOne({ where: { id: req.params.id }, transaction });
         if (!country) {
+            if (req.file?.path && fs.existsSync(req.file.path)) {
+                fs.unlinkSync(req.file.path);
+            }
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'Data not found' });
         }
@@ -68,6 +78,9 @@ exports.update = async (req, res) => {
 
         return res.status(status.OK).json({ message: 'Country updated successfully.' });
     } catch (error) {
+        if (req.file?.path && fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
         await transaction.rollback();
         return common.throwException(error, 'Update country api', req, res);
     }
@@ -95,6 +108,11 @@ exports.delete = async (req, res) => {
             return res.status(status.Conflict).json({
                 message: hasChildren.message,
             });
+        }
+        if (country.flag) {
+            if (country.flag && fs.existsSync(`.${country.flag}`)) {
+                fs.unlinkSync(`.${country.flag}`);
+            }
         }
         await db.GeoCountry.destroy({ where: { id: req.params.id } });
         await transaction.commit();

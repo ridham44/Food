@@ -7,7 +7,6 @@ const errorStackParser = require('error-stack-parser');
 const fs = require('fs');
 const path = require('path');
 const UAParser = require('ua-parser-js');
-// const AuditLogs = db.AuditLogs;
 
 module.exports = {
     getUserIP(req) {
@@ -22,6 +21,22 @@ module.exports = {
 
         if (!errors.isEmpty()) {
             // eslint-disable-next-line no-unused-vars
+
+            // Delete single uploaded file
+            if (req.file && fs.existsSync(req.file.path)) {
+                fs.unlinkSync(req.file.path);
+            }
+
+            //  Delete multiple uploaded files
+            if (req.files) {
+                Object.values(req.files)
+                    .flat()
+                    .forEach((file) => {
+                        if (fs.existsSync(file.path)) {
+                            fs.unlinkSync(file.path);
+                        }
+                    });
+            }
             let error = errorSort[0];
             return res.status(status.BadRequest).json({ message: error, fields: errorSort });
         }

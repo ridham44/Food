@@ -1,6 +1,7 @@
 const { status, common, findWithFilters } = require('../../../../utils');
 const db = require('../../../db/models');
 const { Op } = require('sequelize');
+const fs = require('fs');
 const logActivity = require('../../../../utils/lib/auditLog/activityLogger');
 
 exports.create = async (req, res) => {
@@ -9,6 +10,7 @@ exports.create = async (req, res) => {
         const { body, file, user } = req;
         const tenant = await db.Tenant.findByPk(user.tenantId);
         if (!tenant) {
+            if (file?.path && fs.existsSync(file.path)) fs.unlinkSync(file.path);
             return res.status(status.BAD_REQUEST).json({ message: 'Invalid tenant' });
         }
 
@@ -27,6 +29,9 @@ exports.create = async (req, res) => {
         await transaction.commit();
         return res.status(status.OK).json({ message: 'Menu created successfully!', data: menu });
     } catch (error) {
+        if (req.file?.path && fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
         await transaction.rollback();
         return common.throwException(error, 'Create Menu API', req, res);
     }
@@ -39,12 +44,14 @@ exports.update = async (req, res) => {
         const { body, file, user } = req;
         const tenant = await db.Tenant.findByPk(user.tenantId);
         if (!tenant) {
+            if (file?.path && fs.existsSync(file.path)) fs.unlinkSync(file.path);
             return res.status(status.BAD_REQUEST).json({ message: 'Invalid tenant' });
         }
 
         const menu = await db.Menu.findByPk(id);
         if (!menu) {
             await transaction.rollback();
+            if (file?.path && fs.existsSync(file.path)) fs.unlinkSync(file.path);
             return res.status(status.NotFound).json({ message: 'Menu not found!' });
         }
         const existingName = await db.Menu.findOne({
@@ -54,9 +61,8 @@ exports.update = async (req, res) => {
             },
         });
         if (existingName) {
-            return res.status(status.Conflict).json({
-                message: 'Menu already exists',
-            });
+            if (file?.path && fs.existsSync(file.path)) fs.unlinkSync(file.path);
+            return res.status(status.Conflict).json({ message: 'Menu already exists' });
         }
         const oldData = JSON.parse(JSON.stringify(menu.get({ plain: true })));
         menu.set({
@@ -73,6 +79,9 @@ exports.update = async (req, res) => {
         await logActivity(req, 'update', menu, oldData);
         return res.status(status.OK).json({ message: 'Menu updated successfully!', data: menu });
     } catch (error) {
+        if (req.file?.path && fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
         await transaction.rollback();
         return common.throwException(error, 'Update Menu API', req, res);
     }
@@ -91,6 +100,9 @@ exports.delete = async (req, res) => {
         const hasChildren = await db.Menu.findOne({ where: { parentId: id } });
         if (hasChildren) {
             return res.status(status.Conflict).json({ message: 'Menu has child entries and cannot be deleted.' });
+        }
+        if (menu.filePath && fs.existsSync(`.${menu.filePath}`)) {
+            fs.unlinkSync(`.${menu.filePath}`);
         }
         await db.Menu.destroy({ where: { id } });
         await transaction.commit();

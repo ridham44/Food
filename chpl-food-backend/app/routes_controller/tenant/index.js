@@ -37,15 +37,22 @@ const fileFilter = (req, file, cb) => {
 
 // Multer error handling
 const multerMiddleware = (err, req, res, next) => {
-    let errorMessage = 'File upload error!';
-    if (err instanceof multer.MulterError) {
-        if (err.code === 'LIMIT_FILE_SIZE') {
-            errorMessage = 'File size too large!';
+    const removeUploadedFile = () => {
+        if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
         }
-        return res.status(status.InternalServerError).json({ message: errorMessage });
+    };
+    if (err instanceof multer.MulterError) {
+        removeUploadedFile();
+        return res.status(status.InternalServerError).json({ message: 'File upload error!', error: err.message });
     }
     if (req.fileValidationError) {
+        removeUploadedFile();
         return res.status(status.BadRequest).json({ message: 'Only .png, .jpg, and .jpeg format allowed!' });
+    }
+    if (err) {
+        removeUploadedFile();
+        return res.status(status.InternalServerError).json({ message: 'Unexpected file upload error', error: err.message });
     }
     next();
 };
@@ -109,7 +116,5 @@ router.get('/tenant/by-user/:userId', auth, controller.findByCreatedUserId);
 
 // Finding with date
 router.post('/tenant/filter', auth, controller.filtration);
-
-// Finding with date for approved tenants
 
 module.exports = router;

@@ -37,13 +37,21 @@ const fileFilter = (req, file, cb) => {
 
 // Multer middleware
 const multerMiddleware = (err, req, res, next) => {
+        const removeUploadedFile = () => {
+        if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
+    }; 
     if (err instanceof multer.MulterError) {
+        removeUploadedFile();
         return res.status(status.InternalServerError).json({ message: 'File upload error!', error: err.message });
     }
     if (req.fileValidationError) {
+        removeUploadedFile();
         return res.status(status.BadRequest).json({ message: 'Only .png, .jpg, and .jpeg format allowed!' });
     }
     if (err) {
+        removeUploadedFile();
         return res.status(status.InternalServerError).json({ message: 'Unexpected file upload error', error: err.message });
     }
     next();
