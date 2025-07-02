@@ -43,11 +43,7 @@ module.exports = (sequelize, Sequelize) => {
                 type: Sequelize.UUID,
                 allowNull: false,
             },
-            old_value: {
-                type: Sequelize.JSON,
-                allowNull: true,
-            },
-            new_value: {
+            value: {
                 type: Sequelize.JSON,
                 allowNull: true,
             },

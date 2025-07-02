@@ -16,17 +16,17 @@ const logActivity = async (req, action, instance, oldValue = null) => {
         if (!tenantId && db.User) {
             const user = await db.User.findByPk(userId, { attributes: ['tenantId'] });
             tenantId = user?.tenantId;
-        }   
+        }
 
-        let newValue = null;
-        let oldData = null;
+        let value = null;
 
         if (action === 'create') {
-            newValue = instance.get({ plain: true });
+            const newValue = instance.get({ plain: true });
+            value = newValue;
         } else if (action === 'update') {
             const latestData = instance.get({ plain: true });
-            newValue = {};
-            oldData = {};
+            const changedFields = {};
+
             for (const key in latestData) {
                 if (['updatedAt', 'createdAt', 'id'].includes(key) || latestData[key] === undefined) continue;
 
@@ -34,14 +34,19 @@ const logActivity = async (req, action, instance, oldValue = null) => {
                 const newVal = latestData[key];
 
                 if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
-                    oldData[key] = oldVal;
-                    newValue[key] = newVal;
+                    changedFields[key] = {
+                        from: oldVal,
+                        to: newVal,
+                    };
                 }
             }
 
-            if (Object.keys(newValue).length === 0) return;
+            if (Object.keys(changedFields).length === 0) return;
+
+            value = changedFields;
         } else if (action === 'delete') {
-            oldData = instance.get({ plain: true });
+            const oldData = instance.get({ plain: true });
+            value = oldData;
         }
 
         await ActivityLog.create({
@@ -50,8 +55,7 @@ const logActivity = async (req, action, instance, oldValue = null) => {
             module: modelName,
             action,
             record_id: recordId,
-            old_value: action === 'update' || action === 'delete' ? oldData : null,
-            new_value: action === 'create' || action === 'update' ? newValue : null,
+            value,
             created_at: new Date(),
         });
     } catch (err) {

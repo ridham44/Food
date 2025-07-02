@@ -52,7 +52,7 @@ module.exports = (sequelize, Sequelize) => {
         }
     );
 
-    Setting.hasTenantCondition(true);
+    Setting.hasTenantCondition(false);
 
     return Setting;
 };
