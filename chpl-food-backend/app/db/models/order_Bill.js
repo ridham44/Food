@@ -1,17 +1,17 @@
 'use strict';
 
-module.exports = (sequelize, DataTypes) => {
+module.exports = (sequelize, Sequelize) => {
     const OrderBill = sequelize.define(
         'OrderBill',
         {
             id: {
-                type: DataTypes.UUID,
-                defaultValue: DataTypes.UUIDV4,
+                type: Sequelize.UUID,
+                defaultValue: Sequelize.UUIDV4,
                 primaryKey: true,
                 allowNull: false,
             },
             orderListId: {
-                type: DataTypes.UUID,
+                type: Sequelize.UUID,
                 allowNull: false,
                 association: {
                     model: 'OrderList',
@@ -21,29 +21,29 @@ module.exports = (sequelize, DataTypes) => {
                 },
             },
             totalAmount: {
-                type: DataTypes.DECIMAL(10, 2),
+                type: Sequelize.DECIMAL(10, 2),
                 allowNull: false,
             },
             couponCode: {
-                type: DataTypes.STRING(50),
+                type: Sequelize.STRING(50),
                 allowNull: true,
             },
             discountAmount: {
-                type: DataTypes.DECIMAL(10, 2),
+                type: Sequelize.DECIMAL(10, 2),
                 allowNull: true,
                 defaultValue: 0,
             },
             finalAmount: {
-                type: DataTypes.DECIMAL(10, 2),
+                type: Sequelize.DECIMAL(10, 2),
                 allowNull: true,
             },
             status: {
-                type: DataTypes.ENUM('0', '1', '2'),
+                type: Sequelize.ENUM('0', '1', '2'),
                 defaultValue: '0',
                 allowNull: false,
                 comment: '0 for Unpaid, 1 for Paid, 2 for Cancelled',
             },
-            createdAt: DataTypes.DATE,
+            createdAt: Sequelize.DATE,
         },
         {
             tableName: 'order_bill',

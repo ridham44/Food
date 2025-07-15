@@ -26,6 +26,7 @@ exports.getUnpaidBillsByCustomer = async (req, res) => {
         });
 
         const orderListIds = orderLists.map((o) => o.id);
+
         if (orderListIds.length === 0) {
             return res.status(status.OK).json({
                 message: 'No orders found for customer under this tenant',
@@ -43,7 +44,22 @@ exports.getUnpaidBillsByCustomer = async (req, res) => {
             raw: true,
         });
 
+        const isFirstOrder = orderListIds.length === 1;
+        let tenantFirstTimeCoupon = null;
+        if (isFirstOrder) {
+            tenantFirstTimeCoupon = await db.DiscountCoupon.findOne({
+                where: {
+                    tenantId,
+                    code: 'FIRST',
+                    validFrom: { [Op.lte]: new Date() },
+                    validTo: { [Op.gte]: new Date() },
+                },
+                raw: true,
+            });
+        }
+
         const billsWithItems = [];
+        let couponSuggestion = null;
 
         for (const bill of unpaidBills) {
             const items = await db.OrderItem.findAll({
@@ -78,12 +94,23 @@ exports.getUnpaidBillsByCustomer = async (req, res) => {
                 createdAt: bill.createdAt,
                 items: itemDetails,
             });
+
+            if (!couponSuggestion && !bill.couponCode) {
+                if (isFirstOrder && tenantFirstTimeCoupon) {
+                    couponSuggestion = {
+                        code: tenantFirstTimeCoupon.code,
+                        description: tenantFirstTimeCoupon.description ,
+                        canApply: true,
+                    };
+                }
+            }
         }
 
         return res.status(status.OK).json({
             message: 'Unpaid bills with item details fetched successfully',
             total: billsWithItems.length,
             bills: billsWithItems,
+            ...(couponSuggestion && { CouponSuggestion: couponSuggestion }),
         });
     } catch (error) {
         return res.status(status.InternalServerError).json({ message: error.message });

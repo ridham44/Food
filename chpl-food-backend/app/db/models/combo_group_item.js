@@ -1,49 +1,48 @@
 'use strict';
+
 module.exports = (sequelize, Sequelize) => {
-    const OrderItem = sequelize.define(
-        'OrderItem',
+    const ComboGroupItem = sequelize.define(
+        'ComboGroupItem',
         {
             id: {
                 type: Sequelize.UUID,
-                defaultValue: Sequelize.UUIDV4,
                 primaryKey: true,
+                defaultValue: Sequelize.UUIDV4,
                 allowNull: false,
             },
-            orderListId: {
+            comboGroupId: {
                 type: Sequelize.UUID,
                 allowNull: false,
-                association: {
-                    model: 'OrderList',
+                references: {
+                    model: 'combo_group',
                     key: 'id',
-                    belongsToAlias: 'OrderList',
-                    hasManyAlias: 'OrderItem',
                 },
             },
             menuId: {
                 type: Sequelize.UUID,
                 allowNull: false,
-                association: {
-                    model: 'Menu',
+                references: {
+                    model: 'menu',
                     key: 'id',
-                    belongsToAlias: 'Menu',
-                    hasManyAlias: 'OrderItem',
                 },
             },
             quantity: {
                 type: Sequelize.INTEGER,
                 allowNull: false,
             },
-            totalPrice: {
-                type: Sequelize.DECIMAL(10, 2),
+            type: {
+                type: Sequelize.ENUM('buy', 'get'),
                 allowNull: false,
+                Comment: 'Type of combo group item, either "buy" or "get"',
             },
-            createdAt: Sequelize.DATE,
         },
         {
-            tableName: 'order_item',
+            tableName: 'combo_group_item',
             timestamps: false,
+            underscored: false,
         }
     );
-    OrderItem.hasTenantCondition(false);
-    return OrderItem;
+
+    ComboGroupItem.hasTenantCondition?.(false);
+    return ComboGroupItem;
 };

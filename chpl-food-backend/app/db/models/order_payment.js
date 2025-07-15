@@ -1,16 +1,16 @@
 'use strict';
-module.exports = (sequelize, DataTypes) => {
+module.exports = (sequelize, Sequelize) => {
     const OrderPayment = sequelize.define(
         'OrderPayment',
         {
             id: {
-                type: DataTypes.UUID,
-                defaultValue: DataTypes.UUIDV4,
+                type: Sequelize.UUID,
+                defaultValue: Sequelize.UUIDV4,
                 primaryKey: true,
                 allowNull: false,
             },
             orderBillId: {
-                type: DataTypes.UUID,
+                type: Sequelize.UUID,
                 allowNull: false,
                 association: {
                     model: 'OrderBill',
@@ -20,27 +20,27 @@ module.exports = (sequelize, DataTypes) => {
                 },
             },
             cash: {
-                type: DataTypes.DECIMAL(10, 2),
+                type: Sequelize.DECIMAL(10, 2),
                 allowNull: true,
             },
             card: {
-                type: DataTypes.DECIMAL(10, 2),
+                type: Sequelize.DECIMAL(10, 2),
                 allowNull: true,
             },
             online: {
-                type: DataTypes.DECIMAL(10, 2),
+                type: Sequelize.DECIMAL(10, 2),
                 allowNull: true,
             },
             amountPaid: {
-                type: DataTypes.DECIMAL(10, 2),
+                type: Sequelize.DECIMAL(10, 2),
                 allowNull: false,
             },
             status: {
-                type: DataTypes.ENUM('paid', 'failed'),
+                type: Sequelize.ENUM('paid', 'failed'),
                 allowNull: false,
                 defaultValue: 'paid',
             },
-            createdAt: DataTypes.DATE,
+            createdAt: Sequelize.DATE,
         },
         {
             tableName: 'order_payment',

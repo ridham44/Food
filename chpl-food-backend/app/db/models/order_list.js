@@ -1,16 +1,16 @@
 'use strict';
-module.exports = (sequelize, DataTypes) => {
+module.exports = (sequelize, Sequelize) => {
     const OrderList = sequelize.define(
         'OrderList',
         {
             id: {
-                type: DataTypes.UUID,
-                defaultValue: DataTypes.UUIDV4,
+                type: Sequelize.UUID,
+                defaultValue: Sequelize.UUIDV4,
                 primaryKey: true,
                 allowNull: false,
             },
             customerId: {
-                type: DataTypes.UUID,
+                type: Sequelize.UUID,
                 allowNull: false,
                 association: {
                     model: 'Customer',
@@ -20,17 +20,17 @@ module.exports = (sequelize, DataTypes) => {
                 },
             },
             placedBy: {
-                type: DataTypes.ENUM('1', '2'),
+                type: Sequelize.ENUM('1', '2'),
                 allowNull: false,
                 defaultValue: '1',
             },
             status: {
-                type: DataTypes.ENUM('1', '2', '3'),
+                type: Sequelize.ENUM('1', '2', '3'),
                 allowNull: false,
                 defaultValue: '1',
             },
             tenantId: {
-                type: DataTypes.UUID,
+                type: Sequelize.UUID,
                 allowNull: false,
                 association: {
                     model: 'Tenant',
@@ -39,7 +39,7 @@ module.exports = (sequelize, DataTypes) => {
                     hasManyAlias: 'OrderList',
                 },
             },
-            createdAt: DataTypes.DATE,
+            createdAt: Sequelize.DATE,
         },
         {
             tableName: 'order_list',

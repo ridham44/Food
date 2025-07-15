@@ -27,7 +27,7 @@ exports.createCouponValidation = [
 
     body('validTo').notEmpty().withMessage('Valid to date is required'),
 
-    body('isPublic').optional.isBoolean().withMessage('isPublic must be a boolean'),
+    body('isPublic').optional().isBoolean().withMessage('isPublic must be a boolean'),
 
     body('description').optional().isString().withMessage('Description must be a string'),
 

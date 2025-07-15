@@ -1,17 +1,17 @@
 'use strict';
 
-module.exports = (sequelize, DataTypes) => {
+module.exports = (sequelize, Sequelize) => {
     const DiscountCouponUser = sequelize.define(
         'DiscountCouponUser',
         {
             id: {
-                type: DataTypes.UUID,
-                defaultValue: DataTypes.UUIDV4,
+                type: Sequelize.UUID,
+                defaultValue: Sequelize.UUIDV4,
                 primaryKey: true,
                 allowNull: false,
             },
             couponId: {
-                type: DataTypes.UUID,
+                type: Sequelize.UUID,
                 allowNull: false,
                 association: {
                     model: 'DiscountCoupon',
@@ -21,7 +21,7 @@ module.exports = (sequelize, DataTypes) => {
                 },
             },
             customerId: {
-                type: DataTypes.UUID,
+                type: Sequelize.UUID,
                 allowNull: false,
                 association: {
                     model: 'User',
@@ -31,7 +31,7 @@ module.exports = (sequelize, DataTypes) => {
                 },
             },
             usedCount: {
-                type: DataTypes.INTEGER,
+                type: Sequelize.INTEGER,
                 defaultValue: 0,
                 allowNull: false,
             },
