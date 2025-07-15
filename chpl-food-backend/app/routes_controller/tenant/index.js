@@ -7,7 +7,6 @@ const { expressValidate } = require('../../../utils/lib/common-function');
 const { validationRules, updateValidations } = require('./lib/validation');
 const { status } = require('../../../utils');
 
-// Allowed image MIME types
 const allowedType = ['image/png', 'image/jpeg', 'image/jpg'];
 
 // Storage config
@@ -63,12 +62,9 @@ const uploads = multer({
     fileFilter: fileFilter,
 });
 
-// Routes
-
 // Create tenant
 router.post(
     '/tenant',
-    auth,
     uploads.fields([
         { name: 'frontImage', maxCount: 1 },
         { name: 'backImage', maxCount: 1 },

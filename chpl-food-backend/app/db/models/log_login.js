@@ -19,7 +19,7 @@ module.exports = (sequelize, Sequelize) => {
                     belongsToAlias: 'Tenant',
                     hasManyAlias: 'LogLogin',
                 },
-                allowNull: false,
+                allowNull: true,
             },
             logoutAt: {
                 type: Sequelize.DATE,

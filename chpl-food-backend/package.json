@@ -48,6 +48,7 @@
         "node-schedule": "^2.1.1",
         "nodemailer": "^6.9.7",
         "poplib": "^0.1.7",
+        "qrcode": "^1.5.4",
         "razorpay": "^2.9.2",
         "sequelize": "^6.35.1",
         "socket.io": "^4.8.0",

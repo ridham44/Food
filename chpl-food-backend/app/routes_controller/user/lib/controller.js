@@ -12,7 +12,7 @@ exports.loginWithPassword = async (req, res) => {
     try {
         const { body } = req;
 
-        const userType = req.headers.usertype || 12;
+        // const userType = req.headers.usertype || 12;
 
         const user = await db.User.scope('withPassword').findOne({
             where: {
@@ -24,7 +24,7 @@ exports.loginWithPassword = async (req, res) => {
                     as: 'Role',
                     attributes: ['id', 'name'],
                     where: {
-                        type: userType,
+                        //  type: userType,
                     },
                 },
                 {
@@ -471,7 +471,6 @@ exports.create = async (req, res) => {
         const checkExist = await db.User.findOne({
             where: {
                 [Op.or]: [{ email: body?.email?.toLowerCase() }, { mobile: body?.mobile }],
-                tenantId: user.tenantId,
             },
             disableTenantCheck: true,
             transaction,
@@ -488,7 +487,6 @@ exports.create = async (req, res) => {
             where: {
                 id: body.roleId,
                 status: enums.Status.Active.value,
-                tenantId: user.tenantId,
             },
             disableTenantCheck: true,
             transaction,
@@ -506,8 +504,8 @@ exports.create = async (req, res) => {
             email: body.email,
             password: body.password,
             passwordShow: body.password,
-            storeId: user?.storeId,
-            tenantId: user?.tenantId,
+            //storeId: user?.storeId,
+            tenantId: body.tenantId,
             roleId: body.roleId,
             shortCode: body.shortCode || 'MYCOPOS00010',
             gender: body.gender,
@@ -622,7 +620,7 @@ exports.update = async (req, res) => {
             lastName: body.lastName,
             mobile: body.mobile,
             email: body.email,
-            storeId: checkExist.storeId,
+            // storeId: checkExist.storeId,
             tenantId: checkExist.tenantId,
             roleId: body.roleId || checkExist.roleId,
             shortCode: checkExist.shortCode,

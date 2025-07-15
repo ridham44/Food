@@ -79,4 +79,7 @@ router.get('/menu-filter/options', auth, controller.menuForFilter);
 // Finding with date
 router.post('/menu/filter', auth, controller.filtration);
 
+// Customer menu routes
+router.get('/menu-customer/:tenantId', auth, controller.findByIdForCustomer);
+
 module.exports = router;

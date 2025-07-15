@@ -16,7 +16,7 @@ module.exports = {
                 },
                 onUpdate: 'CASCADE',
                 onDelete: 'RESTRICT',
-                allowNull: false,
+                allowNull: true,
             },
             logoutAt: {
                 type: Sequelize.DATE,

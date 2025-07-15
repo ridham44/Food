@@ -12,5 +12,10 @@ router.use('/', require('./setting'));
 router.use('/', require('./permission'));
 router.use('/', require('./menu_admin'));
 router.use('/', require('./activity_log'));
+router.use('/', require('./order_placement'));
+router.use('/', require('./report'));
+router.use('/', require('./order_payment'));
+router.use('/', require('./qrcode'));
+router.use('/', require('./discount_coupon'));
 
 module.exports = router;

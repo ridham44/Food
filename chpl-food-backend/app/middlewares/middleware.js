@@ -5,7 +5,7 @@ const { setContextValues } = require('../db/audit-logger/utils');
 
 const authenticateUser = async (req, res, next) => {
     try {
-        var token = req.headers.authorization || null;
+        var token = req.headers.authorization.split(' ')[1] || null;
         if (!token) {
             return res.status(status.Unauthorized).json({ message: 'Unauthorized access.' });
         }
@@ -28,6 +28,7 @@ const authenticateUser = async (req, res, next) => {
                     where: {
                         status: '1',
                     },
+                    required: false,
                 },
                 {
                     model: db.Tenant,
@@ -36,6 +37,7 @@ const authenticateUser = async (req, res, next) => {
                     where: {
                         status: '1',
                     },
+                    required: false,
                 },
             ],
             disableTenantCheck: true,

@@ -30,6 +30,11 @@ module.exports = {
                 type: Sequelize.STRING,
                 allowNull: true,
             },
+            description: {
+                type: Sequelize.STRING(255),
+                allowNull: true,
+            },
+
             tenantId: {
                 type: Sequelize.UUID,
                 references: {

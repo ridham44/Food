@@ -32,10 +32,10 @@ module.exports = {
                 {
                     id: '6cff3da0-02d8-11ef-8c8d-74563c33253',
                     tenantId : '07c97d5c-4108-11f0-96fd-c475ab7293c6',
-                    name: 'User',
+                    name: 'Customer',
                     type: '3',
                     isAdmin: '0',
-                    remark: 'Main User',
+                    remark: 'Customer Role',
                     status: '1',
                     createdAt: '2025-05-12 09:49:44',
                     updatedAt: '2025-05-12 09:49:44',

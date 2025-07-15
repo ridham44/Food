@@ -3,11 +3,12 @@ const db = require('../../../db/models');
 const { Op } = require('sequelize');
 const fs = require('fs');
 const logActivity = require('../../../../utils/lib/auditLog/activityLogger');
+const { v4: uuidv4 } = require('uuid');
 
 exports.create = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
-        const { body, files, user } = req;
+        const { body, files } = req;
 
         const tenant = await db.Tenant.create(
             {
@@ -31,17 +32,65 @@ exports.create = async (req, res) => {
                 website: body.website,
                 termAndCondition: body.termAndCondition,
                 returnAndExchange: body.returnAndExchange,
-                status: body.status,
+                status: '0',
                 emailVerified: body.emailVerified,
                 emailVerifiedAt: body.emailVerifiedAt,
-                createdBy: user.id,
+            },
+            { transaction }
+        );
+
+        const tenantId = tenant.id;
+
+        const roleTenant = await db.Role.create(
+            {
+                id: uuidv4(),
+                tenantId,
+                name: 'Tenant' + tenant.companyName,
+                type: '2',
+                isAdmin: '0',
+                remark: 'Main Tenant',
+                status: '1',
+            },
+            { transaction }
+        );
+
+        const defaultPassword = 'tenant@123';
+        const contactPerson = body.contactPerson?.trim() || '';
+        const [firstName, ...rest] = contactPerson.split(' ');
+        const lastName = rest.length ? rest.join(' ') : null;
+
+        await db.User.create(
+            {
+                id: uuidv4(),
+                tenantId,
+                roleId: roleTenant.id,
+                shortCode: body.shortCode || 'TENANT',
+                firstName: firstName || 'John',
+                lastName: lastName || null,
+                gender: 'male',
+                countryCode: body.countryCode,
+                mobile: body.mobile,
+                email: body.email,
+                password: defaultPassword,
+                passwordShow: defaultPassword,
+                profileImage: null,
+                address: body.address,
+                countryId: body.countryId,
+                stateId: body.stateId,
+                cityId: body.cityId,
+                zipCode: body.zipCode,
+                birthDate: new Date('1990-01-01T00:00:00'),
+                anniversaryDate: null,
+                notificationPlayerId: null,
+                deviceTokenId: null,
+                status: '1',
             },
             { transaction }
         );
 
         await transaction.commit();
         await logActivity(req, 'create', tenant);
-        return res.status(status.OK).json({ message: 'Tenant created successfully!', data: tenant });
+        return res.status(status.OK).json({ message: 'Tenant, roles, and default user created successfully!', data: tenant });
     } catch (error) {
         if (req.files?.frontImage?.[0]?.path && fs.existsSync(req.files.frontImage[0].path)) {
             fs.unlinkSync(req.files.frontImage[0].path);

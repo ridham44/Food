@@ -1,10 +1,191 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const db = require('../../db/models');
-const { status, findWithFilters } = require('../../../utils');
+const db = require('../../../db/models');
+const { status, findWithFilters } = require('../../../../utils');
 const { Op } = require('sequelize');
-const Enums = require('../../../utils/lib/enums');
-const common = require('../../../utils/lib/common-function');
+const Enums = require('../../../../utils/lib/enums');
+const common = require('../../../../utils/lib/common-function');
+
+exports.customerlogin = async (req, res) => {
+    const transaction = await db.sequelize.transaction();
+    try {
+        const { identifier, otp } = req.body;
+        const activeStatus = Enums.Status.get('Active').value;
+
+        if (!identifier || !otp) {
+            return res.status(status.BadRequest).json({ message: 'Email or mobile number and OTP are required.' });
+        }
+
+        const customer = await db.Customer.findOne({
+            where: {
+                [Op.or]: [{ email: identifier }, { phoneNo: identifier }],
+                verified: activeStatus,
+            },
+        });
+
+        if (!customer) {
+            await transaction.rollback();
+            return res.status(status.Unauthorized).json({ message: 'Invalid email or mobile number.' });
+        }
+
+        if (otp !== '1234') {
+            await transaction.rollback();
+            return res.status(status.Unauthorized).json({ message: 'Invalid OTP.' });
+        }
+
+        const token = jwt.sign({ user: { id: customer.id } }, process.env.JWT_SECRET_ADMIN, { expiresIn: '1d' });
+
+        await transaction.commit();
+
+        return res.status(status.OK).json({
+            message: 'Login successful',
+            accessToken: token,
+            userData: {
+                id: customer.id,
+                email: customer.email,
+                phoneNo: customer.phoneNo,
+                fullName: `${customer.firstName} ${customer.lastName}`.trim(),
+            },
+        });
+    } catch (error) {
+        await transaction.rollback();
+        return res.status(status.BadRequest).json({
+            message: 'Login failed',
+            error: error.message,
+        });
+    }
+};
+
+exports.create = async (req, res) => {
+    const transaction = await db.sequelize.transaction();
+    const DEFAULT_CUSTOMER_ROLE_ID = '6cff3da0-02d8-11ef-8c8d-74563c33253';
+    try {
+        const { firstName, lastName, gender, email, phoneNo, address, cityId, stateId, countryCode, countryId, birthDate } = req.body;
+
+        const existing = await db.Customer.findOne({
+            where: {
+                [Op.or]: [{ email }, { phoneNo }],
+            },
+        });
+
+        if (existing) {
+            return res.status(status.Conflict).json({ message: 'Customer with same email or phone already exists.' });
+        }
+
+        const customer = await db.Customer.create(
+            {
+                firstName,
+                lastName,
+                gender,
+                email,
+                phoneNo,
+                verified: true,
+                roleId: DEFAULT_CUSTOMER_ROLE_ID,
+                address,
+                countryId,
+                cityId,
+                stateId,
+                countryCode,
+                birthDate,
+                createdAt: new Date(),
+                createdBy: req.user?.id || null,
+            },
+            { transaction }
+        );
+
+        await transaction.commit();
+
+        return res.status(status.OK).json({
+            message: 'Customer created successfully',
+            data: customer,
+        });
+    } catch (error) {
+        await transaction.rollback();
+        return res.status(status.BadRequest).json({
+            message: 'Failed to create customer',
+            error: error.message,
+        });
+    }
+};
+
+exports.update = async (req, res) => {
+    const transaction = await db.sequelize.transaction();
+    const { id } = req.params;
+    const {
+        firstName, lastName, email, phoneNo, gender,
+        birthDate, address, countryId, stateId, cityId, countryCode
+    } = req.body;
+
+    try {
+        const customer = await db.Customer.findOne({ where: { id }, transaction });
+        if (!customer) {
+            await transaction.rollback();
+            return res.status(status.NotFound).json({ message: 'Customer not found!' });
+        }
+
+        const existing = await db.Customer.findOne({
+            where: {
+                id: { [Op.ne]: id },
+                phoneNo,
+            },
+            transaction,
+        });
+        if (existing) {
+            await transaction.rollback();
+            return res.status(status.Conflict).json({ message: 'Customer with this phone number already exists!' });
+        }
+
+        
+        const updateData = {
+            firstName,
+            lastName,
+            email,
+            phoneNo,
+            gender,
+            birthDate,
+            address,
+            countryId,
+            stateId,
+            cityId,
+            countryCode,
+        };
+
+        Object.keys(updateData).forEach(key => {
+            if (updateData[key] === undefined) delete updateData[key];
+        });
+
+        customer.set(updateData);
+        await customer.save({ transaction });
+
+        await transaction.commit();
+
+        return res.status(status.OK).json({ message: 'Customer updated successfully!' });
+    } catch (error) {
+        await transaction.rollback();
+        return common.throwException(error, 'Update Customer API', req, res);
+    }
+};
+
+
+exports.delete = async (req, res) => {
+    const transaction = await db.sequelize.transaction();
+    try {
+        const { id } = req.params;
+        const customer = await db.Customer.findOne({ where: { id }, transaction });
+        if (!customer) {
+            await transaction.rollback();
+            return res.status(status.NotFound).json({ message: 'Customer not found!' });
+        }
+
+        await db.Customer.destroy({ where: { id }, transaction });
+        await transaction.commit();
+
+        return res.status(status.OK).json({ message: 'Customer deleted successfully.' });
+    } catch (error) {
+        await transaction.rollback();
+        return common.throwException(error, 'Delete Customer API', req, res);
+    }
+};
 
 exports.login = async (req, res) => {
     const t = await db.sequelize.transaction();
@@ -93,6 +274,7 @@ exports.login = async (req, res) => {
         });
     }
 };
+
 exports.changePassword = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {

@@ -25,9 +25,19 @@ module.exports = (sequelize, Sequelize) => {
                 type: Sequelize.STRING,
                 allowNull: true,
             },
+            description: {
+                type: Sequelize.STRING(255),
+                allowNull: true,
+            },
             tenantId: {
                 type: Sequelize.UUID,
                 allowNull: false,
+                association: {
+                    model: 'Tenant',
+                    key: 'id',
+                    belongsToAlias: 'Tenant',
+                    hasManyAlias: 'menu',
+                },
             },
             createdAt: {
                 type: Sequelize.DATE,

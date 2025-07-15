@@ -19,6 +19,7 @@ exports.create = async (req, res) => {
                 parentId: body.parentId,
                 name: body.name,
                 price: body.price,
+                description: body.description,
                 filePath: file ? `/${file.path.replace(/\\/g, '/')}` : null,
                 tenantId: user.tenantId,
                 createdBy: user.id,
@@ -69,6 +70,7 @@ exports.update = async (req, res) => {
             parentId: body.parentId,
             name: body.name,
             price: body.price,
+            description: body.description,
             filePath: file ? `/${file.path.replace(/\\/g, '/')}` : null,
             tenantId: user.tenantId,
             updatedBy: user.id,
@@ -254,5 +256,37 @@ exports.filtration = async (req, res) => {
             await transaction.rollback();
         }
         return common.throwException(error, 'Menu Date Filter API', req, res);
+    }
+};
+
+exports.findByIdForCustomer = async (req, res) => {
+    try {
+        const tenantId = req.params.tenantId;
+
+        if (!tenantId) {
+            return res.status(status.BadRequest).json({ message: 'Tenant ID is required in params.' });
+        }
+
+        const menus = await db.Menu.findAll({
+            where: { tenantId },
+            disableTenantCheck: true, 
+            attributes: ['id', 'parentId', 'name', 'price', 'filePath', 'description'],
+            include: [
+                {
+                    model: db.Tenant,
+                    as: 'Tenant',
+                    attributes: ['companyName', 'mobile', 'email', 'contactPerson', 'address'],
+                },
+            ],
+            order: [['createdAt', 'DESC']],
+        });
+
+        if (!menus || !menus.length) {
+            return res.status(status.BadRequest).json({ message: 'No menus found for this tenant!' });
+        }
+
+        return res.status(status.OK).json({ data: menus });
+    } catch (error) {
+        return common.throwException(error, 'Find Menus By Tenant ID', req, res);
     }
 };

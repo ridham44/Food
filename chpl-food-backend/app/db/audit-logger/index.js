@@ -15,6 +15,8 @@ exports.init = (sequelize) => {
 
                 if (instance.disableTenantCheck) return true;
 
+                instance.where = instance.where || {};
+
                 // where tenantId is mandatory
                 if (hasTenant && !canBeNull) instance.where['tenantId'] = tenantId;
                 // where tenantId can be null
@@ -122,7 +124,7 @@ exports.init = (sequelize) => {
             return true;
         },
     });
-
+    //require('../../../utils/lib/auditLog/hookRegister');
     return true;
 };
 
