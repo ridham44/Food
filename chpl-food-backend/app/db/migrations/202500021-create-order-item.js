@@ -18,7 +18,7 @@ module.exports = {
             },
             menuId: {
                 type: Sequelize.UUID,
-                allowNull: false,
+                allowNull: true,
                 references: {
                     model: 'menu',
                     key: 'id',

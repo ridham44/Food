@@ -1,4 +1,4 @@
-const { Op, fn, col, literal } = require('sequelize');
+const { Op, fn, col } = require('sequelize');
 const { status, common } = require('../../../../utils');
 const db = require('../../../db/models');
 
@@ -69,7 +69,7 @@ exports.orderSummary = async (req, res) => {
             attributes: [
                 'OrderList.customerId',
                 [fn('COUNT', col('OrderBill.id')), 'orderCount'],
-                [fn('SUM', col('OrderBill.totalAmount')), 'totalSpent'],
+                [fn('SUM', col('OrderBill.finalAmount')), 'totalSpent'],
                 [fn('CONCAT', col('OrderList->Customer.firstName'), ' ', col('OrderList->Customer.lastName')), 'name'],
                 [col('OrderList->Customer.phoneNo'), 'mobile'],
             ],
@@ -121,51 +121,34 @@ exports.mostSoldItems = async (req, res) => {
 
         if (startDate) {
             const parts = startDate.split('/');
-            if (parts.length === 3) {
-                start = new Date(`${parts[0]}-${parts[1]}-${parts[2]}T00:00:00`);
-            } else if (parts.length === 2) {
-                start = new Date(`${parts[0]}-${parts[1]}-01T00:00:00`);
-            } else if (parts.length === 1) {
-                start = new Date(`${parts[0]}-01-01T00:00:00`);
-            }
+            if (parts.length === 3) start = new Date(`${parts[0]}-${parts[1]}-${parts[2]}T00:00:00`);
+            else if (parts.length === 2) start = new Date(`${parts[0]}-${parts[1]}-01T00:00:00`);
+            else if (parts.length === 1) start = new Date(`${parts[0]}-01-01T00:00:00`);
         }
-
         if (endDate) {
             const parts = endDate.split('/');
-            if (parts.length === 3) {
-                end = new Date(`${parts[0]}-${parts[1]}-${parts[2]}T23:59:59`);
-            } else if (parts.length === 2) {
-                const year = parseInt(parts[0]);
-                const month = parseInt(parts[1]);
-                end = new Date(year, month, 0, 23, 59, 59);
-            } else if (parts.length === 1) {
-                const year = parseInt(parts[0]);
-                end = new Date(year, 11, 31, 23, 59, 59);
-            }
+            if (parts.length === 3) end = new Date(`${parts[0]}-${parts[1]}-${parts[2]}T23:59:59`);
+            else if (parts.length === 2) end = new Date(parseInt(parts[0]), parseInt(parts[1]), 0, 23, 59, 59);
+            else if (parts.length === 1) end = new Date(parseInt(parts[0]), 11, 31, 23, 59, 59);
         }
 
-        const whereClause = {
+        const orderWhere = {
             tenantId,
             status: 2,
         };
+        if (start && end) orderWhere.createdAt = { [Op.between]: [start, end] };
+        else if (start) orderWhere.createdAt = { [Op.gte]: start };
+        else if (end) orderWhere.createdAt = { [Op.lte]: end };
 
-        if (start && end) {
-            whereClause.createdAt = { [Op.between]: [start, end] };
-        } else if (start) {
-            whereClause.createdAt = { [Op.gte]: start };
-        } else if (end) {
-            whereClause.createdAt = { [Op.lte]: end };
-        }
-
-        const items = await db.OrderItem.findAll({
+        const menuItems = await db.OrderItem.findAll({
             attributes: [
                 'menuId',
                 [fn('SUM', col('OrderItem.quantity')), 'quantity'],
                 [fn('SUM', col('OrderItem.totalPrice')), 'totalRevenue'],
-                [col('Menu.price'), 'pricePerUnit'],
-                [fn('COUNT', literal('DISTINCT OrderItem.orderListId')), 'ordersCount'],
+                [fn('COUNT', fn('DISTINCT', col('OrderItem.orderListId'))), 'ordersCount'],
                 [fn('MAX', col('OrderItem.createdAt')), 'lastOrdered'],
                 [col('Menu.name'), 'itemName'],
+                [col('Menu.price'), 'pricePerUnit'],
             ],
             include: [
                 {
@@ -173,24 +156,72 @@ exports.mostSoldItems = async (req, res) => {
                     as: 'Menu',
                     attributes: [],
                     required: true,
-                    disableTenantCheck: true,
                 },
                 {
                     model: db.OrderList,
                     as: 'OrderList',
-                    where: whereClause,
                     attributes: [],
+                    where: orderWhere,
                     required: true,
                 },
             ],
+            where: {
+                comboId: null,
+                menuId: { [Op.ne]: null },
+            },
             group: ['menuId', 'Menu.name', 'Menu.price'],
-            order: [[fn('SUM', col('OrderItem.quantity')), 'DESC']],
             raw: true,
         });
 
+        const menuFormatted = menuItems.map((item) => ({
+            ...item,
+            type: 'menu',
+        }));
+
+        const comboItems = await db.OrderItem.findAll({
+            attributes: [
+                'comboId',
+                [fn('SUM', col('OrderItem.quantity')), 'quantity'],
+                [fn('SUM', col('OrderItem.totalPrice')), 'totalRevenue'],
+                [fn('COUNT', fn('DISTINCT', col('OrderItem.orderListId'))), 'ordersCount'],
+                [fn('MAX', col('OrderItem.createdAt')), 'lastOrdered'],
+                [col('ComboGroup.name'), 'itemName'],
+                [col('ComboGroup.price'), 'pricePerUnit'],
+            ],
+            include: [
+                {
+                    model: db.ComboGroup,
+                    as: 'ComboGroup',
+                    attributes: [],
+                    required: true,
+                },
+                {
+                    model: db.OrderList,
+                    as: 'OrderList',
+                    attributes: [],
+                    where: orderWhere,
+                    required: true,
+                },
+            ],
+            where: {
+                menuId: null,
+                comboId: { [Op.ne]: null },
+            },
+            group: ['comboId', 'ComboGroup.name', 'ComboGroup.price'],
+            raw: true,
+        });
+
+        const comboFormatted = comboItems.map((item) => ({
+            ...item,
+            type: 'combo',
+        }));
+
+        const allItems = [...menuFormatted, ...comboFormatted];
+        allItems.sort((a, b) => b.quantity - a.quantity);
+
         return res.status(status.OK).json({
             message: 'Most sold items report generated',
-            data: items,
+            data: allItems,
         });
     } catch (error) {
         return common.throwException(error, 'Generate Most Sold Items Report', req, res);
@@ -423,6 +454,12 @@ exports.getFullOrderDetails = async (req, res) => {
                             attributes: ['name', 'price'],
                             disableTenantCheck: true,
                         },
+                        {
+                            model: db.ComboGroup,
+                            as: 'ComboGroup',
+                            attributes: ['name', 'price'],
+                            disableTenantCheck: true,
+                        },
                     ],
                 },
                 {
@@ -446,12 +483,25 @@ exports.getFullOrderDetails = async (req, res) => {
             placedBy: order.placedBy,
             createdAt: order.createdAt,
             items: Array.isArray(order.OrderItem)
-                ? order.OrderItem.map((item) => ({
-                      menuName: item.Menu?.name || 'N/A',
-                      price: parseFloat(item.Menu?.price || 0),
-                      quantity: item.quantity,
-                      totalPrice: parseFloat(item.totalPrice),
-                  }))
+                ? order.OrderItem.map((i) => {
+                      if (i.comboId && i.ComboGroup && i.ComboGroup.name) {
+                          return {
+                              type: 'combo',
+                              comboName: i.ComboGroup.name,
+                              comboPrice: parseFloat(i.ComboGroup.price),
+                              quantity: i.quantity,
+                              totalPrice: parseFloat(i.totalPrice),
+                          };
+                      } else {
+                          return {
+                              type: 'menu',
+                              menuName: i.Menu?.name || 'Unknown',
+                              menuPrice: parseFloat(i.Menu?.price || 0),
+                              quantity: i.quantity,
+                              totalPrice: parseFloat(i.totalPrice),
+                          };
+                      }
+                  })
                 : [],
         };
 

@@ -13,9 +13,11 @@ module.exports = (sequelize, Sequelize) => {
             tenantId: {
                 type: Sequelize.UUID,
                 allowNull: false,
-                references: {
-                    model: 'tenant',
+                association: {
+                    model: 'Tenant',
                     key: 'id',
+                    belongsToAlias: 'Tenant',
+                    hasManyAlias: 'ComboGroups',
                 },
             },
             name: {
@@ -23,8 +25,12 @@ module.exports = (sequelize, Sequelize) => {
                 allowNull: false,
             },
             isActive: {
-                type: Sequelize.BOOLEAN,
-                defaultValue: true,
+                type: Sequelize.ENUM('0', '1'),
+                allowNull: false,
+                defaultValue: '1',
+            },
+            price: {
+                type: Sequelize.DECIMAL(10, 2),
                 allowNull: false,
             },
             createdAt: {

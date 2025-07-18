@@ -24,10 +24,10 @@ module.exports = (sequelize, Sequelize) => {
                 type: Sequelize.UUID,
                 allowNull: false,
                 association: {
-                    model: 'User',
+                    model: 'Customer',
                     key: 'id',
-                    belongsToAlias: 'User',
-                    hasManyAlias: 'DiscountCouponUser',
+                    belongsToAlias: 'Customer',
+                    hasManyAlias: 'DiscountCouponCustomer',
                 },
             },
             usedCount: {

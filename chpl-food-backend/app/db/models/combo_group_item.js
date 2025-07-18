@@ -13,17 +13,21 @@ module.exports = (sequelize, Sequelize) => {
             comboGroupId: {
                 type: Sequelize.UUID,
                 allowNull: false,
-                references: {
-                    model: 'combo_group',
+                association: {
+                    model: 'ComboGroup',
                     key: 'id',
+                    belongsToAlias: 'ComboGroup',
+                    hasManyAlias: 'ComboGroupItems',
                 },
             },
             menuId: {
                 type: Sequelize.UUID,
                 allowNull: false,
-                references: {
-                    model: 'menu',
+                association: {
+                    model: 'Menu',
                     key: 'id',
+                    belongsToAlias: 'Menu',
+                    hasManyAlias: 'ComboGroupItems',
                 },
             },
             quantity: {

@@ -47,7 +47,12 @@ module.exports = (sequelize, Sequelize) => {
                 defaultValue: false,
                 comment: 'If true, coupon is available to all users',
             },
-
+            isActive: {
+                type: Sequelize.ENUM('0', '1'),
+                allowNull: false,
+                defaultValue: '1',
+                comment: '0 for Inactive, 1 for Active',
+            },
             validFrom: {
                 type: Sequelize.DATE,
                 allowNull: false,

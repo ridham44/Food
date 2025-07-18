@@ -8,19 +8,27 @@ exports.orderCustomer = async (req, res) => {
         const customerId = req.user.id;
         const { tenantId, items } = req.body;
 
-        if (!Array.isArray(items) || items.length === 0) {
+        if (!Array.isArray(items) || items.length === 0 || !tenantId) {
             return res.status(status.BadRequest).json({ message: 'tenantId and items are required' });
         }
 
-        const menuIds = items.map((i) => i.menuId);
+        const menuIds = items.filter((i) => i.menuId).map((i) => i.menuId);
+        const comboIds = items.filter((i) => i.comboId).map((i) => i.comboId);
+
         const menus = await db.Menu.findAll({
             where: { id: menuIds },
             raw: true,
             disableTenantCheck: true,
         });
 
-        if (menus.length !== items.length) {
-            return res.status(status.BadRequest).json({ message: 'Invalid menuId in items' });
+        const combos = await db.ComboGroup.findAll({
+            where: { id: comboIds },
+            raw: true,
+            disableTenantCheck: true,
+        });
+
+        if (menus.length !== menuIds.length || combos.length !== comboIds.length) {
+            return res.status(status.BadRequest).json({ message: 'Invalid menuId or comboId in items' });
         }
 
         const orderListId = uuidv4();
@@ -36,23 +44,53 @@ exports.orderCustomer = async (req, res) => {
             { transaction }
         );
 
-        const orderItems = items.map((item) => {
-            const menu = menus.find((m) => m.id === item.menuId);
-            const price = parseFloat(menu.price);
-            const totalPrice = price * item.quantity;
+        const orderItems = items
+            .map((item) => {
+                const now = new Date();
+                let price = 0;
+                let totalPrice = 0;
 
-            return {
-                id: uuidv4(),
-                orderListId,
-                menuId: item.menuId,
-                quantity: item.quantity,
-                totalPrice,
-                createdAt: new Date(),
-            };
-        });
+                if (item.menuId) {
+                    const menu = menus.find((m) => m.id === item.menuId);
+                    if (!menu) return null;
+
+                    price = parseFloat(menu.price);
+                    totalPrice = price * item.quantity;
+
+                    return {
+                        id: uuidv4(),
+                        orderListId,
+                        menuId: item.menuId,
+                        comboId: null, 
+                        quantity: item.quantity,
+                        totalPrice,
+                        createdAt: now,
+                    };
+                }
+
+                if (item.comboId) {
+                    const combo = combos.find((c) => c.id === item.comboId);
+                    if (!combo) return null;
+
+                    price = parseFloat(combo.price);
+                    totalPrice = price * item.quantity;
+
+                    return {
+                        id: uuidv4(),
+                        orderListId,
+                        comboId: item.comboId,
+                        menuId: null,
+                        quantity: item.quantity,
+                        totalPrice,
+                        createdAt: now,
+                    };
+                }
+
+                return null;
+            })
+            .filter(Boolean);
 
         await db.OrderItem.bulkCreate(orderItems, { transaction });
-
         await transaction.commit();
 
         return res.status(status.OK).json({
@@ -175,15 +213,23 @@ exports.tenantPlaceOrder = async (req, res) => {
 
         const customerId = customer.id;
 
-        const menuIds = items.map((i) => i.menuId);
+        const menuIds = items.filter((i) => i.menuId).map((i) => i.menuId);
+        const comboIds = items.filter((i) => i.comboId).map((i) => i.comboId);
+
         const menus = await db.Menu.findAll({
             where: { id: menuIds },
             raw: true,
             disableTenantCheck: true,
         });
 
-        if (menus.length !== items.length) {
-            return res.status(status.BadRequest).json({ message: 'Invalid menuId in items' });
+        const combos = await db.ComboGroup.findAll({
+            where: { id: comboIds },
+            raw: true,
+            disableTenantCheck: true,
+        });
+
+        if (menus.length !== menuIds.length || combos.length !== comboIds.length) {
+            return res.status(status.BadRequest).json({ message: 'Invalid menuId or comboId in items' });
         }
 
         const orderListId = uuidv4();
@@ -200,16 +246,26 @@ exports.tenantPlaceOrder = async (req, res) => {
         );
 
         let totalAmount = 0;
+
         const orderItems = items.map((item) => {
-            const menu = menus.find((m) => m.id === item.menuId);
-            const price = parseFloat(menu.price);
+            let price = 0;
+
+            if (item.menuId) {
+                const menu = menus.find((m) => m.id === item.menuId);
+                price = parseFloat(menu.price);
+            } else if (item.comboId) {
+                const combo = combos.find((c) => c.id === item.comboId);
+                price = parseFloat(combo.price);
+            }
+
             const totalPrice = price * item.quantity;
             totalAmount += totalPrice;
 
             return {
                 id: uuidv4(),
                 orderListId,
-                menuId: item.menuId,
+                menuId: item.menuId || null,
+                comboId: item.comboId || null,
                 quantity: item.quantity,
                 totalPrice,
                 createdAt: new Date(),

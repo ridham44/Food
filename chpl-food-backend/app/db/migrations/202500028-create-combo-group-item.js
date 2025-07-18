@@ -34,14 +34,6 @@ module.exports = {
         allowNull: false,
         Comment: 'Type of combo group item, either "buy" or "get"',
       },
-      createdAt: {
-        type: Sequelize.DATE,
-        allowNull: true,
-      },
-      updatedAt: {
-        type: Sequelize.DATE,
-        allowNull: true,
-      },
     });
   },
 

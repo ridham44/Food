@@ -19,9 +19,19 @@ module.exports = (sequelize, Sequelize) => {
                     hasManyAlias: 'OrderItem',
                 },
             },
+            comboId: {
+                type: Sequelize.UUID,
+                allowNull: true,
+                association: {
+                    model: 'ComboGroup',
+                    key: 'id',
+                    belongsToAlias: 'ComboGroup',
+                    hasManyAlias: 'OrderItem',
+                },
+            },
             menuId: {
                 type: Sequelize.UUID,
-                allowNull: false,
+                allowNull: true,
                 association: {
                     model: 'Menu',
                     key: 'id',

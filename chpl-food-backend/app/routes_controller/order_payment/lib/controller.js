@@ -69,28 +69,48 @@ exports.getUnpaidBillsByCustomer = async (req, res) => {
                         model: db.Menu,
                         as: 'Menu',
                         attributes: ['name', 'price'],
+                        required: false,
                         disableTenantCheck: true,
                     },
+                    {
+                        model: db.ComboGroup,
+                        as: 'ComboGroup',
+                        attributes: ['name', 'price'],
+                        required: false,
+                    },
                 ],
-                attributes: ['quantity', 'totalPrice'],
+                attributes: ['quantity', 'totalPrice', 'menuId', 'comboId'],
                 raw: true,
                 nest: true,
             });
 
-            const itemDetails = items.map((i) => ({
-                menuName: i.Menu.name,
-                menuPrice: i.Menu.price,
-                quantity: i.quantity,
-                totalPrice: i.totalPrice,
-            }));
+            const itemDetails = items.map((i) => {
+                if (i.comboId && i.ComboGroup && i.ComboGroup.name) {
+                    return {
+                        type: 'combo',
+                        comboName: i.ComboGroup.name,
+                        comboPrice: parseFloat(i.ComboGroup.price),
+                        quantity: i.quantity,
+                        totalPrice: parseFloat(i.totalPrice),
+                    };
+                } else {
+                    return {
+                        type: 'menu',
+                        menuName: i.Menu?.name || 'Unknown',
+                        menuPrice: parseFloat(i.Menu?.price || 0),
+                        quantity: i.quantity,
+                        totalPrice: parseFloat(i.totalPrice),
+                    };
+                }
+            });
 
             billsWithItems.push({
                 id: bill.id,
-                totalAmount: bill.totalAmount,
+                totalAmount: parseFloat(bill.totalAmount),
                 status: bill.status,
                 Coupon: bill.couponCode || null,
-                DiscountAmount: bill.discountAmount || 0,
-                FinalAmount: bill.finalAmount,
+                DiscountAmount: parseFloat(bill.discountAmount || 0),
+                FinalAmount: parseFloat(bill.finalAmount),
                 createdAt: bill.createdAt,
                 items: itemDetails,
             });
@@ -99,7 +119,7 @@ exports.getUnpaidBillsByCustomer = async (req, res) => {
                 if (isFirstOrder && tenantFirstTimeCoupon) {
                     couponSuggestion = {
                         code: tenantFirstTimeCoupon.code,
-                        description: tenantFirstTimeCoupon.description ,
+                        description: tenantFirstTimeCoupon.description,
                         canApply: true,
                     };
                 }
@@ -116,6 +136,7 @@ exports.getUnpaidBillsByCustomer = async (req, res) => {
         return res.status(status.InternalServerError).json({ message: error.message });
     }
 };
+
 
 exports.makePaymentByBillId = async (req, res) => {
     const transaction = await db.sequelize.transaction();
