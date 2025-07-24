@@ -1,6 +1,7 @@
 const { v4: uuidv4 } = require('uuid');
 const db = require('../../../db/models');
 const { status, common } = require('../../../../utils');
+const logActivity = require('../../../../utils/lib/auditLog/activityLogger');
 
 exports.createComboGroup = async (req, res) => {
     const { name, comboPrice, items } = req.body;
@@ -30,6 +31,9 @@ exports.createComboGroup = async (req, res) => {
 
         await db.ComboGroupItem.bulkCreate(comboItems, { transaction });
 
+        await logActivity(req, 'create', comboGroup);
+        // await logActivity(req, 'create', comboItems);
+
         await transaction.commit();
 
         return res.status(status.OK).json({
@@ -56,6 +60,8 @@ exports.updateComboGroup = async (req, res) => {
             return res.status(status.NotFound).json({ message: 'Combo group not found!' });
         }
 
+        const oldData = JSON.parse(JSON.stringify(comboGroup.get({ plain: true })));
+
         if (typeof name !== 'undefined') comboGroup.name = name;
         if (typeof isActive !== 'undefined') comboGroup.isActive = isActive;
         if (typeof price !== 'undefined') comboGroup.price = price;
@@ -63,6 +69,8 @@ exports.updateComboGroup = async (req, res) => {
 
         await comboGroup.save({ transaction });
         await transaction.commit();
+
+        await logActivity(req, 'update', comboGroup, oldData);
 
         return res.status(status.OK).json({
             message: 'Combo group updated successfully!',
@@ -160,6 +168,8 @@ exports.deleteComboGroupItem = async (req, res) => {
         await item.destroy({ transaction });
         await transaction.commit();
 
+        await logActivity(req, 'delete', item);
+
         return res.status(status.OK).json({ message: 'Combo group item deleted successfully' });
     } catch (error) {
         await transaction.rollback();
@@ -183,6 +193,8 @@ exports.deleteCombo = async (req, res) => {
         });
 
         await combo.destroy({ transaction });
+
+        await logActivity(req, 'delete', combo);
 
         await transaction.commit();
         return res.status(status.OK).json({ message: 'Combo deleted successfully' });
@@ -222,7 +234,6 @@ exports.getAllCombos = async (req, res) => {
             order: [['createdAt', 'DESC']],
         });
 
-        // Flatten Menu name into each ComboGroupItem
         const formatted = combos.map((combo) => {
             const comboData = combo.toJSON();
             comboData.ComboGroupItems = comboData.ComboGroupItems.map((item) => ({
@@ -318,12 +329,15 @@ exports.updateComboStatus = async (req, res) => {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'Combo group not found.' });
         }
+        const oldData = JSON.parse(JSON.stringify(combo.get({ plain: true })));
 
         combo.isActive = isActive;
         combo.updatedBy = req.user.id;
 
         await combo.save({ transaction });
         await transaction.commit();
+
+        await logActivity(req, 'update', combo, oldData);
 
         return res.status(status.OK).json({ message: 'Combo group status updated successfully.', data: combo });
     } catch (error) {

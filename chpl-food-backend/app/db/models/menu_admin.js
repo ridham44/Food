@@ -14,7 +14,7 @@ module.exports = (sequelize, Sequelize) => {
                 allowNull: true,
             },
             url: {
-                type:Sequelize.STRING(225),
+                type: Sequelize.STRING(225),
                 allowNull: false,
             },
             sequence: {
@@ -30,19 +30,19 @@ module.exports = (sequelize, Sequelize) => {
             parentId: {
                 type: Sequelize.UUID,
                 allowNull: true,
-                references: {
-                    model: 'menu_admin',
+                association: {
+                    model: 'MenuAdmin',
                     key: 'id',
+                    onUpdate: 'CASCADE',
+                    onDelete: 'RESTRICT',
                 },
-                onUpdate: 'CASCADE',
-                onDelete: 'RESTRICT',
             },
             key: {
-                type:Sequelize.STRING(180),
+                type: Sequelize.STRING(180),
                 allowNull: false,
             },
             status: {
-                type:Sequelize.ENUM('0', '1'),
+                type: Sequelize.ENUM('0', '1'),
                 defaultValue: '1',
                 allowNull: false,
                 comment: '0 for Inactive, 1 for Active',

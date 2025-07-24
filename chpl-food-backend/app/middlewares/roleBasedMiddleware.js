@@ -1,17 +1,18 @@
 const db = require('../db/models');
+const { status } = require('../../utils');
 
 module.exports = (menuKey) => {
     return async (req, res, next) => {
         try {
             const roleId = req.user.roleId;
             if (!roleId) {
-                return res.status(403).json({ message: 'Role ID missing in token' });
+                return res.status(status.BadRequest).json({ message: 'Role ID missing in token' });
             }
 
             const menu = await db.MenuAdmin.findOne({ where: { key: menuKey } });
 
             if (!menu) {
-                return res.status(404).json({ message: 'Invalid menu key' });
+                return res.status(status.BadRequest).json({ message: 'Invalid menu key' });
             }
 
             const permission = await db.Permission.findOne({
@@ -19,13 +20,13 @@ module.exports = (menuKey) => {
             });
 
             if (!permission) {
-                return res.status(403).json({ message: 'Access denied.' });
+                return res.status(status.BadRequest).json({ message: 'Access denied.' });
             }
 
             next();
         } catch (err) {
             console.error('Role based acess Error:', err);
-            return res.status(500).json({ message: 'Internal server error' });
+            return res.status(status.InternalServerError).json({ message: 'Internal server error' });
         }
     };
 };

@@ -1,35 +1,37 @@
 'use strict';
-
 module.exports = {
     up: async (queryInterface, Sequelize) => {
-        await queryInterface.createTable('combo_group', {
+        await queryInterface.createTable('customer_points', {
             id: {
                 type: Sequelize.UUID,
-                primaryKey: true,
                 defaultValue: Sequelize.UUIDV4,
+                primaryKey: true,
                 allowNull: false,
             },
-            tenantId: {
+            customerId: {
                 type: Sequelize.UUID,
                 allowNull: false,
                 references: {
-                    model: 'tenant',
+                    model: 'customer',
                     key: 'id',
                 },
             },
-            name: {
-                type: Sequelize.STRING(50),
+            totalPoints: {
+                type: Sequelize.INTEGER(10),
+                defaultValue: 0,
                 allowNull: false,
             },
-            price: {
-                type: Sequelize.DECIMAL(10, 2),
+            currentOrderCount: {
+                type: Sequelize.INTEGER(10),
+                defaultValue: 0,
                 allowNull: false,
+                comment: 'Number of orders placed in current 10-order stack',
             },
-            isActive: {
-                type: Sequelize.ENUM('0', '1'),
-                defaultValue: '1',
+            bonusPosition: {
+                type: Sequelize.INTEGER(10),
+                defaultValue: 0,
                 allowNull: false,
-                Comment: 'Indicates if the combo group is active or not',
+                comment: 'Order number where bonus was last given in current stack (0 = not yet given)',
             },
             createdAt: {
                 type: Sequelize.DATE,
@@ -43,6 +45,6 @@ module.exports = {
     },
 
     down: async (queryInterface) => {
-        await queryInterface.dropTable('combo_group');
+        await queryInterface.dropTable('customer_points');
     },
 };

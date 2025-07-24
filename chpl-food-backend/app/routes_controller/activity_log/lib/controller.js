@@ -2,7 +2,6 @@ const db = require('../../../db/models');
 const { Op } = require('sequelize');
 const { status } = require('../../../../utils');
 
-// Safely parse JSON value field
 function parseSafely(value) {
     if (!value) return null;
     try {
@@ -13,15 +12,11 @@ function parseSafely(value) {
     }
 }
 
-// Format activity description in plain text for Postman
 function formatValueLog(action, valueObj, moduleName = '') {
     if (!valueObj || typeof valueObj !== 'object') return [];
 
     const lines = [];
-
-    if (moduleName) {
-        lines.push(`Module: ${moduleName}`);
-    }
+    if (moduleName) lines.push(`Module: ${moduleName}`);
 
     if (action === 'update') {
         for (const [key, change] of Object.entries(valueObj)) {
@@ -71,46 +66,86 @@ exports.list = async (req, res) => {
         if (action) where.action = action;
 
         if (startDate && endDate) {
-            where.created_at = {
+            where.createdAt = {
                 [Op.between]: [new Date(`${startDate} 00:00:00`), new Date(`${endDate} 23:59:59`)],
             };
         } else if (startDate) {
-            where.created_at = { [Op.gte]: new Date(`${startDate} 00:00:00`) };
+            where.createdAt = { [Op.gte]: new Date(`${startDate} 00:00:00`) };
         } else if (endDate) {
-            where.created_at = { [Op.lte]: new Date(`${endDate} 23:59:59`) };
+            where.createdAt = { [Op.lte]: new Date(`${endDate} 23:59:59`) };
         }
 
         const { count, rows } = await db.activityLog.findAndCountAll({
             where,
             offset,
             limit: parseInt(limit),
-            order: [['created_at', 'DESC']],
-            include: [
-                {
-                    model: db.User,
-                    as: 'User',
-                    attributes: ['id', 'firstName', 'lastName', 'email'],
-                },
-            ],
+            order: [['createdAt', 'DESC']],
         });
 
-        const formattedRows = rows.map((log) => {
-            const logJson = log.toJSON();
-            const parsedValue = parseSafely(logJson.value);
-            const description = formatValueLog(logJson.action, parsedValue);
+        const formattedRows = await Promise.all(
+            rows.map(async (log) => {
+                const logJson = log.toJSON();
+                const parsedValue = parseSafely(logJson.value);
+                const description = formatValueLog(logJson.action, parsedValue);
 
-            return {
-                id: logJson.id,
-                user_id: logJson.user_id,
-                record_id: logJson.record_id,
-                created_at: logJson.created_at,
-                query_updated_by: logJson.User,
-                module: logJson.module,
-                action: logJson.action,
-               // value: parsedValue,
-                description: description,
-            };
-        });
+                let userInfo = null;
+
+                if (logJson.userId) {
+                   const user = await db.User.findByPk(logJson.userId, { disableTenantCheck: true });
+                    if (user) {
+                        userInfo = {
+                            id: user.id,
+                            name: `${user.firstName} ${user.lastName}`,
+                            mobile: user.mobile || null,
+                            email: user.email,
+                            userType: 'User',
+                        };
+                    } else {
+                        userInfo = {
+                            id: logJson.userId,
+                            name: 'Unknown User',
+                            mobile: null,
+                            email: null,
+                            userType: 'User',
+                        };
+                    }
+                } else if (logJson.customerId) {
+                    const customer = await db.Customer.findByPk(logJson.customerId);
+                    if (customer) {
+                        userInfo = {
+                            id: customer.id,
+                            name: `${customer.firstName} ${customer.lastName}`,
+                            mobile: customer.phoneNo,
+                            userType: 'Customer',
+                        };
+                    } else {
+                        userInfo = {
+                            id: logJson.customerId,
+                            name: 'Unknown Customer',
+                            mobile: null,
+                            userType: 'Customer',
+                        };
+                    }
+                }
+
+                const responseObj = {
+                    id: logJson.id,
+                    userId: logJson.userId,
+                    customerId: logJson.customerId,
+                    recordId: logJson.recordId,
+                    createdAt: logJson.createdAt,
+                    module: logJson.module,
+                    action: logJson.action,
+                    description,
+                };
+
+                if (logJson.action === 'create') responseObj.created_by = userInfo;
+                if (logJson.action === 'update') responseObj.updated_by = userInfo;
+                if (logJson.action === 'delete') responseObj.deleted_by = userInfo;
+
+                return responseObj;
+            })
+        );
 
         return res.status(status.OK).json({
             message: 'Filtered activity logs fetched successfully',

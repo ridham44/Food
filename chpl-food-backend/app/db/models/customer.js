@@ -136,7 +136,7 @@ module.exports = (sequelize, Sequelize) => {
         }
     );
 
-    Customer.hasTenantCondition?.(false);
+    Customer.hasTenantCondition(false);
 
     return Customer;
 };

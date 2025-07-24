@@ -8,9 +8,9 @@ module.exports = (sequelize, Sequelize) => {
                 defaultValue: Sequelize.UUIDV4,
                 primaryKey: true,
             },
-            user_id: {
+            userId: {
                 type: Sequelize.UUID,
-                allowNull: false,
+                allowNull: true,
                 association: {
                     model: 'User',
                     key: 'id',
@@ -20,13 +20,13 @@ module.exports = (sequelize, Sequelize) => {
                     onUpdate: 'CASCADE',
                 },
             },
-            tenant_id: {
+            customerId: {
                 type: Sequelize.UUID,
-                allowNull: false,
+                allowNull: true,
                 association: {
-                    model: 'Tenant',
+                    model: 'Customer',
                     key: 'id',
-                    belongsToAlias: 'Tenant',
+                    belongsToAlias: 'Customer',
                     hasManyAlias: 'ActivityLogs',
                 },
             },
@@ -39,7 +39,7 @@ module.exports = (sequelize, Sequelize) => {
                 allowNull: false,
                 comment: 'Action type: create, update, delete',
             },
-            record_id: {
+            recordId: {
                 type: Sequelize.UUID,
                 allowNull: false,
             },
@@ -47,14 +47,14 @@ module.exports = (sequelize, Sequelize) => {
                 type: Sequelize.JSON,
                 allowNull: true,
             },
-            created_at: {
+            createdAt: {
                 type: Sequelize.DATE,
                 defaultValue: Sequelize.NOW,
             },
         },
         {
             tableName: 'activityLog',
-            underscored: true,
+            underscored: false,
             timestamps: false,
         }
     );

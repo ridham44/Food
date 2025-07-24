@@ -1,6 +1,8 @@
 const db = require('../../../db/models');
 const { v4: uuidv4 } = require('uuid');
 const { status, common } = require('../../../../utils');
+const { assignPointsOnOrder } = require('../../Customer_points/lib/controller');
+const logActivity = require('../../../../utils/lib/auditLog/activityLogger');
 
 exports.orderCustomer = async (req, res) => {
     const transaction = await db.sequelize.transaction();
@@ -32,7 +34,7 @@ exports.orderCustomer = async (req, res) => {
         }
 
         const orderListId = uuidv4();
-        await db.OrderList.create(
+        const orderlist = await db.OrderList.create(
             {
                 id: orderListId,
                 customerId,
@@ -61,7 +63,7 @@ exports.orderCustomer = async (req, res) => {
                         id: uuidv4(),
                         orderListId,
                         menuId: item.menuId,
-                        comboId: null, 
+                        comboId: null,
                         quantity: item.quantity,
                         totalPrice,
                         createdAt: now,
@@ -92,6 +94,8 @@ exports.orderCustomer = async (req, res) => {
 
         await db.OrderItem.bulkCreate(orderItems, { transaction });
         await transaction.commit();
+
+        await logActivity(req, 'create', orderlist);
 
         return res.status(status.OK).json({
             message: 'Order placed successfully',
@@ -146,7 +150,7 @@ exports.approveOrRejectOrder = async (req, res) => {
 
             const totalAmount = items.reduce((sum, item) => sum + parseFloat(item.totalPrice), 0);
 
-            await db.OrderBill.create(
+            const bill = await db.OrderBill.create(
                 {
                     id: uuidv4(),
                     orderListId,
@@ -157,6 +161,9 @@ exports.approveOrRejectOrder = async (req, res) => {
                 },
                 { transaction }
             );
+            await assignPointsOnOrder(orderListId);
+
+            await logActivity(req, 'create', bill);
         }
 
         await transaction.commit();
@@ -233,7 +240,7 @@ exports.tenantPlaceOrder = async (req, res) => {
         }
 
         const orderListId = uuidv4();
-        await db.OrderList.create(
+        const orderlist = await db.OrderList.create(
             {
                 id: orderListId,
                 customerId,
@@ -274,7 +281,7 @@ exports.tenantPlaceOrder = async (req, res) => {
 
         await db.OrderItem.bulkCreate(orderItems, { transaction });
 
-        await db.OrderBill.create(
+        const bill = await db.OrderBill.create(
             {
                 id: uuidv4(),
                 orderListId,
@@ -287,6 +294,10 @@ exports.tenantPlaceOrder = async (req, res) => {
         );
 
         await transaction.commit();
+
+        await assignPointsOnOrder(orderListId);
+        await logActivity(req, 'create', orderlist);
+        await logActivity(req, 'create', bill);
 
         return res.status(status.OK).json({
             message: 'Order placed and bill generated successfully',

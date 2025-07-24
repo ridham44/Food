@@ -4,7 +4,9 @@ exports.redeemCouponValidation = () => {
     return [
         body('billId').notEmpty().withMessage('Bill ID is required'),
 
-        body('couponCode').notEmpty().withMessage('Coupon code is required').isString().withMessage('Coupon code must be a string').trim(),
+        body('couponCode').optional().isString().withMessage('Coupon code must be a string').trim(),
+
+        body('points').optional().isNumeric().withMessage('points must be numeric'),
     ];
 };
 

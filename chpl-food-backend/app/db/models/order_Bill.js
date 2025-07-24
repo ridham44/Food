@@ -37,6 +37,11 @@ module.exports = (sequelize, Sequelize) => {
                 type: Sequelize.DECIMAL(10, 2),
                 allowNull: true,
             },
+            pointsUsed: {
+                type:  Sequelize.INTEGER,
+                allowNull: true,
+                defaultValue: 0,
+            },
             status: {
                 type: Sequelize.ENUM('0', '1', '2'),
                 defaultValue: '0',

@@ -18,5 +18,7 @@ router.use('/', require('./order_payment'));
 router.use('/', require('./qrcode'));
 router.use('/', require('./discount_coupon'));
 router.use('/', require('./combo_offer'));
+router.use('/', require('./menu_rating'));
+router.use('/', require('./Customer_points'));
 
 module.exports = router;

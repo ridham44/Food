@@ -47,6 +47,6 @@ module.exports = (sequelize, Sequelize) => {
         }
     );
 
-    ComboGroupItem.hasTenantCondition?.(false);
+    ComboGroupItem.hasTenantCondition(false);
     return ComboGroupItem;
 };

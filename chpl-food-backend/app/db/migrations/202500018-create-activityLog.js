@@ -8,9 +8,9 @@ module.exports = {
                 primaryKey: true,
                 defaultValue: Sequelize.UUIDV4,
             },
-            user_id: {
+            userId: {
                 type: Sequelize.UUID,
-                allowNull: false,
+                allowNull: true,
                 references: {
                     model: 'user',
                     key: 'id',
@@ -18,15 +18,13 @@ module.exports = {
                 onUpdate: 'CASCADE',
                 onDelete: 'RESTRICT',
             },
-            tenant_id: {
+            tenantId: {
                 type: Sequelize.UUID,
                 allowNull: false,
                 association: {
                     model: 'Tenant',
                     key: 'id',
                 },
-                onUpdate: 'CASCADE',
-                onDelete: 'RESTRICT',
             },
             module: {
                 type: Sequelize.STRING(100),
@@ -37,7 +35,7 @@ module.exports = {
                 allowNull: false,
                 comment: 'Action type: create, update, delete',
             },
-            record_id: {
+            recordId: {
                 type: Sequelize.UUID,
                 allowNull: false,
             },
@@ -45,7 +43,7 @@ module.exports = {
                 type: Sequelize.JSON,
                 allowNull: true,
             },
-            created_at: {
+            createdAt: {
                 type: Sequelize.DATE,
                 allowNull: false,
                 defaultValue: Sequelize.fn('NOW'),

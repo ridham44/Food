@@ -15,10 +15,10 @@ router.post('/combo/group', auth, validateCreateComboGroup(), expressValidate, c
 // Update an existing combo group
 router.put('/combo/group/:id', auth, validateUpdateComboGroup(), expressValidate, controller.updateComboGroup);
 
-// Get all combo groups
+// update combo group item 
 router.put('/combo/group-item/:id', auth, validateUpdateComboGroupItem(), expressValidate, controller.updateComboGroupItem);
 
-// add combo group
+// add combo group item
 router.post('/combo/group-item', auth, validateComboGroupItem(), expressValidate, controller.addComboGroupItem);
 
 // Delete a combo group item
@@ -33,7 +33,7 @@ router.get('/combo-list', auth, controller.getAllCombos);
 // Get combo by ID
 router.get('/combo/:id', auth, controller.getComboById);
 
-// Update combo status
+// Update combo status of combo
 router.put('/combo/status/:id', auth, controller.updateComboStatus);
 
 module.exports = router;

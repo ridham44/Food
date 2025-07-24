@@ -11,18 +11,42 @@ const logActivity = async (req, action, instance, oldValue = null) => {
         const modelName = instance.constructor.name;
         const recordId = instance.id;
 
-        let tenantId = req?.user?.tenantId;
+        let userType = 'user';
+        let customerId = null;
+        let userIdToSave = null;
 
-        if (!tenantId && db.User) {
-            const user = await db.User.findByPk(userId, { attributes: ['tenantId'] });
-            tenantId = user?.tenantId;
+        const user = await db.User.findByPk(userId, {
+            attributes: ['id', 'roleId'],
+            disableTenantCheck: true,
+        });
+
+        if (user) {
+            const role = await db.Role.findByPk(user.roleId, {
+                attributes: ['type'],
+            });
+
+            if (role?.type === '3') {
+                userType = 'customer';
+                return userType
+            }
+
+            userIdToSave = userId;
+        } else {
+            const customer = await db.Customer.findByPk(userId, {
+                attributes: ['id'],
+            });
+
+            if (customer) {
+                customerId = customer.id;
+            } else {
+                return;
+            }
         }
 
         let value = null;
 
         if (action === 'create') {
-            const newValue = instance.get({ plain: true });
-            value = newValue;
+            value = instance.get({ plain: true });
         } else if (action === 'update') {
             const latestData = instance.get({ plain: true });
             const changedFields = {};
@@ -45,18 +69,17 @@ const logActivity = async (req, action, instance, oldValue = null) => {
 
             value = changedFields;
         } else if (action === 'delete') {
-            const oldData = instance.get({ plain: true });
-            value = oldData;
+            value = instance.get({ plain: true });
         }
 
         await ActivityLog.create({
-            user_id: userId,
-            tenant_id: tenantId,
+            userId: userIdToSave,
+            customerId: customerId,
             module: modelName,
             action,
-            record_id: recordId,
+            recordId,
             value,
-            created_at: new Date(),
+            createdAt: new Date(),
         });
     } catch (err) {
         console.error(`[ManualActivityLog] Failed for ${instance?.constructor?.name}:`, err);

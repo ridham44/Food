@@ -2,11 +2,9 @@ const { body } = require('express-validator');
 
 const paymentValidation = () => {
     return [
-        body('customerMobile')
+        body('billId')
             .notEmpty()
-            .withMessage('Customer mobile is required')
-            .isMobilePhone()
-            .withMessage('Enter a valid mobile number'),
+            .withMessage('Customer billId is required'),
 
         body('cash').optional().isFloat({ min: 0 }).withMessage('Cash must be a non-negative number'),
 
@@ -17,7 +15,7 @@ const paymentValidation = () => {
 };
 const unpaidbillsvalidation = () => {
     return [
-        body('customerMobile')
+        body('mobile')
             .notEmpty()
             .withMessage('Customer mobile is required')
             .isMobilePhone()

@@ -2,6 +2,7 @@ const db = require('../../../db/models');
 const { status, common } = require('../../../../utils');
 const { Op } = require('sequelize');
 const { v4: uuidv4 } = require('uuid');
+const logActivity = require('../../../../utils/lib/auditLog/activityLogger');
 
 exports.getUnpaidBillsByCustomer = async (req, res) => {
     try {
@@ -96,7 +97,7 @@ exports.getUnpaidBillsByCustomer = async (req, res) => {
                 } else {
                     return {
                         type: 'menu',
-                        menuName: i.Menu?.name || 'Unknown',
+                        menuName: i.Menu.name,
                         menuPrice: parseFloat(i.Menu?.price || 0),
                         quantity: i.quantity,
                         totalPrice: parseFloat(i.totalPrice),
@@ -109,6 +110,7 @@ exports.getUnpaidBillsByCustomer = async (req, res) => {
                 totalAmount: parseFloat(bill.totalAmount),
                 status: bill.status,
                 Coupon: bill.couponCode || null,
+                Points: bill.pointsUsed || 0,
                 DiscountAmount: parseFloat(bill.discountAmount || 0),
                 FinalAmount: parseFloat(bill.finalAmount),
                 createdAt: bill.createdAt,
@@ -137,7 +139,6 @@ exports.getUnpaidBillsByCustomer = async (req, res) => {
     }
 };
 
-
 exports.makePaymentByBillId = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
@@ -151,6 +152,7 @@ exports.makePaymentByBillId = async (req, res) => {
         if (!bill) {
             return res.status(status.NotFound).json({ message: 'Unpaid bill not found' });
         }
+        const oldData = JSON.parse(JSON.stringify(bill.get({ plain: true })));
 
         const totalPaid = parseFloat(cash) + parseFloat(card) + parseFloat(online);
 
@@ -163,7 +165,7 @@ exports.makePaymentByBillId = async (req, res) => {
             });
         }
 
-        await db.OrderPayment.create(
+        const orderPayment = await db.OrderPayment.create(
             {
                 id: uuidv4(),
                 orderBillId: bill.id,
@@ -177,7 +179,10 @@ exports.makePaymentByBillId = async (req, res) => {
             { transaction }
         );
 
-        await db.OrderBill.update({ status: '1' }, { where: { id: bill.id }, transaction });
+        const orderBill = await db.OrderBill.update({ status: '1' }, { where: { id: bill.id }, transaction });
+
+        await logActivity(req, 'create', orderPayment);
+        await logActivity(req, 'update', orderBill, oldData);
 
         await transaction.commit();
         return res.status(status.OK).json({
