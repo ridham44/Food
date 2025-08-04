@@ -8,7 +8,7 @@ exports.orderCustomer = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
         const customerId = req.user.id;
-        const { tenantId, items } = req.body;
+        const { tenantId, items, isParcel } = req.body;
 
         if (!Array.isArray(items) || items.length === 0 || !tenantId) {
             return res.status(status.BadRequest).json({ message: 'tenantId and items are required' });
@@ -41,6 +41,7 @@ exports.orderCustomer = async (req, res) => {
                 tenantId,
                 placedBy: '1',
                 status: '1',
+                isParcel: isParcel === '1' ? '1' : '0',
                 createdAt: new Date(),
             },
             { transaction }
@@ -165,13 +166,24 @@ exports.approveOrRejectOrder = async (req, res) => {
 
             const totalAmount = items.reduce((sum, item) => sum + parseFloat(item.totalPrice), 0);
 
+            const taxConfig = await db.TaxConfig.findOne({
+                where: { tenantId, status: '1' },
+                raw: true,
+            });
+
+            const gst = taxConfig ? (totalAmount * parseFloat(taxConfig.gst)) / 100 : 0;
+            const packingFee = order.isParcel === '1' && taxConfig ? parseFloat(taxConfig.packingFee) : 0;
+            const finalAmount = totalAmount + gst + packingFee;
+
             const bill = await db.OrderBill.create(
                 {
                     id: uuidv4(),
                     orderListId,
                     totalAmount,
                     status: '0',
-                    finalAmount: totalAmount,
+                    gstPercent: taxConfig.gst,
+                    packingFee: packingFee.toFixed(2),
+                    finalAmount,
                     createdAt: new Date(),
                 },
                 { transaction }
@@ -201,7 +213,7 @@ exports.tenantPlaceOrder = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
         const tenantId = req.user.tenantId;
-        const { mobile, name, gender, items } = req.body;
+        const { mobile, name, gender, items, isParcel } = req.body;
 
         if (!mobile || !Array.isArray(items) || items.length === 0) {
             return res.status(status.BadRequest).json({ message: 'Mobile and at least one item are required' });
@@ -262,6 +274,7 @@ exports.tenantPlaceOrder = async (req, res) => {
                 tenantId,
                 placedBy: '2',
                 status: '2',
+                isParcel: isParcel === '1' ? '1' : '0',
                 createdAt: new Date(),
             },
             { transaction }
@@ -297,13 +310,24 @@ exports.tenantPlaceOrder = async (req, res) => {
 
         await db.OrderItem.bulkCreate(orderItems, { transaction });
 
+        const taxConfig = await db.TaxConfig.findOne({
+            where: { tenantId, status: '1' },
+            raw: true,
+        });
+
+        const gst = taxConfig ? (totalAmount * parseFloat(taxConfig.gst)) / 100 : 0;
+        const packingFee = isParcel === '1' && taxConfig ? parseFloat(taxConfig.packingFee) : 0;
+        const finalAmount = totalAmount + gst + packingFee;
+
         const bill = await db.OrderBill.create(
             {
                 id: uuidv4(),
                 orderListId,
                 totalAmount,
                 status: '0',
-                finalAmount: totalAmount,
+                finalAmount,
+                gstPercent: taxConfig.gst,
+                packingFee: packingFee.toFixed(2),
                 createdAt: new Date(),
             },
             { transaction }
@@ -367,7 +391,7 @@ exports.updateOrderItemQuantity = async (req, res) => {
             return res.status(status.BadRequest).json({ message: 'Order cannot be updated unless it is pending' });
         }
 
-        const menuItem = await db.Menu.findByPk(orderItem.menuId);
+        const menuItem = await db.Menu.findByPky(orderItem.menuId);
         const newTotalPrice = quantity * parseFloat(menuItem.price);
 
         await db.OrderItem.update({ quantity, totalPrice: newTotalPrice.toFixed(2) }, { where: { id: orderItemId } });

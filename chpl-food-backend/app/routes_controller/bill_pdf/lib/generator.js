@@ -97,6 +97,8 @@ exports.generateInvoicePDF = async (req, res) => {
                 discount: bill?.discountAmount ? parseFloat(bill.discountAmount) : 0,
                 coupon: bill?.couponCode || '',
                 pointsUsed: bill?.pointsUsed || 0,
+                packingFee: bill?.packingFee ? parseFloat(bill.packingFee) : 0,
+                gstPercent: bill?.gstPercent ? parseFloat(bill.gstPercent) : 0,
                 finalAmount: bill?.finalAmount ? parseFloat(bill.finalAmount) : 0,
             },
         };
@@ -180,30 +182,44 @@ exports.generateInvoicePDF = async (req, res) => {
 
         // Subtotal
         doc.text('Subtotal:', leftX, lineY);
-        doc.text(`${invoice.bill.subTotal}₹`, totalCol, lineY, { align: 'right', width: 20 }); 
+        doc.text(`${invoice.bill.subTotal}₹`, totalCol, lineY, { align: 'right', width: 20 });
 
         // Discount
         lineY += lineHeight;
         doc.text('Discount:', leftX, lineY);
-        doc.text(`${invoice.bill.discount}₹`, totalCol, lineY, { align: 'right', width: 20 }); 
+        doc.text(`${invoice.bill.discount}₹`, totalCol, lineY, { align: 'right', width: 20 });
 
         // Coupon
         lineY += lineHeight;
         doc.text('Coupon:', leftX, lineY);
-        doc.text(`${invoice.bill.coupon || 'N/A'}`, totalCol, lineY, { align: 'right', width: 30 }); 
+        doc.text(`${invoice.bill.coupon || 'N/A'}`, totalCol, lineY, { align: 'right', width: 30 });
 
         // Points Used
         lineY += lineHeight;
         doc.text('Points Used:', leftX, lineY);
-        doc.text(`${invoice.bill.pointsUsed || 0}`, totalCol, lineY, { align: 'right', width: 20 }); 
+        doc.text(`${invoice.bill.pointsUsed || 0}`, totalCol, lineY, { align: 'right', width: 20 });
 
-        // Final Amount (Bold)
-        lineY += lineHeight + 2;
-        doc.font('Helvetica-Bold').fontSize(9);
-        doc.text('Final Amount:', leftX, lineY);
-        doc.text(`${invoice.bill.finalAmount}₹`, totalCol, lineY, { align: 'right', width: 25 }); 
+        // Packing Fee
+        lineY += lineHeight;
+        doc.text('Packing Fee:', leftX, lineY);
+        doc.text(`${invoice.bill.packingFee}₹`, totalCol, lineY, { align: 'right', width: 20 });
+
+        // GST Percent
+        lineY += lineHeight;
+        doc.text('GST Percent:', leftX, lineY);
+        doc.text(`${invoice.bill.gstPercent}%`, totalCol, lineY, { align: 'right', width: 25 });
 
         doc.moveDown(1);
+        doc.moveTo(10, doc.y).lineTo(306, doc.y).stroke();
+        doc.moveDown(1);
+
+        // Final Amount (Bold)
+        lineY += lineHeight + 12;
+        doc.font('Helvetica-Bold').fontSize(9);
+        doc.text('Final Amount:', leftX, lineY);
+        doc.text(`${invoice.bill.finalAmount}₹`, totalCol, lineY, { align: 'right', width: 25 });
+
+        doc.moveDown(0.5);
         doc.moveTo(10, doc.y).lineTo(306, doc.y).stroke();
         doc.moveDown(1);
 

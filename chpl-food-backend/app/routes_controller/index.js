@@ -23,5 +23,6 @@ router.use('/', require('./Customer_points'));
 router.use('/', require('./expense_entry'));
 router.use('/', require('./bill_pdf'));
 router.use('/', require('./groq_chat'));
+router.use('/', require('./tax_config'));
 
 module.exports = router;

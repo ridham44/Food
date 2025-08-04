@@ -524,6 +524,8 @@ exports.getFullOrderDetails = async (req, res) => {
                 Coupon: bill.couponCode || 'N/A',
                 Points: bill.pointsUsed || 0,
                 discount: bill.discountAmount ? parseFloat(bill.discountAmount) : 0,
+                packingFee: bill.packingFee ? parseFloat(bill.packingFee) : 0,
+                gstPercent: bill.gstPercent ? parseFloat(bill.gstPercent) : 0,
                 finalAmount: bill.finalAmount ? parseFloat(bill.finalAmount) : 0,
                 createdAt: bill.createdAt,
             };

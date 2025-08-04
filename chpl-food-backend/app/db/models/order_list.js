@@ -39,6 +39,12 @@ module.exports = (sequelize, Sequelize) => {
                     hasManyAlias: 'OrderList',
                 },
             },
+            isParcel: {
+                type: Sequelize.ENUM('0', '1'),
+                allowNull: false,
+                defaultValue: '0',
+                comment: '1 = Parcel selected, 0 = No parcel',
+            },
             cancelReason: {
                 type: Sequelize.STRING(255),
                 allowNull: true,

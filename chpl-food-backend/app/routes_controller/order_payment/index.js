@@ -16,8 +16,4 @@ router.post('/payment/type-report', auth, controller.getPaymentModeReport);
 // get payment mode totals
 router.post('/payment/overview', auth, controller.getPaymentTotals);
 
-//Bill slip
-router.post('/payment/slip', auth, controller.generatePreview);
-
-
 module.exports = router;

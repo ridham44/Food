@@ -38,7 +38,7 @@ module.exports = (sequelize, Sequelize) => {
                 allowNull: true,
             },
             pointsUsed: {
-                type:  Sequelize.INTEGER,
+                type: Sequelize.INTEGER,
                 allowNull: true,
                 defaultValue: 0,
             },
@@ -47,6 +47,18 @@ module.exports = (sequelize, Sequelize) => {
                 defaultValue: '0',
                 allowNull: false,
                 comment: '0 for Unpaid, 1 for Paid, 2 for Cancelled',
+            },
+            packingFee: {
+                type: Sequelize.DECIMAL(10, 2),
+                allowNull: false,
+                defaultValue: 0.0,
+                comment: 'Packing fee if parcel is selected',
+            },
+            gstPercent: {
+                type: Sequelize.DECIMAL(5, 2),
+                allowNull: false,
+                defaultValue: 0.0,
+                comment: 'GST % applied from tax_config',
             },
             createdAt: Sequelize.DATE,
         },
