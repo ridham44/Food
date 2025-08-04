@@ -20,5 +20,8 @@ router.use('/', require('./discount_coupon'));
 router.use('/', require('./combo_offer'));
 router.use('/', require('./menu_rating'));
 router.use('/', require('./Customer_points'));
+router.use('/', require('./expense_entry'));
+router.use('/', require('./bill_pdf'));
+router.use('/', require('./groq_chat'));
 
 module.exports = router;

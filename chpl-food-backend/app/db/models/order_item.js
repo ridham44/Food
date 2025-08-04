@@ -39,6 +39,11 @@ module.exports = (sequelize, Sequelize) => {
                     hasManyAlias: 'OrderItem',
                 },
             },
+            specialInstruction: {
+                type: Sequelize.STRING(255),
+                allowNull: true,
+                comment: 'e.g., no onions, less spicy',
+            },
             quantity: {
                 type: Sequelize.INTEGER,
                 allowNull: false,

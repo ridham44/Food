@@ -39,6 +39,13 @@ module.exports = (sequelize, Sequelize) => {
                     hasManyAlias: 'menu',
                 },
             },
+            isAvailable: {
+                type: Sequelize.ENUM('0', '1'),
+                allowNull: false,
+                defaultValue: '1',
+                comment: '1 = available, 0 = unavailable',
+            },
+
             createdAt: {
                 type: Sequelize.DATE,
                 allowNull: false,

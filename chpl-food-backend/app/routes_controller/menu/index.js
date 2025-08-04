@@ -2,6 +2,7 @@ const router = require('express').Router();
 const fs = require('fs');
 const multer = require('multer');
 const auth = require('../../middlewares/middleware');
+const authCustomer = require('../../middlewares/CustomerMiddlewear')
 const controller = require('./lib/controller');
 const { expressValidate } = require('../../../utils/lib/common-function');
 const { validationRules, updateValidations } = require('./lib/validation');
@@ -80,6 +81,9 @@ router.get('/menu-filter/options', auth, controller.menuForFilter);
 router.post('/menu/filter', auth, controller.filtration);
 
 // Customer menu routes
-router.get('/menu-customer/:tenantId', auth, controller.findByIdForCustomer);
+router.get('/menu-customer/:tenantId', authCustomer, controller.findByIdForCustomer);
+
+//Update updateAvailability
+router.put('/menu/status/:id', auth, controller.updateAvailability);
 
 module.exports = router;

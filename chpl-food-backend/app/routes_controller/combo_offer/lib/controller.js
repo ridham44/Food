@@ -2,7 +2,6 @@ const { v4: uuidv4 } = require('uuid');
 const db = require('../../../db/models');
 const { status, common } = require('../../../../utils');
 const logActivity = require('../../../../utils/lib/auditLog/activityLogger');
-
 exports.createComboGroup = async (req, res) => {
     const { name, comboPrice, items } = req.body;
     const tenantId = req.user.tenantId;
@@ -10,6 +9,25 @@ exports.createComboGroup = async (req, res) => {
     const transaction = await db.ComboGroup.sequelize.transaction();
 
     try {
+        const menuIds = items.map((item) => item.menuId);
+        const availableMenus = await db.Menu.findAll({
+            where: {
+                id: menuIds,
+                isAvailable: '1',
+                tenantId,
+            },
+            attributes: ['id'],
+            raw: true,
+        });
+
+        const availableMenuIds = availableMenus.map((m) => m.id);
+        const unavailableMenuIds = menuIds.filter((id) => !availableMenuIds.includes(id));
+        if (unavailableMenuIds.length > 0) {
+            return res.status(status.BadRequest).json({
+                message: `Some menu items are not available: ${unavailableMenuIds.join(', ')}`,
+            });
+        }
+
         const comboGroup = await db.ComboGroup.create(
             {
                 id: uuidv4(),
@@ -30,10 +48,7 @@ exports.createComboGroup = async (req, res) => {
         }));
 
         await db.ComboGroupItem.bulkCreate(comboItems, { transaction });
-
         await logActivity(req, 'create', comboGroup);
-        // await logActivity(req, 'create', comboItems);
-
         await transaction.commit();
 
         return res.status(status.OK).json({
@@ -127,7 +142,14 @@ exports.addComboGroupItem = async (req, res) => {
             return res.status(status.NotFound).json({ message: 'Combo group not found' });
         }
 
-        const menu = await db.Menu.findByPk(menuId);
+        const menu = await db.Menu.findOne({
+            where: {
+                id: menuId,
+                isAvailable: '1',
+            },
+            disableTenantCheck: true,
+        });
+
         if (!menu) {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'Menu item not found' });

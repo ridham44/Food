@@ -22,6 +22,7 @@ exports.create = async (req, res) => {
                 description: body.description,
                 filePath: file ? `/${file.path.replace(/\\/g, '/')}` : null,
                 tenantId: user.tenantId,
+                isAvailable: body.isAvailable ?? '1',
                 createdBy: user.id,
             },
             { transaction }
@@ -72,6 +73,7 @@ exports.update = async (req, res) => {
             price: body.price,
             description: body.description,
             filePath: file ? `/${file.path.replace(/\\/g, '/')}` : null,
+            isAvailable: body.isAvailable,
             tenantId: user.tenantId,
             updatedBy: user.id,
         });
@@ -268,8 +270,11 @@ exports.findByIdForCustomer = async (req, res) => {
         }
 
         const menus = await db.Menu.findAll({
-            where: { tenantId },
-            disableTenantCheck: true, 
+            where: {
+                tenantId,
+                isAvailable: '1', 
+            },
+            disableTenantCheck: true,
             attributes: ['id', 'parentId', 'name', 'price', 'filePath', 'description'],
             include: [
                 {
@@ -282,11 +287,56 @@ exports.findByIdForCustomer = async (req, res) => {
         });
 
         if (!menus || !menus.length) {
-            return res.status(status.BadRequest).json({ message: 'No menus found for this tenant!' });
+            return res.status(status.BadRequest).json({ message: 'No available menus found for this tenant!' });
         }
 
-        return res.status(status.OK).json({ data: menus });
+        const tenantInfo = menus[0].Tenant;
+
+        const formattedMenus = menus.map((menu) => ({
+            id: menu.id,
+            parentId: menu.parentId,
+            name: menu.name,
+            price: parseFloat(menu.price),
+            filePath: menu.filePath,
+            description: menu.description,
+        }));
+
+        return res.status(status.OK).json({
+            Tenant: {
+                companyName: tenantInfo.companyName,
+                mobile: tenantInfo.mobile,
+                email: tenantInfo.email,
+                contactPerson: tenantInfo.contactPerson,
+                address: tenantInfo.address,
+            },
+            menu: formattedMenus,
+        });
     } catch (error) {
         return common.throwException(error, 'Find Menus By Tenant ID', req, res);
+    }
+};
+
+exports.updateAvailability = async (req, res) => {
+    const transaction = await db.sequelize.transaction();
+    try {
+        const { id } = req.params;
+
+        const menu = await db.Menu.findByPk(id);
+        if (!menu) {
+            await transaction.rollback();
+            return res.status(status.NotFound).json({ message: 'Invalid menu ID!' });
+        }
+
+        const oldData = JSON.parse(JSON.stringify(menu.get({ plain: true })));
+
+        menu.isAvailable = menu.isAvailable === '1' ? '0' : '1';
+        (menu.updatedBy = req.user.id), await menu.save({ transaction });
+        await logActivity(req, 'update', menu, oldData);
+
+        await transaction.commit();
+        return res.status(status.OK).json({ message: 'Menu availability updated successfully!' });
+    } catch (error) {
+        await transaction.rollback();
+        return common.throwException(error, 'Update Menu Availability API', req, res);
     }
 };

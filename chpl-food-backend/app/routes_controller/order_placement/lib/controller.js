@@ -18,7 +18,7 @@ exports.orderCustomer = async (req, res) => {
         const comboIds = items.filter((i) => i.comboId).map((i) => i.comboId);
 
         const menus = await db.Menu.findAll({
-            where: { id: menuIds },
+            where: { id: menuIds, isAvailable: '1' },
             raw: true,
             disableTenantCheck: true,
         });
@@ -65,6 +65,7 @@ exports.orderCustomer = async (req, res) => {
                         menuId: item.menuId,
                         comboId: null,
                         quantity: item.quantity,
+                        specialInstruction: item.specialInstruction || null,
                         totalPrice,
                         createdAt: now,
                     };
@@ -83,6 +84,7 @@ exports.orderCustomer = async (req, res) => {
                         comboId: item.comboId,
                         menuId: null,
                         quantity: item.quantity,
+                        specialInstruction: item.specialInstruction || null,
                         totalPrice,
                         createdAt: now,
                     };
@@ -111,7 +113,7 @@ exports.orderCustomer = async (req, res) => {
 exports.approveOrRejectOrder = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
-        const { orderListId, status: newStatus } = req.body;
+        const { orderListId, status: newStatus, cancelReason } = req.body;
         const user = req.user;
         const tenantId = user.tenantId;
         const userRoleId = user.roleId;
@@ -139,7 +141,20 @@ exports.approveOrRejectOrder = async (req, res) => {
             return res.status(status.Forbidden).json({ message: 'Customers are not allowed to approve orders' });
         }
 
-        await db.OrderList.update({ status: newStatus }, { where: { id: orderListId }, transaction });
+        const updateData = {
+            status: newStatus,
+            updatedAt: new Date(),
+        };
+
+        if (newStatus === '3') {
+            if (!cancelReason || cancelReason.trim() === '') {
+                return res.status(status.BadRequest).json({ message: 'Cancel reason is required when cancelling an order' });
+            }
+            updateData.cancelReason = cancelReason;
+            updateData.cancelledBy = isCustomer ? '0' : '1';
+        }
+
+        await db.OrderList.update(updateData, { where: { id: orderListId }, transaction });
 
         if (newStatus === '2' && !isCustomer) {
             const items = await db.OrderItem.findAll({
@@ -161,8 +176,8 @@ exports.approveOrRejectOrder = async (req, res) => {
                 },
                 { transaction }
             );
-            await assignPointsOnOrder(orderListId);
 
+            await assignPointsOnOrder(orderListId);
             await logActivity(req, 'create', bill);
         }
 
@@ -224,7 +239,7 @@ exports.tenantPlaceOrder = async (req, res) => {
         const comboIds = items.filter((i) => i.comboId).map((i) => i.comboId);
 
         const menus = await db.Menu.findAll({
-            where: { id: menuIds },
+            where: { id: menuIds, isAvailable: '1' },
             raw: true,
             disableTenantCheck: true,
         });
@@ -274,6 +289,7 @@ exports.tenantPlaceOrder = async (req, res) => {
                 menuId: item.menuId || null,
                 comboId: item.comboId || null,
                 quantity: item.quantity,
+                specialInstruction: item.specialInstruction || null,
                 totalPrice,
                 createdAt: new Date(),
             };
@@ -371,7 +387,7 @@ exports.updateOrderItemQuantity = async (req, res) => {
 
 exports.addOrderItem = async (req, res) => {
     try {
-        const { orderListId, menuId, quantity } = req.body;
+        const { orderListId, menuId, quantity, specialInstruction } = req.body;
 
         if (!orderListId || !menuId || typeof quantity !== 'number' || quantity < 1) {
             return res.status(status.BadRequest).json({ message: 'Invalid orderListId, menuId, or quantity' });
@@ -390,7 +406,13 @@ exports.addOrderItem = async (req, res) => {
             return res.status(status.BadRequest).json({ message: 'Cannot add items unless order is pending' });
         }
 
-        const menuItem = await db.Menu.findByPk(menuId);
+        const menuItem = await db.Menu.findOne({
+            where: {
+                id: menuId,
+                isAvailable: '1',
+            },
+            disableTenantCheck: true,
+        });
 
         if (!menuItem) {
             return res.status(status.NotFound).json({ message: 'Menu item not found' });
@@ -403,6 +425,7 @@ exports.addOrderItem = async (req, res) => {
             menuId,
             quantity,
             totalPrice: totalPrice.toFixed(2),
+            specialInstruction: specialInstruction || null,
             createdAt: new Date(),
         });
 

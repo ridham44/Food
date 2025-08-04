@@ -1,6 +1,7 @@
 const db = require('../../../db/models');
 const { status, common } = require('../../../../utils');
 const { Op } = require('sequelize');
+const moment = require('moment');
 const { v4: uuidv4 } = require('uuid');
 const logActivity = require('../../../../utils/lib/auditLog/activityLogger');
 
@@ -80,7 +81,7 @@ exports.getUnpaidBillsByCustomer = async (req, res) => {
                         required: false,
                     },
                 ],
-                attributes: ['quantity', 'totalPrice', 'menuId', 'comboId'],
+                attributes: ['quantity', 'totalPrice', 'menuId', 'comboId', 'specialInstruction'],
                 raw: true,
                 nest: true,
             });
@@ -92,6 +93,7 @@ exports.getUnpaidBillsByCustomer = async (req, res) => {
                         comboName: i.ComboGroup.name,
                         comboPrice: parseFloat(i.ComboGroup.price),
                         quantity: i.quantity,
+                        specialInstruction: i.specialInstruction || null,
                         totalPrice: parseFloat(i.totalPrice),
                     };
                 } else {
@@ -100,6 +102,7 @@ exports.getUnpaidBillsByCustomer = async (req, res) => {
                         menuName: i.Menu.name,
                         menuPrice: parseFloat(i.Menu?.price || 0),
                         quantity: i.quantity,
+                        specialInstruction: i.specialInstruction || null,
                         totalPrice: parseFloat(i.totalPrice),
                     };
                 }
@@ -417,5 +420,109 @@ exports.getPaymentTotals = async (req, res) => {
         });
     } catch (error) {
         return common.throwException(error, 'Get Simple Payment Totals', req, res);
+    }
+};
+
+exports.generatePreview = async (req, res) => {
+    try {
+        const { orderListId } = req.body;
+
+        const order = await db.OrderList.findOne({
+            where: { id: orderListId },
+            include: [
+                {
+                    model: db.Customer,
+                    as: 'Customer',
+                    attributes: ['firstName', 'lastName', 'phoneNo'],
+                    required: false,
+                },
+                {
+                    model: db.OrderItem,
+                    as: 'OrderItem',
+                    include: [
+                        {
+                            model: db.Menu,
+                            as: 'Menu',
+                            attributes: ['name', 'price'],
+                            disableTenantCheck: true,
+                        },
+                        {
+                            model: db.ComboGroup,
+                            as: 'ComboGroup',
+                            attributes: ['name', 'price'],
+                            disableTenantCheck: true,
+                        },
+                    ],
+                },
+                {
+                    model: db.OrderBill,
+                    as: 'OrderBill',
+                },
+                {
+                    model: db.Tenant,
+                    as: 'Tenant',
+                    attributes: ['companyName', 'address', 'mobile', 'gstNumber'],
+                    disableTenantCheck: true,
+                },
+            ],
+        });
+
+        if (!order) {
+            return res.status(status.NotFound).json({ message: 'Order not found' });
+        }
+
+        const customerName = order.Customer ? `${order.Customer.firstName} ${order.Customer.lastName}`.trim() : order.customerName || '';
+        const customerPhone = order.Customer ? order.Customer.phoneNo : order.customerMobile || '';
+
+        const items = order.OrderItem.map((item) => {
+            if (item.comboId && item.ComboGroup) {
+                return {
+                    type: 'combo',
+                    name: item.ComboGroup.name,
+                    unitPrice: parseFloat(item.ComboGroup.price),
+                    quantity: item.quantity,
+                    totalPrice: parseFloat(item.totalPrice).toFixed(2),
+                };
+            } else {
+                return {
+                    type: 'menu',
+                    name: item.Menu?.name || 'Unknown',
+                    unitPrice: parseFloat(item.Menu?.price || 0),
+                    quantity: item.quantity,
+                    totalPrice: parseFloat(item.totalPrice).toFixed(2),
+                };
+            }
+        });
+
+        const bill = order.OrderBill && order.OrderBill.length > 0 ? order.OrderBill[0] : null;
+
+        const invoice = {
+            tenant: {
+                name: order.Tenant?.companyName || 'N/A',
+                address: order.Tenant?.address || '',
+                mobile: order.Tenant?.mobile || '',
+                GST: order.Tenant?.gstNumber || '',
+            },
+            customer: {
+                name: customerName,
+                phoneNo: customerPhone,
+            },
+            orderDate: moment(order.createdAt).format('YYYY-MM-DD HH:mm'),
+            items: items,
+            bill: {
+                subTotal: bill?.totalAmount ? parseFloat(bill.totalAmount) : 0,
+                discount: bill?.discountAmount ? parseFloat(bill.discountAmount) : 0,
+                coupon: bill?.couponCode || '',
+                pointsUsed: bill?.pointsUsed || 0,
+                finalAmount: bill?.finalAmount ? parseFloat(bill.finalAmount) : 0,
+            },
+        };
+
+        return res.status(status.OK).json({
+            message: 'Invoice data generated successfully',
+            invoice,
+        });
+    } catch (error) {
+        return common.throwException(error, 'Generate Invoice', req, res);
     }
 };

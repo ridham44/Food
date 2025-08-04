@@ -31,6 +31,7 @@ const validationRules = () => {
         body('price').optional({ nullable: true }).isFloat({ min: 0 }).withMessage('Price must be a positive number'),
 
         body('filePath').optional({ nullable: true }).isString().withMessage('File path must be a string'),
+        body('isAvailable').optional().isIn(['0', '1']).withMessage('isAvailable must be either "0" (unavailable) or "1" (available)'),
     ];
 };
 
@@ -53,6 +54,7 @@ const updateValidations = () => {
         body('price').optional({ nullable: true }).isFloat({ min: 0 }).withMessage('Price must be a positive number'),
 
         body('filePath').optional({ nullable: true }).isString().withMessage('File path must be a string'),
+        body('isAvailable').optional().isIn(['0', '1']).withMessage('isAvailable must be either "0" (unavailable) or "1" (available)'),
     ];
 };
 

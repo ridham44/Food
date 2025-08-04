@@ -39,7 +39,17 @@ module.exports = (sequelize, Sequelize) => {
                     hasManyAlias: 'OrderList',
                 },
             },
+            cancelReason: {
+                type: Sequelize.STRING(255),
+                allowNull: true,
+            },
+            cancelledBy: {
+                type: Sequelize.ENUM('0', '1'),
+                allowNull: true,
+                comment: '0 = Customer, 1 = Tenant',
+            },
             createdAt: Sequelize.DATE,
+            updatedAt: Sequelize.DATE,
         },
         {
             tableName: 'order_list',

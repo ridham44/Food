@@ -16,6 +16,7 @@ router.get('/report/category', auth, controller.bookingCategoryReport);
 router.get('/report/unpaid-orders', auth, controller.getUnpaidOrders);
 //Get all  orders
 router.post('/report/orders', auth, validategetOrder(), expressValidate, controller.getFullOrderDetails);
-
+//Get all cancel orders
+router.get('/report/cancel-order', auth, controller.getCancelledOrders);
 
 module.exports = router;

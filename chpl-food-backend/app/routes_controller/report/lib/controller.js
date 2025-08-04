@@ -393,6 +393,12 @@ exports.getUnpaidOrders = async (req, res) => {
                             attributes: ['name', 'price'],
                             disableTenantCheck: true,
                         },
+                        {
+                            model: db.ComboGroup,
+                            as: 'ComboGroup',
+                            attributes: ['name', 'price'],
+                            required: false,
+                        },
                     ],
                 },
             ],
@@ -402,11 +408,13 @@ exports.getUnpaidOrders = async (req, res) => {
         const result = unpaidOrders.map((order) => {
             const customer = order.Customer;
             const customerName = `${customer?.firstName || ''} ${customer?.lastName || ''}`.trim();
-            const items = order.OrderItems.map((item) => ({
-                menuName: item.Menu?.name || '',
-                unitPrice: item.Menu?.price || 0,
+
+            const items = (order.OrderItem || []).map((item) => ({
+                name: item.Menu?.name || item.ComboGroup?.name || '',
+                unitPrice: item.Menu?.price || item.ComboGroup?.price || 0,
                 quantity: item.quantity,
                 totalPrice: item.totalPrice,
+                specialInstruction: item.specialInstruction || null,
             }));
 
             return {
@@ -490,6 +498,7 @@ exports.getFullOrderDetails = async (req, res) => {
                               comboName: i.ComboGroup.name,
                               comboPrice: parseFloat(i.ComboGroup.price),
                               quantity: i.quantity,
+                              specialInstruction: i.specialInstruction || null,
                               totalPrice: parseFloat(i.totalPrice),
                           };
                       } else {
@@ -498,6 +507,7 @@ exports.getFullOrderDetails = async (req, res) => {
                               menuName: i.Menu?.name || 'Unknown',
                               menuPrice: parseFloat(i.Menu?.price || 0),
                               quantity: i.quantity,
+                              specialInstruction: i.specialInstruction || null,
                               totalPrice: parseFloat(i.totalPrice),
                           };
                       }
@@ -537,6 +547,18 @@ exports.getFullOrderDetails = async (req, res) => {
 
             orderData.bill = billData;
         }
+        if (order.status === '3') {
+            let CancelledByName = 'Unknown';
+
+            if (order.cancelledBy === '0') {
+                CancelledByName = 'Customer';
+            } else if (order.cancelledBy === '1') {
+                CancelledByName = 'Tenant';
+            }
+
+            orderData.cancelledBy = CancelledByName;
+            orderData.cancelReason = order.cancelReason || 'Not specified';
+        }
 
         return res.status(status.OK).json({
             message: 'Order details fetched successfully',
@@ -544,5 +566,124 @@ exports.getFullOrderDetails = async (req, res) => {
         });
     } catch (error) {
         return common.throwException(error, 'Get Full Order Details', req, res);
+    }
+};
+
+exports.getCancelledOrders = async (req, res) => {
+    try {
+        const tenantId = req.user.tenantId;
+        if (!tenantId) {
+            return res.status(status.Forbidden).json({ message: 'Tenant access only' });
+        }
+
+        const { startDate, endDate } = req.query;
+        const whereClause = {
+            tenantId,
+            status: '3', // Cancelled
+        };
+
+        if (startDate && endDate) {
+            whereClause.createdAt = {
+                [db.Sequelize.Op.between]: [new Date(startDate), new Date(endDate)],
+            };
+        }
+
+        const cancelledOrders = await db.OrderList.findAll({
+            where: whereClause,
+            include: [
+                {
+                    model: db.Customer,
+                    as: 'Customer',
+                    attributes: ['firstName', 'lastName', 'phoneNo'],
+                    required: false,
+                },
+                {
+                    model: db.OrderItem,
+                    as: 'OrderItem',
+                    include: [
+                        {
+                            model: db.Menu,
+                            as: 'Menu',
+                            attributes: ['name', 'price'],
+                            disableTenantCheck: true,
+                        },
+                        {
+                            model: db.ComboGroup,
+                            as: 'ComboGroup',
+                            attributes: ['name', 'price'],
+                            disableTenantCheck: true,
+                        },
+                    ],
+                },
+            ],
+            order: [['createdAt', 'DESC']],
+        });
+
+        const customerOrderCounts = {};
+        const results = cancelledOrders.map((order) => {
+            const customerName = order.Customer
+                ? `${order.Customer.firstName} ${order.Customer.lastName}`.trim()
+                : order.customerName || 'N/A';
+
+            const customerMobile = order.Customer ? order.Customer.phoneNo : order.customerMobile || 'N/A';
+
+            const customerKey = `${customerName}_${customerMobile}`;
+            customerOrderCounts[customerKey] = (customerOrderCounts[customerKey] || 0) + 1;
+
+            const items = (order.OrderItem || []).map((item) => {
+                if (item.comboId && item.ComboGroup) {
+                    return {
+                        type: 'combo',
+                        menuName: item.ComboGroup.name || '',
+                        menuPrice: parseFloat(item.ComboGroup.price || 0),
+                        quantity: item.quantity,
+                        specialInstruction: item.specialInstruction || null,
+                        totalPrice: parseFloat(item.totalPrice || 0),
+                    };
+                } else {
+                    return {
+                        type: 'menu',
+                        menuName: item.Menu?.name || '',
+                        menuPrice: parseFloat(item.Menu?.price || 0),
+                        quantity: item.quantity,
+                        specialInstruction: item.specialInstruction || null,
+                        totalPrice: parseFloat(item.totalPrice || 0),
+                    };
+                }
+            });
+
+            let CancelledByName = 'Unknown';
+            if (order.cancelledBy === '0') CancelledByName = 'Customer';
+            else if (order.cancelledBy === '1') CancelledByName = 'Tenant';
+
+            return {
+                order: {
+                    customerName,
+                    customerMobile,
+                    placedBy: order.placedBy,
+                    createdAt: order.createdAt,
+                    items,
+                    cancelledBy: CancelledByName,
+                    cancelReason: order.cancelReason || 'Not specified',
+                },
+            };
+        });
+
+        const customerSummary = Object.entries(customerOrderCounts).map(([key, count]) => {
+            const [name, mobile] = key.split('_');
+            return { customerName: name, customerMobile: mobile, count };
+        });
+
+        return res.status(status.OK).json({
+            message: 'Cancelled orders fetched successfully',
+            totalCancelled: results.length,
+            data: results,
+            cancelledCountByCustomer: customerSummary,
+        });
+    } catch (error) {
+        return res.status(status.InternalServerError).json({
+            message: 'Failed to fetch cancelled orders',
+            error: error.message,
+        });
     }
 };
