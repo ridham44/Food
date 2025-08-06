@@ -689,3 +689,170 @@ exports.getCancelledOrders = async (req, res) => {
         });
     }
 };
+
+exports.getCustomerPreviousOrders = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const tenantId = req.params.tenantId;
+
+        const orders = await db.OrderList.findAll({
+            where: {
+                customerId: userId,
+                tenantId: tenantId,
+            },
+            order: [['createdAt', 'DESC']],
+            include: [
+                {
+                    model: db.OrderItem,
+                    as: 'OrderItem',
+                    include: [
+                        {
+                            model: db.Menu,
+                            as: 'Menu',
+                            attributes: ['name', 'price'],
+                            disableTenantCheck: true,
+                        },
+                        {
+                            model: db.ComboGroup,
+                            as: 'ComboGroup',
+                            attributes: ['name', 'price'],
+                            disableTenantCheck: true,
+                        },
+                    ],
+                },
+            ],
+        });
+
+        const result = orders.map((order) => {
+            const items = order.OrderItem.map((item) => {
+                if (item.comboId && item.ComboGroup && item.ComboGroup.name) {
+                    return {
+                        type: 'combo',
+                        comboName: item.ComboGroup.name,
+                        comboPrice: parseFloat(item.ComboGroup.price),
+                        quantity: item.quantity,
+                        specialInstruction: item.specialInstruction,
+                        totalPrice: parseFloat(item.totalPrice),
+                    };
+                } else if (item.menuId && item.Menu && item.Menu.name) {
+                    return {
+                        type: 'menu',
+                        menuName: item.Menu.name,
+                        menuPrice: parseFloat(item.Menu.price),
+                        quantity: item.quantity,
+                        specialInstruction: item.specialInstruction,
+                        totalPrice: parseFloat(item.totalPrice),
+                    };
+                } else {
+                    return {
+                        type: 'unavailable',
+                        quantity: item.quantity,
+                        note: 'Item no longer available',
+                        totalPrice: parseFloat(item.totalPrice),
+                    };
+                }
+            });
+
+            return {
+                orderListId: order.id,
+                createdAt: order.created_at,
+                totalItems: items.length,
+                totalPrice: parseFloat(order.totalPrice),
+                status: order.status,
+                items,
+            };
+        });
+
+        return res.status(status.OK).json(result);
+    } catch (error) {
+        console.error('Error in getCustomerPreviousOrders:', error.message);
+        return res.status(status.InternalServerError).json({ message: 'Something went wrong' });
+    }
+};
+
+exports.getBreakdown = async (req, res) => {
+    try {
+        const tenantId = req.user.tenantId;
+        const { startDate, endDate } = req.body;
+
+        const start = startDate ? new Date(...startDate.split('-').map((val, idx) => (idx === 1 ? Number(val) - 1 : Number(val)))) : null;
+
+        let end = null;
+
+        if (endDate) {
+            const parts = endDate.split('/');
+            if (parts.length === 3) {
+                end = new Date(`${parts[0]}-${parts[1]}-${parts[2]}T23:59:59`);
+            } else if (parts.length === 2) {
+                const year = parseInt(parts[0]);
+                const month = parseInt(parts[1]);
+                end = new Date(year, month, 0, 23, 59, 59);
+            } else if (parts.length === 1) {
+                end = new Date(`${parts[0]}-12-31T23:59:59`);
+            }
+        }
+
+        const revenueWhereClause = {};
+
+        if (start && end) {
+            revenueWhereClause['$OrderBill.OrderList.createdAt$'] = {
+                [Op.between]: [start, end],
+            };
+        } else if (start) {
+            revenueWhereClause['$OrderBill.OrderList.createdAt$'] = {
+                [Op.gte]: start,
+            };
+        } else if (end) {
+            revenueWhereClause['$OrderBill.OrderList.createdAt$'] = {
+                [Op.lte]: end,
+            };
+        }
+
+        revenueWhereClause['$OrderBill.OrderList.tenantId$'] = tenantId;
+
+        const revenueData = await db.OrderPayment.findAll({
+            include: {
+                model: db.OrderBill,
+                as: 'OrderBill',
+                attributes: [],
+                include: {
+                    model: db.OrderList,
+                    as: 'OrderList',
+                    attributes: [],
+                },
+            },
+            where: revenueWhereClause,
+            raw: true,
+        });
+
+        const totalRevenue = revenueData.reduce((sum, p) => sum + parseFloat(p.amountPaid || 0), 0);
+
+        const expenseWhereClause = { tenantId };
+
+        if (start && end) {
+            expenseWhereClause.createdAt = { [Op.between]: [start, end] };
+        } else if (start) {
+            expenseWhereClause.createdAt = { [Op.gte]: start };
+        } else if (end) {
+            expenseWhereClause.createdAt = { [Op.lte]: end };
+        }
+
+        const expenseData = await db.ExpenseEntry.findAll({
+            where: expenseWhereClause,
+            raw: true,
+        });
+
+        const totalExpense = expenseData.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+
+        const profit = totalRevenue - totalExpense;
+
+        return res.status(status.OK).json({
+            totalRevenue,
+            totalExpense,
+            profit,
+        });
+    } catch (err) {
+        console.error(err.message);
+        return res.status(status.InternalServerError).json({ message: 'Failed to get breakdown' });
+    }
+};

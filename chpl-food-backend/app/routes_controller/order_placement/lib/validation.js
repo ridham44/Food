@@ -52,3 +52,11 @@ exports.approvedorder = () => {
             .withMessage('status must be either 2 (approved) or 3 (rejected)'),
     ];
 };
+
+exports.validatereorder = () => {
+    return [
+        body('orderListId').notEmpty().withMessage('previousOrderId is required'),
+        body('tenantId').notEmpty().withMessage('tenantId is required'),
+        body('isParcel').optional().isIn(['0', '1']).withMessage('isParcel must be either "0" or "1"'),
+    ];
+};

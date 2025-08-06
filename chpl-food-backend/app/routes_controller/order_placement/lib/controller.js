@@ -467,3 +467,104 @@ exports.addOrderItem = async (req, res) => {
         return common.throwException(error, 'Add Menu Item to Order', req, res);
     }
 };
+
+exports.reorderFromPreviousOrder = async (req, res) => {
+    const transaction = await db.sequelize.transaction();
+    try {
+        const customerId = req.user.id;
+        const { tenantId, orderListId, isParcel } = req.body;
+
+        if (!tenantId || !orderListId) {
+            return res.status(status.BadRequest).json({ message: 'tenantId and orderListId are required' });
+        }
+
+        const previousOrder = await db.OrderList.findOne({
+            where: {
+                id: orderListId,
+                customerId,
+                tenantId,
+            },
+            include: [
+                {
+                    model: db.OrderItem,
+                    as: 'OrderItem',
+                },
+            ],
+        });
+
+        if (!previousOrder || !previousOrder.OrderItem || previousOrder.OrderItem.length === 0) {
+            return res.status(status.NotFound).json({ message: 'Previous order not found or has no items' });
+        }
+
+        const menuIds = previousOrder.OrderItem.filter((i) => i.menuId).map((i) => i.menuId);
+        const comboIds = previousOrder.OrderItem.filter((i) => i.comboId).map((i) => i.comboId);
+
+        const menus = await db.Menu.findAll({
+            where: { id: menuIds, isAvailable: '1' },
+            raw: true,
+            disableTenantCheck: true,
+        });
+
+        const combos = await db.ComboGroup.findAll({
+            where: { id: comboIds },
+            raw: true,
+            disableTenantCheck: true,
+        });
+
+        if (menus.length !== menuIds.length || combos.length !== comboIds.length) {
+            return res.status(status.BadRequest).json({ message: 'One or more items are no longer available' });
+        }
+
+        const newOrderListId = uuidv4();
+        const now = new Date();
+
+        const newOrderList = await db.OrderList.create(
+            {
+                id: newOrderListId,
+                customerId,
+                tenantId,
+                placedBy: '1',
+                status: '1',
+                isParcel: isParcel === '1' ? '1' : '0',
+                createdAt: now,
+            },
+            { transaction }
+        );
+
+        const newOrderItems = previousOrder.OrderItem.map((item) => {
+            const menu = item.menuId ? menus.find((m) => m.id === item.menuId) : null;
+            const combo = item.comboId ? combos.find((c) => c.id === item.comboId) : null;
+
+            if (!menu && !combo) return null;
+
+            const price = menu ? parseFloat(menu.price) : parseFloat(combo.price);
+            const totalPrice = price * item.quantity;
+
+            return {
+                id: uuidv4(),
+                orderListId: newOrderListId,
+                menuId: item.menuId || null,
+                comboId: item.comboId || null,
+                quantity: item.quantity,
+                specialInstruction: item.specialInstruction || null,
+                totalPrice,
+                createdAt: now,
+            };
+        }).filter(Boolean);
+
+        await db.OrderItem.bulkCreate(newOrderItems, { transaction });
+        await transaction.commit();
+
+        await logActivity(req, 'create', newOrderList);
+
+        return res.status(status.OK).json({
+            message: 'Order placed successfully from previous order',
+            orderListId: newOrderListId,
+            items: newOrderItems,
+        });
+    } catch (error) {
+        await transaction.rollback();
+        console.error('Reorder Error:', error);
+        return res.status(status.InternalServerError).json({ message: error.message });
+    }
+};
