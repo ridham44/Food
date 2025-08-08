@@ -305,6 +305,7 @@ exports.updateStatus = async (req, res) => {
         }
 
         tenant.status = newStatus;
+        tenant.updatedAt = new Date();
         tenant.updatedBy = req.user.id;
 
         await tenant.save({ transaction });
