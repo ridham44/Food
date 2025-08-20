@@ -25,5 +25,6 @@ router.use('/', require('./bill_pdf'));
 router.use('/', require('./groq_chat'));
 router.use('/', require('./tax_config'));
 router.use('/', require('./vendor'));
+router.use('/', require('./Ai_Ml'));
 
 module.exports = router;

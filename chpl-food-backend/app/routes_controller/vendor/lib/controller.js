@@ -141,7 +141,7 @@ exports.getVendorById = async (req, res) => {
 
         return res.status(status.OK).json({ message: 'Vendor fetched successfully', data: vendor });
     } catch (err) {
-        console.error('Get Vendor by ID Error:', err);
+        console.error('Get Vendor by ID Error:', err.message);
         return res.status(status.InternalServerError).json({ message: 'Something went wrong', error: err.message });
     }
 };
@@ -197,7 +197,7 @@ exports.updateVendorStatus = async (req, res) => {
 
         res.status(status.OK).json({ message: 'Status updated successfully', data: item });
     } catch (err) {
-        console.error(err);
+        console.error(err.message);
         res.status(status.InternalServerError).json({ message: common.somethingWentWrong });
     }
 };
@@ -233,7 +233,7 @@ exports.createVendorItem = async (req, res) => {
         return res.status(status.OK).json({ message: 'Vendor item created successfully', data: item });
     } catch (err) {
         await transaction.rollback();
-        console.error('Create Vendor Item Error:', err);
+        console.error('Create Vendor Item Error:', err.message);
         return res.status(status.InternalServerError).json({ message: 'Something went wrong', error: err.message });
     }
 };
@@ -249,7 +249,7 @@ exports.getVendorItemById = async (req, res) => {
 
         return res.status(status.OK).json({ data: item });
     } catch (err) {
-        console.error('Get Vendor Item Error:', err);
+        console.error('Get Vendor Item Error:', err.message);
         return res.status(status.InternalServerError).json({ message: 'Something went wrong', error: err.message });
     }
 };
@@ -307,7 +307,7 @@ exports.deleteVendorItem = async (req, res) => {
 
         return res.status(status.OK).json({ message: 'Vendor item deleted successfully' });
     } catch (err) {
-        console.error('Delete Vendor Item Error:', err);
+        console.error('Delete Vendor Item Error:', err.message);
         return res.status(status.InternalServerError).json({ message: 'Something went wrong', error: err.message });
     }
 };
@@ -328,7 +328,7 @@ exports.getAllVendorItemsForVendor = async (req, res) => {
 
         return res.status(status.OK).json({ data: items });
     } catch (err) {
-        console.error('Get All Vendor Items Error:', err);
+        console.error('Get All Vendor Items Error:', err.message);
         return res.status(status.InternalServerError).json({ message: 'Something went wrong', error: err.message });
     }
 };
@@ -383,7 +383,7 @@ exports.vendorSummaryReport = async (req, res) => {
 
         return res.status(status.OK).json({ message: 'Vendor summary report generated', data: report });
     } catch (err) {
-        console.error('Vendor Summary Report Error:', err);
+        console.error('Vendor Summary Report Error:', err.message);
         return res.status(status.InternalServerError).json({
             message: 'Something went wrong',
             error: err.message,

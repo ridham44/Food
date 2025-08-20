@@ -83,6 +83,7 @@ exports.redeemPointsOnly = async (req, res) => {
         const { billId, points } = req.body;
 
         if (!billId || !points || isNaN(points)) {
+            await transaction.rollback();
             return res.status(status.BadRequest).json({ message: 'billId and valid points are required' });
         }
 

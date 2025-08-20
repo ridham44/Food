@@ -15,7 +15,7 @@ router.post('/combo/group', auth, validateCreateComboGroup(), expressValidate, c
 // Update an existing combo group
 router.put('/combo/group/:id', auth, validateUpdateComboGroup(), expressValidate, controller.updateComboGroup);
 
-// update combo group item 
+// update combo group item
 router.put('/combo/group-item/:id', auth, validateUpdateComboGroupItem(), expressValidate, controller.updateComboGroupItem);
 
 // add combo group item

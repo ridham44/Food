@@ -111,10 +111,7 @@ exports.create = async (req, res) => {
 exports.update = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     const { id } = req.params;
-    const {
-        firstName, lastName, email, phoneNo, gender,
-        birthDate, address, countryId, stateId, cityId, countryCode
-    } = req.body;
+    const { firstName, lastName, email, phoneNo, gender, birthDate, address, countryId, stateId, cityId, countryCode } = req.body;
 
     try {
         const customer = await db.Customer.findOne({ where: { id }, transaction });
@@ -135,7 +132,6 @@ exports.update = async (req, res) => {
             return res.status(status.Conflict).json({ message: 'Customer with this phone number already exists!' });
         }
 
-        
         const updateData = {
             firstName,
             lastName,
@@ -150,7 +146,7 @@ exports.update = async (req, res) => {
             countryCode,
         };
 
-        Object.keys(updateData).forEach(key => {
+        Object.keys(updateData).forEach((key) => {
             if (updateData[key] === undefined) delete updateData[key];
         });
 
@@ -165,7 +161,6 @@ exports.update = async (req, res) => {
         return common.throwException(error, 'Update Customer API', req, res);
     }
 };
-
 
 exports.delete = async (req, res) => {
     const transaction = await db.sequelize.transaction();
@@ -227,7 +222,7 @@ exports.login = async (req, res) => {
             return res.status(status.Unauthorized).json({ message: 'Invalid email or mobile number.' });
         }
 
-        const passwordMatch = await bcrypt.compareSync(password, user.password);
+        const passwordMatch = await bcrypt.compare(password, user.password);
         if (!passwordMatch) {
             return res.status(status.Unauthorized).json({ message: 'Invalid password.' });
         }
@@ -268,7 +263,7 @@ exports.login = async (req, res) => {
     } catch (error) {
         console.error('Login error:', error);
         await t.rollback();
-        return res.status(status.ServerError || 500).json({
+        return res.status(status.InternalServerError).json({
             message: 'Login failed',
             error: error.message,
         });

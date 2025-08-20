@@ -1,6 +1,7 @@
 const { status, common, dbCommon } = require('../../../../utils');
 const db = require('../../../db/models');
 const logActivity = require('../../../../utils/lib/auditLog/activityLogger');
+const { Op, fn, col, literal } = require('sequelize');
 
 exports.create = async (req, res) => {
     const transaction = await db.sequelize.transaction();
@@ -126,5 +127,173 @@ exports.updateStatus = async (req, res) => {
     } catch (error) {
         await transaction.rollback();
         return common.throwException(error, 'Update TaxConfig Status API', req, res);
+    }
+};
+
+exports.getAllTenantTaxReport = async (req, res) => {
+    try {
+        const user = req.user;
+        const userRoleId = user.roleId;
+
+        const role = await db.Role.findOne({
+            where: { id: userRoleId },
+            attributes: ['isAdmin'],
+            raw: true,
+        });
+
+        if (!role || role.isAdmin !== 1) {
+            return res.status(status.Forbidden).json({
+                status: false,
+                message: 'Admin/Superadmin access required to view all tenant tax reports.',
+            });
+        }
+
+        const configs = await db.TaxConfig.findAll({
+            include: [
+                {
+                    model: db.Tenant,
+                    attributes: ['companyName'],
+                    as: 'Tenant',
+                    disabletenantCondition: true,
+                },
+            ],
+            order: [['createdAt', 'DESC']],
+        });
+
+        const result = configs.map((cfg) => ({
+            tenantName: cfg.Tenant?.companyName || 'N/A',
+            gstPercent: cfg.gstPercent,
+            packingFee: cfg.packingFee,
+            isPackingFeePercent: cfg.isPackingFeePercent,
+            status: cfg.status === 1 ? 'Active' : 'Inactive',
+        }));
+
+        return res.status(status.OK).json({
+            status: true,
+            message: 'Current tax configurations',
+            data: result,
+        });
+    } catch (error) {
+        console.error('Error in getAllTenantTaxReport:', error.message);
+        return res.status(status.InternalServerError).json({
+            status: false,
+            message: 'Failed to generate tax policy report',
+        });
+    }
+};
+
+exports.getTenantTaxSummary = async (req, res) => {
+    try {
+        const tenantId = req.user.tenantId;
+        const { fromDate, toDate } = req.body;
+
+        if (!fromDate || !toDate) {
+            return res.status(status.BadRequest).json({
+                status: false,
+                message: 'fromDate and toDate are required',
+            });
+        }
+
+        const taxSummary = await db.OrderBill.findOne({
+            attributes: [
+                [fn('COUNT', col('OrderBill.id')), 'totalOrders'],
+                [fn('SUM', literal('(OrderBill.totalAmount * OrderBill.gstPercent / 100)')), 'totalGstCollected'],
+                [fn('SUM', col('OrderBill.packingFee')), 'totalPackingFeeCollected'],
+            ],
+            include: [
+                {
+                    model: db.OrderList,
+                    as: 'OrderList',
+                    attributes: [],
+                    where: {
+                        tenantId,
+                    },
+                },
+            ],
+            where: {
+                createdAt: {
+                    [Op.between]: [new Date(fromDate), new Date(toDate)],
+                },
+            },
+            raw: true,
+        });
+
+        const tenant = await db.Tenant.findByPk(tenantId);
+
+        return res.status(status.OK).json({
+            status: true,
+            message: 'Tax summary report generated successfully',
+            data: {
+                tenant: tenant?.companyName || 'N/A',
+                fromDate,
+                toDate,
+                totalOrders: Number(taxSummary?.totalOrders || 0),
+                totalGstCollected: Number(taxSummary?.totalGstCollected || 0),
+                totalPackingFeeCollected: Number(taxSummary?.totalPackingFeeCollected || 0),
+            },
+        });
+    } catch (error) {
+        console.error('Error in getTenantTaxSummary:', error.message);
+        return res.status(status.InternalServerError).json({
+            status: false,
+            message: 'Failed to generate tax summary report',
+        });
+    }
+};
+
+exports.getPackingFeeSummary = async (req, res) => {
+    try {
+        const tenantId = req.user.tenantId;
+        const { fromDate, toDate } = req.body;
+
+        if (!fromDate || !toDate) {
+            return res.status(status.BadRequest).json({
+                status: false,
+                message: 'fromDate and toDate are required',
+            });
+        }
+
+        const result = await db.OrderBill.findOne({
+            attributes: [
+                [fn('COUNT', col('OrderBill.id')), 'totalOrders'],
+                [fn('SUM', col('OrderBill.packingFee')), 'totalPackingFeeCollected'],
+            ],
+            include: [
+                {
+                    model: db.OrderList,
+                    as: 'OrderList',
+                    attributes: [],
+                    where: {
+                        tenantId,
+                    },
+                },
+            ],
+            where: {
+                createdAt: {
+                    [Op.between]: [new Date(fromDate), new Date(toDate)],
+                },
+            },
+            raw: true,
+        });
+
+        const tenant = await db.Tenant.findByPk(tenantId);
+
+        return res.status(status.OK).json({
+            status: true,
+            message: 'Packing fee summary generated successfully',
+            data: {
+                tenant: tenant?.companyName || 'N/A',
+                fromDate,
+                toDate,
+                totalOrders: Number(result?.totalOrders || 0),
+                totalPackingFeeCollected: Number(result?.totalPackingFeeCollected || 0),
+            },
+        });
+    } catch (error) {
+        console.error('Error in getPackingFeeSummary:', error.message);
+        return res.status(status.InternalServerError).json({
+            status: false,
+            message: 'Failed to generate packing fee summary report',
+        });
     }
 };

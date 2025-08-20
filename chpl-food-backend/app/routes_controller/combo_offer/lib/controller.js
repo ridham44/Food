@@ -203,7 +203,7 @@ exports.deleteCombo = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const combo = await db.ComboGroup.findByPk(id);
+        const combo = await db.ComboGroup.findByPk(id, { transaction });
         if (!combo) {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'Combo not found' });
@@ -215,10 +215,9 @@ exports.deleteCombo = async (req, res) => {
         });
 
         await combo.destroy({ transaction });
-
+        await transaction.commit();
         await logActivity(req, 'delete', combo);
 
-        await transaction.commit();
         return res.status(status.OK).json({ message: 'Combo deleted successfully' });
     } catch (error) {
         await transaction.rollback();

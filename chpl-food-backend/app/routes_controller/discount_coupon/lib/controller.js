@@ -81,7 +81,7 @@ exports.redeemCoupon = async (req, res) => {
     try {
         const { billId, couponCode, points } = req.body;
 
-        const bill = await db.OrderBill.findOne({
+        const bill = await db.OrderBill.findOne({ 
             where: { id: billId, status: '0' },
             transaction,
         });

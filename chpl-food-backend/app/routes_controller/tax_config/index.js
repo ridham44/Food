@@ -22,4 +22,13 @@ router.get('/tax-config/:id', auth, controller.findById);
 // Update tax config status
 router.put('/tax-config/status/:id', auth, controller.updateStatus);
 
+// Get tax policy report of all tenants (Admin/Superadmin only)
+router.get('/tax-config/report-all', auth, controller.getAllTenantTaxReport);
+
+// Get tax summary for a specific tenant
+router.post('/tax-config/report-summary', auth, controller.getTenantTaxSummary);
+
+//Get Packing fees
+router.post('/tax-config/packing-fees', auth, controller.getPackingFeeSummary);
+
 module.exports = router;
