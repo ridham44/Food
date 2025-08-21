@@ -20,7 +20,7 @@ module.exports = {
             },
             logoutAt: {
                 type: Sequelize.DATE,
-                allowNull: false,
+                allowNull: true,
                 defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
             },
             sessionDuration: {
