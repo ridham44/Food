@@ -146,6 +146,13 @@ exports.update = async (req, res) => {
             status: body.status,
             emailVerified: body.emailVerified,
             emailVerifiedAt: body.emailVerifiedAt,
+            isOpen: body.isOpen !== undefined ? body.isOpen : tenant.isOpen,
+            openingTime: body.openingTime !== undefined ? body.openingTime : tenant.openingTime,
+            closingTime: body.closingTime !== undefined ? body.closingTime : tenant.closingTime,
+            acceptOrders: body.acceptOrders !== undefined ? body.acceptOrders : tenant.acceptOrders,
+            autoAcceptOrders: body.autoAcceptOrders !== undefined ? body.autoAcceptOrders : tenant.autoAcceptOrders,
+            preparationTimeMinutes:
+                body.preparationTimeMinutes !== undefined ? body.preparationTimeMinutes : tenant.preparationTimeMinutes,
             updatedBy: user.id,
         });
 
@@ -205,6 +212,20 @@ exports.findById = async (req, res) => {
         return res.status(status.OK).json({ data: tenant });
     } catch (error) {
         return common.throwException(error, 'Find Tenant By ID', req, res);
+    }
+};
+
+exports.getCurrent = async (req, res) => {
+    try {
+        if (!req.user.tenantId) {
+            return res.status(status.Forbidden).json({ message: 'Tenant access only' });
+        }
+        const tenant = await db.Tenant.findByPk(req.user.tenantId);
+        if (!tenant) return res.status(status.NotFound).json({ message: 'Tenant not found' });
+
+        return res.status(status.OK).json({ data: tenant });
+    } catch (error) {
+        return common.throwException(error, 'Get Current Tenant API', req, res);
     }
 };
 

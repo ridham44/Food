@@ -26,5 +26,6 @@ router.use('/', require('./groq_chat'));
 router.use('/', require('./tax_config'));
 router.use('/', require('./vendor'));
 router.use('/', require('./Ai_Ml'));
+router.use('/', require('./inventory'));
 
 module.exports = router;

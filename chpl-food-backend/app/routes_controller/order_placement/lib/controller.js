@@ -1,14 +1,17 @@
 const db = require('../../../db/models');
 const { v4: uuidv4 } = require('uuid');
+const { Op } = require('sequelize');
 const { status, common } = require('../../../../utils');
 const { assignPointsOnOrder } = require('../../Customer_points/lib/controller');
 const logActivity = require('../../../../utils/lib/auditLog/activityLogger');
+
+const KITCHEN_SEQUENCE = ['new', 'preparing', 'ready', 'completed'];
 
 exports.orderCustomer = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
         const customerId = req.user.id;
-        const { tenantId, items, isParcel } = req.body;
+        const { tenantId, items, isParcel, orderType, tableNumber } = req.body;
 
         if (!Array.isArray(items) || items.length === 0 || !tenantId) {
             return res.status(status.BadRequest).json({ message: 'tenantId and items are required' });
@@ -42,6 +45,8 @@ exports.orderCustomer = async (req, res) => {
                 placedBy: '1',
                 status: '1',
                 isParcel: isParcel === '1' ? '1' : '0',
+                orderType: orderType || (isParcel === '1' ? 'takeaway' : 'dine_in'),
+                tableNumber: tableNumber || null,
                 createdAt: new Date(),
             },
             { transaction }
@@ -213,7 +218,7 @@ exports.tenantPlaceOrder = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
         const tenantId = req.user.tenantId;
-        const { mobile, name, gender, items, isParcel } = req.body;
+        const { mobile, name, gender, items, isParcel, orderType, tableNumber } = req.body;
 
         if (!mobile || !Array.isArray(items) || items.length === 0) {
             return res.status(status.BadRequest).json({ message: 'Mobile and at least one item are required' });
@@ -275,6 +280,8 @@ exports.tenantPlaceOrder = async (req, res) => {
                 placedBy: '2',
                 status: '2',
                 isParcel: isParcel === '1' ? '1' : '0',
+                orderType: orderType || (isParcel === '1' ? 'takeaway' : 'dine_in'),
+                tableNumber: tableNumber || null,
                 createdAt: new Date(),
             },
             { transaction }
@@ -566,5 +573,144 @@ exports.reorderFromPreviousOrder = async (req, res) => {
         await transaction.rollback();
         console.error('Reorder Error:', error);
         return res.status(status.InternalServerError).json({ message: error.message });
+    }
+};
+
+exports.updateKitchenStatus = async (req, res) => {
+    const transaction = await db.sequelize.transaction();
+    try {
+        const { id } = req.params;
+        const { kitchenStatus, cancelReason } = req.body;
+        const tenantId = req.user.tenantId;
+
+        const order = await db.OrderList.findOne({ where: { id, tenantId }, transaction });
+        if (!order) {
+            await transaction.rollback();
+            return res.status(status.NotFound).json({ message: 'Order not found' });
+        }
+
+        if (order.status !== '2') {
+            await transaction.rollback();
+            return res.status(status.BadRequest).json({ message: 'Order must be approved before its kitchen status can be updated' });
+        }
+
+        if (kitchenStatus === 'cancelled') {
+            if (!cancelReason || !cancelReason.trim()) {
+                await transaction.rollback();
+                return res.status(status.BadRequest).json({ message: 'Cancel reason is required to cancel an order' });
+            }
+            order.status = '3';
+            order.cancelReason = cancelReason;
+            order.cancelledBy = '1';
+        } else {
+            if (!KITCHEN_SEQUENCE.includes(kitchenStatus)) {
+                await transaction.rollback();
+                return res.status(status.BadRequest).json({ message: 'Invalid kitchenStatus value' });
+            }
+            const currentIndex = KITCHEN_SEQUENCE.indexOf(order.kitchenStatus);
+            const nextIndex = KITCHEN_SEQUENCE.indexOf(kitchenStatus);
+            if (nextIndex < currentIndex) {
+                await transaction.rollback();
+                return res.status(status.BadRequest).json({ message: 'Cannot move kitchen status backward' });
+            }
+            order.kitchenStatus = kitchenStatus;
+        }
+
+        order.updatedAt = new Date();
+        await order.save({ transaction });
+        await transaction.commit();
+        await logActivity(req, 'update', order);
+
+        return res.status(status.OK).json({ message: 'Order status updated successfully', data: order });
+    } catch (error) {
+        await transaction.rollback();
+        return common.throwException(error, 'Update Kitchen Status API', req, res);
+    }
+};
+
+exports.listOrders = async (req, res) => {
+    try {
+        const tenantId = req.user.tenantId;
+        const { status: orderStatus, kitchenStatus, orderType, search, startDate, endDate, page = 1, pageSize = 20 } = req.query;
+
+        const where = { tenantId };
+        if (orderStatus) where.status = orderStatus;
+        if (kitchenStatus) where.kitchenStatus = kitchenStatus;
+        if (orderType) where.orderType = orderType;
+
+        if (startDate && endDate) {
+            where.createdAt = { [Op.between]: [new Date(startDate + ' 00:00:00'), new Date(endDate + ' 23:59:59')] };
+        } else if (startDate) {
+            where.createdAt = { [Op.gte]: new Date(startDate + ' 00:00:00') };
+        } else if (endDate) {
+            where.createdAt = { [Op.lte]: new Date(endDate + ' 23:59:59') };
+        }
+
+        const customerWhere = {};
+        if (search) {
+            customerWhere[Op.or] = [
+                { firstName: { [Op.like]: `%${search}%` } },
+                { lastName: { [Op.like]: `%${search}%` } },
+                { phoneNo: { [Op.like]: `%${search}%` } },
+            ];
+        }
+
+        const limit = parseInt(pageSize) || 20;
+        const offset = (parseInt(page) - 1) * limit;
+
+        const { rows, count } = await db.OrderList.findAndCountAll({
+            where,
+            include: [
+                {
+                    model: db.Customer,
+                    as: 'Customer',
+                    attributes: ['id', 'firstName', 'lastName', 'phoneNo'],
+                    where: Object.keys(customerWhere).length ? customerWhere : undefined,
+                    required: !!search,
+                    disableTenantCheck: true,
+                },
+                {
+                    model: db.OrderItem,
+                    as: 'OrderItem',
+                    attributes: ['id', 'quantity', 'totalPrice'],
+                    disableTenantCheck: true,
+                },
+                {
+                    model: db.OrderBill,
+                    as: 'OrderBill',
+                    attributes: ['id', 'finalAmount', 'status'],
+                    required: false,
+                    disableTenantCheck: true,
+                },
+            ],
+            distinct: true,
+            limit,
+            offset,
+            order: [['createdAt', 'DESC']],
+        });
+
+        const data = rows.map((row) => {
+            const plain = row.get({ plain: true });
+            const itemCount = (plain.OrderItem || []).reduce((sum, i) => sum + i.quantity, 0);
+            const bill = plain.OrderBill && plain.OrderBill[0] ? plain.OrderBill[0] : null;
+            return {
+                id: plain.id,
+                customerName: plain.Customer ? `${plain.Customer.firstName} ${plain.Customer.lastName}`.trim() : null,
+                customerMobile: plain.Customer ? plain.Customer.phoneNo : null,
+                itemCount,
+                total: bill ? parseFloat(bill.finalAmount) : null,
+                paymentStatus: bill ? bill.status : null,
+                orderType: plain.orderType,
+                tableNumber: plain.tableNumber,
+                isParcel: plain.isParcel,
+                status: plain.status,
+                kitchenStatus: plain.kitchenStatus,
+                createdAt: plain.createdAt,
+            };
+        });
+
+        return res.status(status.OK).json({ data: { rows: data, count } });
+    } catch (error) {
+        return common.throwException(error, 'List Orders API', req, res);
     }
 };

@@ -17,4 +17,12 @@ router.post('/order/item', auth, controller.addOrderItem);
 
 router.post('/order/prev', auth, validatereorder(), expressValidate, controller.reorderFromPreviousOrder);
 
+const staffAuth = require('../../middlewares/middleware');
+
+// Kitchen prep workflow: new -> preparing -> ready -> completed, or 'cancelled' (requires cancelReason)
+router.patch('/order/kitchen-status/:id', staffAuth, controller.updateKitchenStatus);
+
+// Generic paginated order list for the tenant dashboard (list + kanban views)
+router.get('/order/list', staffAuth, controller.listOrders);
+
 module.exports = router;

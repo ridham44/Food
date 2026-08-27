@@ -172,6 +172,37 @@ module.exports = (sequelize, Sequelize) => {
                 type: Sequelize.TEXT,
                 allowNull: true,
             },
+            isOpen: {
+                type: Sequelize.BOOLEAN,
+                allowNull: false,
+                defaultValue: true,
+                comment: 'Restaurant operational open/closed toggle',
+            },
+            openingTime: {
+                type: Sequelize.STRING(5),
+                allowNull: true,
+                comment: 'HH:mm, 24h',
+            },
+            closingTime: {
+                type: Sequelize.STRING(5),
+                allowNull: true,
+                comment: 'HH:mm, 24h',
+            },
+            acceptOrders: {
+                type: Sequelize.BOOLEAN,
+                allowNull: false,
+                defaultValue: true,
+            },
+            autoAcceptOrders: {
+                type: Sequelize.BOOLEAN,
+                allowNull: false,
+                defaultValue: false,
+            },
+            preparationTimeMinutes: {
+                type: Sequelize.INTEGER,
+                allowNull: false,
+                defaultValue: 20,
+            },
         },
         {
             tableName: 'tenant',

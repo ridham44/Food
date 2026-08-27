@@ -856,3 +856,68 @@ exports.getBreakdown = async (req, res) => {
         return res.status(status.InternalServerError).json({ message: 'Failed to get breakdown' });
     }
 };
+
+exports.dashboardSummary = async (req, res) => {
+    try {
+        const tenantId = req.user.tenantId;
+        if (!tenantId) {
+            return res.status(status.Forbidden).json({ message: 'Tenant access only' });
+        }
+
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+        const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+        const startOfYesterday = new Date(startOfToday);
+        startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+        const endOfYesterday = new Date(endOfToday);
+        endOfYesterday.setDate(endOfYesterday.getDate() - 1);
+
+        const pctChange = (curr, prev) => {
+            if (!prev) return curr > 0 ? 100 : 0;
+            return parseFloat((((curr - prev) / prev) * 100).toFixed(1));
+        };
+
+        const revenueFor = async (start, end) => {
+            const sum = await db.OrderBill.sum('finalAmount', {
+                include: [{ model: db.OrderList, as: 'OrderList', attributes: [], where: { tenantId } }],
+                where: { createdAt: { [Op.between]: [start, end] } },
+            });
+            return parseFloat(sum || 0);
+        };
+
+        const [todayOrders, yesterdayOrders, todayRevenue, yesterdayRevenue, activeOrders, customersToday, customersYesterday] =
+            await Promise.all([
+                db.OrderList.count({ where: { tenantId, createdAt: { [Op.between]: [startOfToday, endOfToday] } } }),
+                db.OrderList.count({ where: { tenantId, createdAt: { [Op.between]: [startOfYesterday, endOfYesterday] } } }),
+                revenueFor(startOfToday, endOfToday),
+                revenueFor(startOfYesterday, endOfYesterday),
+                db.OrderList.count({
+                    where: { tenantId, status: '2', kitchenStatus: { [Op.in]: ['new', 'preparing', 'ready'] } },
+                }),
+                db.OrderList.count({
+                    where: { tenantId, createdAt: { [Op.between]: [startOfToday, endOfToday] } },
+                    distinct: true,
+                    col: 'customerId',
+                }),
+                db.OrderList.count({
+                    where: { tenantId, createdAt: { [Op.between]: [startOfYesterday, endOfYesterday] } },
+                    distinct: true,
+                    col: 'customerId',
+                }),
+            ]);
+
+        return res.status(status.OK).json({
+            data: {
+                todayOrders,
+                todayOrdersChangePct: pctChange(todayOrders, yesterdayOrders),
+                todayRevenue,
+                todayRevenueChangePct: pctChange(todayRevenue, yesterdayRevenue),
+                activeOrders,
+                customersCount: customersToday,
+                customersChangePct: pctChange(customersToday, customersYesterday),
+            },
+        });
+    } catch (error) {
+        return common.throwException(error, 'Dashboard Summary API', req, res);
+    }
+};

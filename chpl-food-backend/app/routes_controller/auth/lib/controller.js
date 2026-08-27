@@ -257,7 +257,8 @@ exports.login = async (req, res) => {
                 email: user.email,
                 mobile: user.mobile,
                 role: user.Role ? user.Role.name : null,
-                tenant: user.Tenant ? user.Tenant.name : null,
+                tenant: user.Tenant ? user.Tenant.companyName : null,
+                tenantId: user.Tenant ? user.Tenant.id : null,
             },
         });
     } catch (error) {
@@ -313,6 +314,171 @@ exports.changePassword = async (req, res) => {
     } catch (err) {
         await transaction.rollback();
         return common.throwException(err, 'Change Password API', req, res);
+    }
+};
+
+// Customer has no tenantId column — a tenant's customer list can only be
+// derived via the orders they've placed with this tenant. Aggregated per
+// customer from OrderList/OrderBill, scoped to req.user.tenantId.
+exports.customerList = async (req, res) => {
+    try {
+        const tenantId = req.user.tenantId;
+        if (!tenantId) {
+            return res.status(status.Forbidden).json({ message: 'Tenant access only' });
+        }
+        const { search, page = 1, pageSize = 20 } = req.query;
+
+        const customerWhere = {};
+        if (search) {
+            customerWhere[Op.or] = [
+                { firstName: { [Op.like]: `%${search}%` } },
+                { lastName: { [Op.like]: `%${search}%` } },
+                { phoneNo: { [Op.like]: `%${search}%` } },
+            ];
+        }
+
+        const { fn, col } = db.Sequelize;
+
+        const rows = await db.OrderList.findAll({
+            attributes: [
+                'customerId',
+                [fn('COUNT', col('OrderList.id')), 'totalOrders'],
+                [fn('MAX', col('OrderList.createdAt')), 'lastOrderAt'],
+                [fn('SUM', col('OrderBill.finalAmount')), 'totalSpent'],
+            ],
+            where: { tenantId },
+            include: [
+                {
+                    model: db.Customer,
+                    as: 'Customer',
+                    attributes: ['id', 'firstName', 'lastName', 'phoneNo', 'email'],
+                    where: customerWhere,
+                    disableTenantCheck: true,
+                },
+                {
+                    model: db.OrderBill,
+                    as: 'OrderBill',
+                    attributes: [],
+                    required: false,
+                    disableTenantCheck: true,
+                },
+            ],
+            group: ['customerId', 'Customer.id'],
+            order: [[fn('MAX', col('OrderList.createdAt')), 'DESC']],
+            subQuery: false,
+        });
+
+        const total = rows.length;
+        const limit = parseInt(pageSize) || 20;
+        const offset = (parseInt(page) - 1) * limit;
+        const paged = rows.slice(offset, offset + limit);
+
+        const data = paged.map((r) => {
+            const plain = r.get({ plain: true });
+            return {
+                id: plain.customerId,
+                name: plain.Customer ? `${plain.Customer.firstName} ${plain.Customer.lastName}`.trim() : null,
+                phone: plain.Customer ? plain.Customer.phoneNo : null,
+                email: plain.Customer ? plain.Customer.email : null,
+                totalOrders: parseInt(plain.totalOrders, 10) || 0,
+                totalSpent: parseFloat(plain.totalSpent || 0),
+                lastOrderAt: plain.lastOrderAt,
+            };
+        });
+
+        return res.status(status.OK).json({ data: { rows: data, count: total } });
+    } catch (error) {
+        return common.throwException(error, 'Customer List API', req, res);
+    }
+};
+
+// A customer's profile as seen by THIS tenant only — must never include
+// orders the customer placed with other restaurants.
+exports.customerProfile = async (req, res) => {
+    try {
+        const tenantId = req.user.tenantId;
+        if (!tenantId) {
+            return res.status(status.Forbidden).json({ message: 'Tenant access only' });
+        }
+        const { id } = req.params;
+
+        const customer = await db.Customer.findByPk(id, {
+            attributes: ['id', 'firstName', 'lastName', 'phoneNo', 'email', 'gender', 'address'],
+        });
+        if (!customer) {
+            return res.status(status.NotFound).json({ message: 'Customer not found' });
+        }
+
+        const orders = await db.OrderList.findAll({
+            where: { tenantId, customerId: id },
+            include: [
+                {
+                    model: db.OrderItem,
+                    as: 'OrderItem',
+                    attributes: ['menuId', 'quantity', 'totalPrice'],
+                    disableTenantCheck: true,
+                },
+                {
+                    model: db.OrderBill,
+                    as: 'OrderBill',
+                    attributes: ['finalAmount', 'status'],
+                    required: false,
+                    disableTenantCheck: true,
+                },
+            ],
+            order: [['createdAt', 'DESC']],
+        });
+
+        const itemCounts = {};
+        let totalSpent = 0;
+        const orderHistory = orders.map((o) => {
+            const plain = o.get({ plain: true });
+            const bill = plain.OrderBill && plain.OrderBill[0] ? plain.OrderBill[0] : null;
+            if (bill?.finalAmount) totalSpent += parseFloat(bill.finalAmount);
+            (plain.OrderItem || []).forEach((item) => {
+                if (!item.menuId) return;
+                itemCounts[item.menuId] = (itemCounts[item.menuId] || 0) + item.quantity;
+            });
+            return {
+                id: plain.id,
+                status: plain.status,
+                kitchenStatus: plain.kitchenStatus,
+                total: bill ? parseFloat(bill.finalAmount) : null,
+                createdAt: plain.createdAt,
+            };
+        });
+
+        const topMenuIds = Object.entries(itemCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3)
+            .map(([menuId]) => menuId);
+
+        const favoriteItems = topMenuIds.length
+            ? await db.Menu.findAll({
+                  where: { id: topMenuIds },
+                  attributes: ['id', 'name'],
+                  disableTenantCheck: true,
+              })
+            : [];
+
+        return res.status(status.OK).json({
+            data: {
+                customer: {
+                    id: customer.id,
+                    name: `${customer.firstName} ${customer.lastName}`.trim(),
+                    phone: customer.phoneNo,
+                    email: customer.email,
+                    gender: customer.gender,
+                    address: customer.address,
+                },
+                totalOrders: orders.length,
+                totalSpent,
+                favoriteItems: favoriteItems.map((m) => ({ id: m.id, name: m.name, orderCount: itemCounts[m.id] })),
+                orderHistory,
+            },
+        });
+    } catch (error) {
+        return common.throwException(error, 'Customer Profile API', req, res);
     }
 };
 

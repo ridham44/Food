@@ -22,6 +22,8 @@ router.get('/report/cancel-order', auth, controller.getCancelledOrders);
 router.get('/report/orders/:tenantId', auth, controller.getCustomerPreviousOrders);
 // Get total revenue and expense
 router.post('/report/revenue-vs-expense', auth, controller.getBreakdown);
+// Dashboard home KPI summary (today vs yesterday)
+router.get('/report/dashboard-summary', auth, controller.dashboardSummary);
 
 
 module.exports = router;

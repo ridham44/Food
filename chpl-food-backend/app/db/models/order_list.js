@@ -45,6 +45,21 @@ module.exports = (sequelize, Sequelize) => {
                 defaultValue: '0',
                 comment: '1 = Parcel selected, 0 = No parcel',
             },
+            kitchenStatus: {
+                type: Sequelize.ENUM('new', 'preparing', 'ready', 'completed'),
+                allowNull: false,
+                defaultValue: 'new',
+                comment: 'Kitchen prep stage, only meaningful once status=2 (Approved)',
+            },
+            orderType: {
+                type: Sequelize.ENUM('dine_in', 'takeaway', 'delivery'),
+                allowNull: false,
+                defaultValue: 'dine_in',
+            },
+            tableNumber: {
+                type: Sequelize.STRING(20),
+                allowNull: true,
+            },
             cancelReason: {
                 type: Sequelize.STRING(255),
                 allowNull: true,

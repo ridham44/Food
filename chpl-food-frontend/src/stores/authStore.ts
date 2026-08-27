@@ -7,6 +7,7 @@ export interface AuthUser {
   mobile: string | null;
   role: string | null;
   tenant: string | null;
+  tenantId: string | null;
 }
 
 interface AuthState {

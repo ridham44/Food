@@ -24,4 +24,8 @@ router.put('/customer-update/:id', auth, validateUpdate, controller.update);
 //  Corrected delete customer route
 router.delete('/customer-delete/:id', auth, controller.delete);
 
+// Tenant-scoped customer list + profile (Customer has no tenantId; derived via this tenant's orders)
+router.get('/customer/list', auth, controller.customerList);
+router.get('/customer/:id/profile', auth, controller.customerProfile);
+
 module.exports = router;

@@ -95,6 +95,11 @@ router.delete('/tenant/:id', auth, controller.delete);
 // Get all tenants
 router.get('/tenant', auth, controller.findAll);
 
+// Resolve the authenticated user's own tenant (no id lookup needed)
+// Must be registered before the `/tenant/:id` route below, or "current" would
+// be swallowed as an :id param.
+router.get('/tenant/current', auth, controller.getCurrent);
+
 // Get tenant by ID
 router.get('/tenant/:id', auth, controller.findById);
 
