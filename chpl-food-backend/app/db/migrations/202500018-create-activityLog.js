@@ -22,7 +22,7 @@ module.exports = {
                 type: Sequelize.UUID,
                 allowNull: false,
                 association: {
-                    model: 'Tenant',
+                    model: 'tenant',
                     key: 'id',
                 },
             },
