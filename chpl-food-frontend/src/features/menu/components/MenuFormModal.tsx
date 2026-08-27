@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
@@ -40,6 +40,7 @@ export function MenuFormModal({
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: { errors },
@@ -93,14 +94,20 @@ export function MenuFormModal({
         <Input label="Description" placeholder="Short description" error={errors.description?.message} {...register('description')} />
         <div className="grid grid-cols-2 gap-3">
           <Input label="Price (₹)" placeholder="240" error={errors.price?.message} {...register('price')} />
-          <Select label="Category" {...register('parentId')}>
-            <option value="">No category (top-level)</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </Select>
+          <Controller
+            control={control}
+            name="parentId"
+            render={({ field }) => (
+              <Select label="Category" value={field.value ?? ''} onChange={field.onChange}>
+                <option value="">No category (top-level)</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </Select>
+            )}
+          />
         </div>
         <div className="flex flex-col gap-2">
           <label className="text-sm font-medium text-text-secondary">Image</label>

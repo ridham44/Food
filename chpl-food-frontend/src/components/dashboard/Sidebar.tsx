@@ -18,13 +18,12 @@ export function Sidebar({ collapsed, onToggleCollapsed, onNavigate }: SidebarPro
 
   return (
     <div className="flex h-full flex-col">
-      <div className={cn('flex items-center gap-2.5 px-4 py-4', collapsed && 'justify-center px-2')}>
+      <div className={cn('flex items-center gap-3 px-4 py-3.5', collapsed && 'justify-center px-2')}>
         <SidebarLogo collapsed={collapsed} />
         {!collapsed && (
-          <div className="min-w-0">
-            <p className="truncate text-sm font-bold leading-tight text-text-primary">OrbitFood</p>
-            <p className="truncate text-[11px] text-text-muted">Food Ordering. Simplified.</p>
-          </div>
+          <p className="min-w-0 truncate font-[var(--font-display)] text-lg font-bold leading-tight text-text-primary">
+            OrbitFood
+          </p>
         )}
         <button
           type="button"

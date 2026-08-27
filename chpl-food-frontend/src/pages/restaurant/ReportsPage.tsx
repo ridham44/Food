@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -12,6 +12,7 @@ import {
   Cell,
 } from 'recharts';
 import { IndianRupee, ShoppingBag, Receipt, TrendingUp } from 'lucide-react';
+import { cn } from '@/lib/cn';
 import { GlassPanel } from '@/components/ui/GlassPanel/GlassPanel';
 import { Select } from '@/components/ui/Select/Select';
 import { KpiCard } from '@/components/dashboard/KpiCard';
@@ -31,7 +32,7 @@ export default function ReportsPage() {
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-xl font-bold text-text-primary">Reports & Analytics</h2>
-        <Select value={String(days)} onChange={(e) => setDays(Number(e.target.value))} className="w-40">
+        <Select value={String(days)} onChange={(value) => setDays(Number(value))} className="w-40">
           <option value="7">Last 7 days</option>
           <option value="30">Last 30 days</option>
           <option value="90">Last 90 days</option>
@@ -120,14 +121,20 @@ export default function ReportsPage() {
         ) : !mostSold?.length ? (
           <p className="mt-4 text-sm text-text-muted">No sales data yet.</p>
         ) : (
-          <div className="mt-3 flex flex-col divide-y divide-border-subtle">
-            {mostSold.slice(0, 8).map((item, i) => (
-              <div key={`${item.itemName}-${i}`} className="flex items-center justify-between py-2.5 text-sm">
-                <span className="text-text-primary">{item.itemName}</span>
-                <span className="text-text-muted">{item.quantity} sold</span>
-                <span className="font-medium text-text-primary">₹{item.totalRevenue.toFixed(0)}</span>
-              </div>
-            ))}
+          <div className="mt-3 grid grid-cols-[1fr_auto_auto] items-center gap-x-4">
+            {mostSold.slice(0, 8).map((item, i) => {
+              const isLast = i === Math.min(mostSold.length, 8) - 1;
+              const rowBorder = !isLast ? 'border-b border-border-subtle' : '';
+              return (
+                <Fragment key={`${item.itemName}-${i}`}>
+                  <span className={cn('py-2.5 text-sm text-text-primary', rowBorder)}>{item.itemName}</span>
+                  <span className={cn('whitespace-nowrap py-2.5 text-sm text-text-muted', rowBorder)}>{item.quantity} sold</span>
+                  <span className={cn('whitespace-nowrap py-2.5 text-right text-sm font-medium text-text-primary', rowBorder)}>
+                    ₹{item.totalRevenue.toFixed(0)}
+                  </span>
+                </Fragment>
+              );
+            })}
           </div>
         )}
       </GlassPanel>

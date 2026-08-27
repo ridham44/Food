@@ -1,5 +1,7 @@
+import { Fragment } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Heart, ShoppingBag } from 'lucide-react';
+import { cn } from '@/lib/cn';
 import { GlassPanel } from '@/components/ui/GlassPanel/GlassPanel';
 import { Skeleton } from '@/components/ui/LoadingSkeleton/LoadingSkeleton';
 import { ErrorState } from '@/components/ui/EmptyState/EmptyState';
@@ -74,15 +76,25 @@ export default function CustomerProfilePage() {
               {data.orderHistory.length === 0 ? (
                 <p className="mt-3 text-sm text-text-muted">No orders yet.</p>
               ) : (
-                <ul className="mt-3 flex flex-col divide-y divide-border-subtle">
-                  {data.orderHistory.slice(0, 8).map((order) => (
-                    <li key={order.id} className="flex items-center justify-between py-2 text-sm">
-                      <span className="text-text-secondary">#{order.id.slice(0, 6).toUpperCase()}</span>
-                      <span className="text-text-muted">{order.total != null ? `₹${order.total.toFixed(0)}` : '—'}</span>
-                      <span className="text-xs text-text-muted">{new Date(order.createdAt).toLocaleDateString()}</span>
-                    </li>
-                  ))}
-                </ul>
+                <div className="mt-3 grid grid-cols-[auto_auto_1fr] items-center gap-x-4">
+                  {data.orderHistory.slice(0, 8).map((order, i) => {
+                    const isLast = i === Math.min(data.orderHistory.length, 8) - 1;
+                    const rowBorder = !isLast ? 'border-b border-border-subtle' : '';
+                    return (
+                      <Fragment key={order.id}>
+                        <span className={cn('whitespace-nowrap py-2 text-sm text-text-secondary', rowBorder)}>
+                          #{order.id.slice(0, 6).toUpperCase()}
+                        </span>
+                        <span className={cn('whitespace-nowrap py-2 text-sm text-text-muted', rowBorder)}>
+                          {order.total != null ? `₹${order.total.toFixed(0)}` : '—'}
+                        </span>
+                        <span className={cn('py-2 text-right text-xs text-text-muted', rowBorder)}>
+                          {new Date(order.createdAt).toLocaleDateString()}
+                        </span>
+                      </Fragment>
+                    );
+                  })}
+                </div>
               )}
             </GlassPanel>
           </div>

@@ -8,7 +8,7 @@ import { useOrders } from '@/features/orders/useOrders';
 import { KanbanBoard } from '@/features/orders/components/KanbanBoard';
 import { OrderDetailPanel } from '@/features/orders/components/OrderDetailPanel';
 import { OrderStatusBadge } from '@/features/orders/components/OrderStatusBadge';
-import { ORDER_TYPE_LABEL, type OrderListFilters, type OrderListItem } from '@/features/orders/types';
+import { ORDER_TYPE_LABEL, type OrderListFilters, type OrderListItem, type OrderType } from '@/features/orders/types';
 import type { ColumnDef } from '@tanstack/react-table';
 
 type ViewMode = 'list' | 'kanban';
@@ -17,7 +17,7 @@ type StatusFilter = 'all' | 'new' | 'preparing' | 'ready' | 'completed' | 'cance
 export default function OrdersPage() {
   const [view, setView] = useState<ViewMode>('list');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [orderType, setOrderType] = useState<'all' | OrderListFilters['orderType']>('all');
+  const [orderType, setOrderType] = useState<'all' | OrderType>('all');
   const [search, setSearch] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<OrderListItem | null>(null);
 
@@ -116,7 +116,7 @@ export default function OrdersPage() {
           />
         </div>
         <div className="flex gap-2.5">
-          <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as StatusFilter)} className="w-40">
+          <Select value={statusFilter} onChange={(value) => setStatusFilter(value as StatusFilter)} className="w-40">
             <option value="all">All statuses</option>
             <option value="new">New</option>
             <option value="preparing">Preparing</option>
@@ -126,7 +126,7 @@ export default function OrdersPage() {
           </Select>
           <Select
             value={orderType}
-            onChange={(e) => setOrderType(e.target.value as typeof orderType)}
+            onChange={(value) => setOrderType(value as typeof orderType)}
             className="w-36"
           >
             <option value="all">All types</option>

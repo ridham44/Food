@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
@@ -14,6 +14,7 @@ import {
   BarChart3,
   AlertTriangle,
 } from 'lucide-react';
+import { cn } from '@/lib/cn';
 import { GlassPanel } from '@/components/ui/GlassPanel/GlassPanel';
 import { Select } from '@/components/ui/Select/Select';
 import { Skeleton } from '@/components/ui/LoadingSkeleton/LoadingSkeleton';
@@ -95,11 +96,11 @@ export default function DashboardHome() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h3 className="text-sm font-semibold text-text-primary">Sales overview</h3>
             <div className="flex gap-2">
-              <Select value={metric} onChange={(e) => setMetric(e.target.value as typeof metric)} className="w-32">
+              <Select value={metric} onChange={(value) => setMetric(value as typeof metric)} className="w-32">
                 <option value="revenue">Revenue</option>
                 <option value="orders">Orders</option>
               </Select>
-              <Select value={String(days)} onChange={(e) => setDays(Number(e.target.value))} className="w-32">
+              <Select value={String(days)} onChange={(value) => setDays(Number(value))} className="w-32">
                 <option value="1">Today</option>
                 <option value="7">7 Days</option>
                 <option value="30">30 Days</option>
@@ -217,16 +218,21 @@ export default function DashboardHome() {
           {lowStockItems.length === 0 ? (
             <p className="mt-4 text-sm text-text-muted">All stock levels look healthy.</p>
           ) : (
-            <div className="mt-3 flex flex-col divide-y divide-border-subtle">
-              {lowStockItems.map((item) => (
-                <div key={item.id} className="flex items-center justify-between py-2.5 text-sm">
-                  <span className="text-text-primary">{item.ingredientName}</span>
-                  <StockStatusBadge status={item.status} />
-                  <span className="text-text-muted">
-                    {item.currentStock} {item.unit} remaining
-                  </span>
-                </div>
-              ))}
+            <div className="mt-3 grid grid-cols-[1fr_auto_auto] items-center gap-x-4">
+              {lowStockItems.map((item, i) => {
+                const rowBorder = i !== lowStockItems.length - 1 ? 'border-b border-border-subtle' : '';
+                return (
+                  <Fragment key={item.id}>
+                    <span className={cn('py-2.5 text-sm text-text-primary', rowBorder)}>{item.ingredientName}</span>
+                    <span className={cn('py-2.5', rowBorder)}>
+                      <StockStatusBadge status={item.status} />
+                    </span>
+                    <span className={cn('whitespace-nowrap py-2.5 text-right text-sm text-text-muted', rowBorder)}>
+                      {item.currentStock} {item.unit} remaining
+                    </span>
+                  </Fragment>
+                );
+              })}
             </div>
           )}
         </GlassPanel>

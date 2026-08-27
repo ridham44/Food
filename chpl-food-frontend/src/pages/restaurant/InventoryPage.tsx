@@ -129,7 +129,7 @@ export default function InventoryPage() {
             className="h-11 w-full rounded-control border border-border-subtle bg-input-bg pl-9 pr-3 text-sm text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-[var(--border-active)] focus:ring-4 focus:ring-primary/15"
           />
         </div>
-        <Select value={stockStatus} onChange={(e) => setStockStatus(e.target.value as typeof stockStatus)} className="w-44">
+        <Select value={stockStatus} onChange={(value) => setStockStatus(value as typeof stockStatus)} className="w-44">
           <option value="all">All statuses</option>
           <option value="good">Good</option>
           <option value="low">Low stock</option>

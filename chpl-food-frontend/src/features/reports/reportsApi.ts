@@ -16,7 +16,15 @@ export interface RevenueBreakdown {
 
 export async function fetchMostSold(): Promise<MostSoldItem[]> {
   const { data } = await apiClient.post<{ data: MostSoldItem[] }>('/report/most-sold', {});
-  return data.data;
+  // The backend aggregates this with a raw SQL SUM()/COUNT(), which Sequelize
+  // returns as strings rather than numbers — coerce once here so every
+  // consumer can trust the MostSoldItem type.
+  return data.data.map((item) => ({
+    ...item,
+    quantity: Number(item.quantity),
+    totalRevenue: Number(item.totalRevenue),
+    ordersCount: Number(item.ordersCount),
+  }));
 }
 
 export async function fetchRevenueBreakdown(): Promise<RevenueBreakdown> {

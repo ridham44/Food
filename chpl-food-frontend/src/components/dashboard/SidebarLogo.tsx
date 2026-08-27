@@ -1,45 +1,36 @@
-import { UtensilsCrossed } from 'lucide-react';
-import { cn } from '@/lib/cn';
 import companyLogo from '../../../images/Logo.png';
 
 /**
- * Same crop constants as the auth BrandMark (icon + wordmark, validated
- * against the real Logo.png asset) — reused here at sidebar scale so both
- * surfaces show the identical, correctly-framed lockup.
+ * Source region in the original 1254x1254 Logo.png containing just the
+ * ring/fork/spoon/orbit icon — excludes the "OrbitFood" wordmark and
+ * taglines beneath it, which read as an illegible smudge at sidebar scale.
+ * Generous margins on purpose: better to include a hair of empty space than
+ * clip the ring or the orbit swoosh's tail.
  */
-const CROP = {
-  width: 118,
-  height: 100,
-  imageWidth: 144,
-  imageHeight: 144,
-  offsetX: -17,
-  offsetY: -15,
-};
+const ICON_CROP = { x0: 188, y0: 163, width: 815, height: 577 };
+const SOURCE_SIZE = 1254;
 
 export function SidebarLogo({ collapsed }: { collapsed: boolean }) {
-  if (collapsed) {
-    return (
-      <span className="flex h-9 w-9 items-center justify-center rounded-control bg-gradient-to-br from-primary to-primary-deep shadow-[0_6px_16px_rgba(139,108,255,0.35)]">
-        <UtensilsCrossed className="h-4 w-4 text-white" aria-hidden="true" />
-      </span>
-    );
-  }
+  const size = collapsed ? 44 : 56;
+  const scale = size / ICON_CROP.width;
+  const imageSize = SOURCE_SIZE * scale;
+  const containerHeight = ICON_CROP.height * scale;
 
   return (
     <div
-      className={cn('overflow-hidden rounded-control bg-[#f4f5fa]')}
-      style={{ width: CROP.width * 0.72, height: CROP.height * 0.72 }}
+      className="shrink-0 overflow-hidden rounded-control bg-[#f4f5fa]"
+      style={{ width: size, height: containerHeight }}
     >
       <img
         src={companyLogo}
         alt="OrbitFood"
-        style={{
-          width: CROP.imageWidth * 0.72,
-          height: CROP.imageHeight * 0.72,
-          maxWidth: 'none',
-          transform: `translate(${CROP.offsetX * 0.72}px, ${CROP.offsetY * 0.72}px)`,
-        }}
         draggable={false}
+        style={{
+          width: imageSize,
+          height: imageSize,
+          maxWidth: 'none',
+          transform: `translate(${-ICON_CROP.x0 * scale}px, ${-ICON_CROP.y0 * scale}px)`,
+        }}
       />
     </div>
   );

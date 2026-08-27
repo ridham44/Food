@@ -11,9 +11,11 @@ export default function DashboardLayout() {
 
   return (
     <div className="flex min-h-screen w-full bg-bg-base">
-      {/* Desktop sidebar */}
+      {/* Desktop sidebar — pinned to the viewport height (not stretched to
+          match page content, which can grow taller than 100vh) so its own
+          nav list scrolls internally instead of the whole sidebar. */}
       <aside
-        className="glass-panel hidden shrink-0 border-r border-border-subtle transition-[width] duration-200 ease-out lg:block"
+        className="glass-panel sticky top-0 hidden h-screen shrink-0 self-start border-r border-border-subtle transition-[width] duration-200 ease-out lg:block"
         style={{ width: sidebarWidth }}
       >
         <Sidebar collapsed={collapsed} onToggleCollapsed={() => setCollapsed((v) => !v)} />

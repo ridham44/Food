@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
@@ -39,6 +39,7 @@ export function StaffFormModal({
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: { errors },
@@ -88,18 +89,30 @@ export function StaffFormModal({
           <Input label="Mobile" error={errors.mobile?.message} {...register('mobile')} />
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <Select label="Gender" {...register('gender')}>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-          </Select>
-          <Select label="Role" error={errors.roleId?.message} {...register('roleId')}>
-            <option value="">Select role</option>
-            {tenantRoles.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name}
-              </option>
-            ))}
-          </Select>
+          <Controller
+            control={control}
+            name="gender"
+            render={({ field }) => (
+              <Select label="Gender" value={field.value} onChange={field.onChange}>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+              </Select>
+            )}
+          />
+          <Controller
+            control={control}
+            name="roleId"
+            render={({ field }) => (
+              <Select label="Role" error={errors.roleId?.message} value={field.value} onChange={field.onChange}>
+                <option value="">Select role</option>
+                {tenantRoles.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}
+                  </option>
+                ))}
+              </Select>
+            )}
+          />
         </div>
         {!isEditing && <p className="text-xs text-text-muted">A default password (staff@123) will be set — they can change it after logging in.</p>}
         <div className="mt-2 flex justify-end gap-2.5">

@@ -56,7 +56,7 @@ export function UpdateStockModal({
         <p className="text-sm text-text-secondary">
           Current stock: <span className="font-medium text-text-primary">{item.currentStock} {item.unit}</span>
         </p>
-        <Select label="Type" value={type} onChange={(e) => setType(e.target.value as typeof type)}>
+        <Select label="Type" value={type} onChange={(value) => setType(value as typeof type)}>
           <option value="restock">Restock (add)</option>
           <option value="usage">Usage (subtract)</option>
           <option value="adjustment">Adjustment (set exact value)</option>
