@@ -48,6 +48,76 @@ body {
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.3);
 }
 
+/* Apple-inspired glass treatment for the sign-in card: a true translucent
+   pane (not a near-opaque panel) — the backdrop stays visible through it,
+   with a soft layered shadow and a hairline inner highlight for depth.
+   Below lg the card sits centered over the brightest part of the backdrop
+   photo, so it takes a touch more opacity there to stay legible; at lg+ it
+   floats over the darkened right-hand zone and can be fully translucent. */
+.auth-glass-card {
+  background: rgba(12, 20, 42, 0.8);
+  backdrop-filter: blur(28px) saturate(150%);
+  -webkit-backdrop-filter: blur(28px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.14),
+    0 24px 70px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+@media (min-width: 1024px) {
+  .auth-glass-card {
+    background: rgba(12, 20, 42, 0.58);
+  }
+}
+
+.auth-submit-btn {
+  background-image: linear-gradient(90deg, #4d6bff 0%, #8b5cf6 100%);
+}
+
+.auth-submit-btn:hover:not(:disabled) {
+  background-image: linear-gradient(90deg, #5d79ff 0%, #9b6cf6 100%);
+}
+
+@keyframes auth-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes auth-shake {
+  10%,
+  90% {
+    transform: translateX(-1px);
+  }
+  20%,
+  80% {
+    transform: translateX(2px);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translateX(-4px);
+  }
+  40%,
+  60% {
+    transform: translateX(4px);
+  }
+}
+
+.animate-auth-panel-in {
+  animation: auth-panel-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-auth-shake {
+  animation: auth-shake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
