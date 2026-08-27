@@ -1,0 +1,81 @@
+:root {
+  /* Backgrounds */
+  --bg-base: #080b14;
+  --bg-deep: #0d1220;
+  --bg-elevated: #151b2d;
+
+  /* Glass surfaces */
+  --surface-glass: rgba(21, 27, 45, 0.68);
+  --surface-glass-strong: rgba(25, 32, 53, 0.84);
+  --surface-hover: rgba(125, 92, 255, 0.12);
+
+  /* Borders */
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-active: rgba(151, 130, 255, 0.48);
+
+  /* Text */
+  --text-primary: #f3f5ff;
+  --text-secondary: #b3b9cc;
+  --text-muted: #747b93;
+
+  /* Accents */
+  --primary: #8b6cff;
+  --primary-hover: #a58dff;
+  --primary-deep: #6246d8;
+  --cyan: #35d4e7;
+
+  /* State */
+  --success: #38d996;
+  --warning: #ffb84d;
+  --danger: #ff647c;
+  --info: #58a6ff;
+
+  /* Inputs */
+  --input-bg: rgba(8, 11, 20, 0.45);
+
+  /* Z-index layers */
+  --z-base: 0;
+  --z-sticky: 10;
+  --z-dropdown: 30;
+  --z-modal: 50;
+  --z-toast: 70;
+}
+
+/* Map design tokens into Tailwind v4 theme so utilities like bg-primary,
+   text-secondary, border-subtle, rounded-card, etc. are generated. */
+@theme {
+  --color-bg-base: var(--bg-base);
+  --color-bg-deep: var(--bg-deep);
+  --color-bg-elevated: var(--bg-elevated);
+
+  --color-surface-glass: var(--surface-glass);
+  --color-surface-glass-strong: var(--surface-glass-strong);
+  --color-surface-hover: var(--surface-hover);
+
+  --color-border-subtle: var(--border-subtle);
+  --color-border-active: var(--border-active);
+
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-deep: var(--primary-deep);
+  --color-cyan: var(--cyan);
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+
+  --color-input-bg: var(--input-bg);
+
+  --radius-control: 10px;
+  --radius-button: 12px;
+  --radius-card: 16px;
+  --radius-dialog: 20px;
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: 'Manrope', 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
