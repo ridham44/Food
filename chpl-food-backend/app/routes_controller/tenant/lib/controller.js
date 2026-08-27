@@ -122,37 +122,43 @@ exports.update = async (req, res) => {
         }
         const oldData = JSON.parse(JSON.stringify(tenant.get({ plain: true })));
 
+        // Partial updates: only overwrite a field when the caller actually sent
+        // it, falling back to the existing value otherwise. This endpoint is
+        // used both for full profile edits and single-field toggles (e.g. the
+        // dashboard header's open/closed switch), and the latter would
+        // otherwise null out every other NOT NULL column.
+        const pick = (key) => (body[key] !== undefined ? body[key] : tenant[key]);
+
         tenant.set({
-            shortCode: body.shortCode,
-            companyName: body.companyName,
-            contactPerson: body.contactPerson,
-            countryCode: body.countryCode,
-            mobile: body.mobile,
-            phoneCountryCode: body.phoneCountryCode,
-            phone: body.phone,
-            email: body.email,
-            address: body.address,
-            countryId: body.countryId,
-            stateId: body.stateId,
-            cityId: body.cityId,
-            zipCode: body.zipCode,
-            gstNumber: body.gstNumber,
-            panNumber: body.panNumber,
+            shortCode: pick('shortCode'),
+            companyName: pick('companyName'),
+            contactPerson: pick('contactPerson'),
+            countryCode: pick('countryCode'),
+            mobile: pick('mobile'),
+            phoneCountryCode: pick('phoneCountryCode'),
+            phone: pick('phone'),
+            email: pick('email'),
+            address: pick('address'),
+            countryId: pick('countryId'),
+            stateId: pick('stateId'),
+            cityId: pick('cityId'),
+            zipCode: pick('zipCode'),
+            gstNumber: pick('gstNumber'),
+            panNumber: pick('panNumber'),
             frontImage: files?.frontImage?.[0] ? `/${files.frontImage[0].path.replace(/\\/g, '/')}` : tenant.frontImage,
             backImage: files?.backImage?.[0] ? `/${files.backImage[0].path.replace(/\\/g, '/')}` : tenant.backImage,
-            website: body.website,
-            termAndCondition: body.termAndCondition,
-            returnAndExchange: body.returnAndExchange,
-            status: body.status,
-            emailVerified: body.emailVerified,
-            emailVerifiedAt: body.emailVerifiedAt,
-            isOpen: body.isOpen !== undefined ? body.isOpen : tenant.isOpen,
-            openingTime: body.openingTime !== undefined ? body.openingTime : tenant.openingTime,
-            closingTime: body.closingTime !== undefined ? body.closingTime : tenant.closingTime,
-            acceptOrders: body.acceptOrders !== undefined ? body.acceptOrders : tenant.acceptOrders,
-            autoAcceptOrders: body.autoAcceptOrders !== undefined ? body.autoAcceptOrders : tenant.autoAcceptOrders,
-            preparationTimeMinutes:
-                body.preparationTimeMinutes !== undefined ? body.preparationTimeMinutes : tenant.preparationTimeMinutes,
+            website: pick('website'),
+            termAndCondition: pick('termAndCondition'),
+            returnAndExchange: pick('returnAndExchange'),
+            status: pick('status'),
+            emailVerified: pick('emailVerified'),
+            emailVerifiedAt: pick('emailVerifiedAt'),
+            isOpen: pick('isOpen'),
+            openingTime: pick('openingTime'),
+            closingTime: pick('closingTime'),
+            acceptOrders: pick('acceptOrders'),
+            autoAcceptOrders: pick('autoAcceptOrders'),
+            preparationTimeMinutes: pick('preparationTimeMinutes'),
             updatedBy: user.id,
         });
 

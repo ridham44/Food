@@ -16,4 +16,7 @@ router.post('/payment/type-report', auth, controller.getPaymentModeReport);
 // get payment mode totals
 router.post('/payment/overview', auth, controller.getPaymentTotals);
 
+// paginated transaction list for the Payments dashboard page
+router.get('/payment/list', auth, controller.listPayments);
+
 module.exports = router;

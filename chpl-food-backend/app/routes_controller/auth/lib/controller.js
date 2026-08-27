@@ -319,7 +319,11 @@ exports.changePassword = async (req, res) => {
 
 // Customer has no tenantId column — a tenant's customer list can only be
 // derived via the orders they've placed with this tenant. Aggregated per
-// customer from OrderList/OrderBill, scoped to req.user.tenantId.
+// customer from OrderList/OrderBill, scoped to req.user.tenantId. Written as
+// a raw aggregate query — Sequelize's ORM-level `group` kept trying to pull
+// non-aggregated columns into the SELECT list, which MySQL's stricter
+// ONLY_FULL_GROUP_BY (Aiven's default; not every local MySQL enables it)
+// rejects outright, so this groups explicitly by every selected column.
 exports.customerList = async (req, res) => {
     try {
         const tenantId = req.user.tenantId;
@@ -328,65 +332,47 @@ exports.customerList = async (req, res) => {
         }
         const { search, page = 1, pageSize = 20 } = req.query;
 
-        const customerWhere = {};
+        const replacements = { tenantId };
+        let searchClause = '';
         if (search) {
-            customerWhere[Op.or] = [
-                { firstName: { [Op.like]: `%${search}%` } },
-                { lastName: { [Op.like]: `%${search}%` } },
-                { phoneNo: { [Op.like]: `%${search}%` } },
-            ];
+            searchClause = 'AND (c.firstName LIKE :search OR c.lastName LIKE :search OR c.phoneNo LIKE :search)';
+            replacements.search = `%${search}%`;
         }
 
-        const { fn, col } = db.Sequelize;
-
-        const rows = await db.OrderList.findAll({
-            attributes: [
-                'customerId',
-                [fn('COUNT', col('OrderList.id')), 'totalOrders'],
-                [fn('MAX', col('OrderList.createdAt')), 'lastOrderAt'],
-                [fn('SUM', col('OrderBill.finalAmount')), 'totalSpent'],
-            ],
-            where: { tenantId },
-            include: [
-                {
-                    model: db.Customer,
-                    as: 'Customer',
-                    attributes: ['id', 'firstName', 'lastName', 'phoneNo', 'email'],
-                    where: customerWhere,
-                    disableTenantCheck: true,
-                },
-                {
-                    model: db.OrderBill,
-                    as: 'OrderBill',
-                    attributes: [],
-                    required: false,
-                    disableTenantCheck: true,
-                },
-            ],
-            group: ['customerId', 'Customer.id'],
-            order: [[fn('MAX', col('OrderList.createdAt')), 'DESC']],
-            subQuery: false,
-        });
+        const rows = await db.sequelize.query(
+            `
+            SELECT
+                ol.customerId AS id,
+                CONCAT(c.firstName, ' ', c.lastName) AS name,
+                c.phoneNo AS phone,
+                c.email AS email,
+                COUNT(ol.id) AS totalOrders,
+                COALESCE(SUM(ob.finalAmount), 0) AS totalSpent,
+                MAX(ol.createdAt) AS lastOrderAt
+            FROM order_list ol
+            INNER JOIN customer c ON c.id = ol.customerId
+            LEFT JOIN order_bill ob ON ob.orderListId = ol.id
+            WHERE ol.tenantId = :tenantId ${searchClause}
+            GROUP BY ol.customerId, c.firstName, c.lastName, c.phoneNo, c.email
+            ORDER BY MAX(ol.createdAt) DESC
+            `,
+            { replacements, type: db.Sequelize.QueryTypes.SELECT }
+        );
 
         const total = rows.length;
         const limit = parseInt(pageSize) || 20;
         const offset = (parseInt(page) - 1) * limit;
-        const paged = rows.slice(offset, offset + limit);
+        const paged = rows.slice(offset, offset + limit).map((r) => ({
+            id: r.id,
+            name: r.name?.trim() || null,
+            phone: r.phone,
+            email: r.email,
+            totalOrders: parseInt(r.totalOrders, 10) || 0,
+            totalSpent: parseFloat(r.totalSpent || 0),
+            lastOrderAt: r.lastOrderAt,
+        }));
 
-        const data = paged.map((r) => {
-            const plain = r.get({ plain: true });
-            return {
-                id: plain.customerId,
-                name: plain.Customer ? `${plain.Customer.firstName} ${plain.Customer.lastName}`.trim() : null,
-                phone: plain.Customer ? plain.Customer.phoneNo : null,
-                email: plain.Customer ? plain.Customer.email : null,
-                totalOrders: parseInt(plain.totalOrders, 10) || 0,
-                totalSpent: parseFloat(plain.totalSpent || 0),
-                lastOrderAt: plain.lastOrderAt,
-            };
-        });
-
-        return res.status(status.OK).json({ data: { rows: data, count: total } });
+        return res.status(status.OK).json({ data: { rows: paged, count: total } });
     } catch (error) {
         return common.throwException(error, 'Customer List API', req, res);
     }

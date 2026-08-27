@@ -35,6 +35,8 @@ exports.create = async (req, res) => {
                 currentStock: body.currentStock || 0,
                 minimumLevel: body.minimumLevel || 0,
                 createdBy: user.id,
+                createdAt: new Date(),
+                updatedAt: new Date(),
             },
             { transaction }
         );
@@ -68,6 +70,7 @@ exports.update = async (req, res) => {
             unit: body.unit ?? item.unit,
             minimumLevel: body.minimumLevel ?? item.minimumLevel,
             updatedBy: user.id,
+            updatedAt: new Date(),
         });
 
         await item.save({ transaction });
@@ -194,6 +197,7 @@ exports.updateStock = async (req, res) => {
 
         item.currentStock = after;
         item.updatedBy = user.id;
+        item.updatedAt = new Date();
         await item.save({ transaction });
 
         const movement = await db.InventoryMovement.create(
@@ -204,6 +208,7 @@ exports.updateStock = async (req, res) => {
                 quantity: (after - before).toFixed(2),
                 note: note || null,
                 createdBy: user.id,
+                createdAt: new Date(),
             },
             { transaction }
         );

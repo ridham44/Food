@@ -423,3 +423,81 @@ exports.getPaymentTotals = async (req, res) => {
         return common.throwException(error, 'Get Simple Payment Totals', req, res);
     }
 };
+
+// Paginated transaction list for the Payments dashboard page — no such
+// listing existed before (only aggregate reports), tenant-scoped via a join
+// through OrderBill -> OrderList.
+exports.listPayments = async (req, res) => {
+    try {
+        const tenantId = req.user.tenantId;
+        const { page = 1, pageSize = 20 } = req.query;
+        const limit = parseInt(pageSize) || 20;
+        const offset = (parseInt(page) - 1) * limit;
+
+        const { rows, count } = await db.OrderPayment.findAndCountAll({
+            include: [
+                {
+                    model: db.OrderBill,
+                    as: 'OrderBill',
+                    attributes: ['id', 'finalAmount'],
+                    required: true,
+                    disableTenantCheck: true,
+                    include: [
+                        {
+                            model: db.OrderList,
+                            as: 'OrderList',
+                            attributes: ['id'],
+                            where: { tenantId },
+                            required: true,
+                            disableTenantCheck: true,
+                            include: [
+                                {
+                                    model: db.Customer,
+                                    as: 'Customer',
+                                    attributes: ['firstName', 'lastName'],
+                                    disableTenantCheck: true,
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+            order: [['createdAt', 'DESC']],
+            limit,
+            offset,
+            distinct: true,
+        });
+
+        const data = rows.map((row) => {
+            const plain = row.get({ plain: true });
+            const bill = plain.OrderBill;
+            const order = bill?.OrderList;
+            const customer = order?.Customer;
+            let method = 'cash';
+            const modes = [
+                parseFloat(plain.cash || 0) > 0 && 'cash',
+                parseFloat(plain.card || 0) > 0 && 'card',
+                parseFloat(plain.online || 0) > 0 && 'online',
+            ].filter(Boolean);
+            if (modes.length > 1) method = 'split';
+            else if (modes.length === 1) method = modes[0];
+
+            return {
+                id: plain.id,
+                orderId: order?.id ?? null,
+                customerName: customer ? `${customer.firstName} ${customer.lastName}`.trim() : null,
+                amount: parseFloat(plain.amountPaid || 0),
+                method,
+                cash: parseFloat(plain.cash || 0),
+                card: parseFloat(plain.card || 0),
+                online: parseFloat(plain.online || 0),
+                status: plain.status,
+                createdAt: plain.createdAt,
+            };
+        });
+
+        return res.status(status.OK).json({ data: { rows: data, count } });
+    } catch (error) {
+        return common.throwException(error, 'List Payments API', req, res);
+    }
+};

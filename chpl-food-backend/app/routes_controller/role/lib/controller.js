@@ -111,7 +111,14 @@ exports.findById = async (req, res) => {
 
 exports.findAll = async (req, res) => {
     try {
-        const roles = await db.Role.findAll({ order: [['createdAt', 'DESC']] });
+        // Role.hasTenantCondition(false) — this model isn't auto-scoped, and this
+        // query had no manual tenantId filter at all, so any tenant user could
+        // see (and, from the Staff form, assign) every other tenant's custom
+        // roles. Platform admins still see everything; tenant users only see
+        // their own.
+        const isPlatformAdmin = req.user?.Role?.type === '1';
+        const where = isPlatformAdmin ? {} : { tenantId: req.user.tenantId };
+        const roles = await db.Role.findAll({ where, order: [['createdAt', 'DESC']] });
         return res.status(status.OK).json({ data: roles });
     } catch (error) {
         return common.throwException(error, 'Find All Roles', req, res);

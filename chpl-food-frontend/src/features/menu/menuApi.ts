@@ -19,14 +19,22 @@ function toFormData(values: Partial<MenuFormValues>): FormData {
 
 export async function createMenuItem(values: MenuFormValues): Promise<MenuItem> {
   const { data } = await apiClient.post<{ data: MenuItem }>('/menu', toFormData(values), {
-    headers: { 'Content-Type': 'multipart/form-data' },
+    // Let the browser set the multipart boundary itself — a manually-set
+    // 'multipart/form-data' string here would lack the boundary param and
+    // break server-side parsing. `undefined` removes the instance default
+    // ('application/json') from the merged per-request headers.
+    headers: { 'Content-Type': undefined },
   });
   return data.data;
 }
 
 export async function updateMenuItem(id: string, values: Partial<MenuFormValues>): Promise<MenuItem> {
   const { data } = await apiClient.put<{ data: MenuItem }>(`/menu/${id}`, toFormData(values), {
-    headers: { 'Content-Type': 'multipart/form-data' },
+    // Let the browser set the multipart boundary itself — a manually-set
+    // 'multipart/form-data' string here would lack the boundary param and
+    // break server-side parsing. `undefined` removes the instance default
+    // ('application/json') from the merged per-request headers.
+    headers: { 'Content-Type': undefined },
   });
   return data.data;
 }
