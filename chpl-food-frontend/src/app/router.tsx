@@ -2,6 +2,8 @@ import { createBrowserRouter } from 'react-router-dom';
 import LoginPage from '@/features/auth/LoginPage';
 import DashboardLayout from '@/app/DashboardLayout';
 import { ProtectedRoute } from '@/app/ProtectedRoute';
+import CustomerLoginPage from '@/features/customerAuth/CustomerLoginPage';
+import CustomerSignupPage from '@/features/customerAuth/CustomerSignupPage';
 import DashboardHome from '@/pages/restaurant/DashboardHome';
 import OrdersPage from '@/pages/restaurant/OrdersPage';
 import KitchenPage from '@/pages/restaurant/KitchenPage';
@@ -26,6 +28,14 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <LoginPage />,
+  },
+  {
+    path: '/app/login',
+    element: <CustomerLoginPage />,
+  },
+  {
+    path: '/app/signup',
+    element: <CustomerSignupPage />,
   },
   {
     path: '/',

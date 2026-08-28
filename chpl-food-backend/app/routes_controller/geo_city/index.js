@@ -18,6 +18,9 @@ router.get('/city/options', auth, controller.findAll);
 
 router.get('/city', auth, controller.findAll);
 
+// Public, unauthenticated lookup for the customer signup/address form
+router.get('/public/city/cascade/:id/options', controller.findAll);
+
 router.get('/city/cascade/:id', auth, controller.findAll);
 
 router.get('/city/:id', auth, controller.findById);

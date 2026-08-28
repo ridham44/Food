@@ -95,6 +95,12 @@ router.delete('/tenant/:id', auth, controller.delete);
 // Get all tenants
 router.get('/tenant', auth, controller.findAll);
 
+// Public, unauthenticated restaurant directory for the customer app. Must be
+// registered before `/tenant/:id` below, or "public-list" would be swallowed
+// as an :id param.
+router.get('/tenant/public-list', controller.publicList);
+router.get('/tenant/public/:id', controller.publicById);
+
 // Resolve the authenticated user's own tenant (no id lookup needed)
 // Must be registered before the `/tenant/:id` route below, or "current" would
 // be swallowed as an :id param.

@@ -64,7 +64,7 @@ exports.create = async (req, res) => {
 
         const existing = await db.Customer.findOne({
             where: {
-                [Op.or]: [{ email }, { phoneNo }],
+                [Op.or]: [{ phoneNo }, ...(email ? [{ email }] : [])],
             },
         });
 
@@ -547,5 +547,61 @@ exports.filtration = async (req, res) => {
     } catch (error) {
         await transaction.rollback();
         return common.throwException(error, 'User Date Filter API', req, res);
+    }
+};
+
+// Self-service profile for the customer app — scoped to the authenticated
+// customer's own id via CustomerMiddlewear, never a client-supplied id.
+exports.me = async (req, res) => {
+    try {
+        if (req.userType !== 'customer') {
+            return res.status(status.Forbidden).json({ message: 'Customer access only' });
+        }
+        return res.status(status.OK).json({ data: req.user });
+    } catch (error) {
+        return common.throwException(error, 'Customer Me API', req, res);
+    }
+};
+
+exports.updateMe = async (req, res) => {
+    const transaction = await db.sequelize.transaction();
+    try {
+        if (req.userType !== 'customer') {
+            await transaction.rollback();
+            return res.status(status.Forbidden).json({ message: 'Customer access only' });
+        }
+
+        const { firstName, lastName, email, phoneNo, gender, birthDate, address, countryId, stateId, cityId, countryCode } = req.body;
+
+        const customer = await db.Customer.findOne({ where: { id: req.user.id }, transaction });
+        if (!customer) {
+            await transaction.rollback();
+            return res.status(status.NotFound).json({ message: 'Customer not found!' });
+        }
+
+        if (phoneNo) {
+            const existing = await db.Customer.findOne({
+                where: { id: { [Op.ne]: customer.id }, phoneNo },
+                transaction,
+            });
+            if (existing) {
+                await transaction.rollback();
+                return res.status(status.Conflict).json({ message: 'Customer with this phone number already exists!' });
+            }
+        }
+
+        const updateData = { firstName, lastName, email, phoneNo, gender, birthDate, address, countryId, stateId, cityId, countryCode };
+        Object.keys(updateData).forEach((key) => {
+            if (updateData[key] === undefined) delete updateData[key];
+        });
+
+        customer.set(updateData);
+        await customer.save({ transaction });
+
+        await transaction.commit();
+        return res.status(status.OK).json({ message: 'Profile updated successfully!', data: customer });
+    } catch (error) {
+        await transaction.rollback();
+        return common.throwException(error, 'Customer Update Me API', req, res);
     }
 };

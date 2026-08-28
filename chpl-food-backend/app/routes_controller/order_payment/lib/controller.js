@@ -156,6 +156,19 @@ exports.makePaymentByBillId = async (req, res) => {
         if (!bill) {
             return res.status(status.NotFound).json({ message: 'Unpaid bill not found' });
         }
+
+        const order = await db.OrderList.findOne({ where: { id: bill.orderListId } });
+        if (!order) {
+            return res.status(status.NotFound).json({ message: 'Order not found for bill' });
+        }
+        if (req.user.tenantId) {
+            if (req.user.tenantId !== order.tenantId) {
+                return res.status(status.Forbidden).json({ message: 'Access denied: order does not belong to this tenant' });
+            }
+        } else if (req.user.id !== order.customerId) {
+            return res.status(status.Forbidden).json({ message: 'Access denied: order does not belong to this customer' });
+        }
+
         const oldData = JSON.parse(JSON.stringify(bill.get({ plain: true })));
 
         const totalPaid = parseFloat(cash) + parseFloat(card) + parseFloat(online);

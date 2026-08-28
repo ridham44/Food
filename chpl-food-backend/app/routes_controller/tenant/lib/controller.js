@@ -475,3 +475,63 @@ exports.filtration = async (req, res) => {
         return common.throwException(error, 'Tenant Filtration API', req, res);
     }
 };
+
+const PUBLIC_TENANT_ATTRIBUTES = [
+    'id',
+    'companyName',
+    'contactPerson',
+    'mobile',
+    'phone',
+    'email',
+    'address',
+    'countryId',
+    'stateId',
+    'cityId',
+    'zipCode',
+    'frontImage',
+    'website',
+    'isOpen',
+    'openingTime',
+    'closingTime',
+    'acceptOrders',
+];
+
+// Public, unauthenticated restaurant directory for the customer app —
+// approved tenants only, and only fields safe to show on a public storefront
+// (no gstNumber/panNumber/backImage/status internals).
+exports.publicList = async (req, res) => {
+    try {
+        const { search } = req.query;
+        const whereCondition = { status: '1' };
+
+        if (search) {
+            whereCondition.companyName = { [Op.like]: `%${search}%` };
+        }
+
+        const tenants = await db.Tenant.findAll({
+            where: whereCondition,
+            attributes: PUBLIC_TENANT_ATTRIBUTES,
+            order: [['companyName', 'ASC']],
+        });
+
+        return res.status(status.OK).json({ data: tenants });
+    } catch (error) {
+        return common.throwException(error, 'Public Tenant List API', req, res);
+    }
+};
+
+exports.publicById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const tenant = await db.Tenant.findOne({
+            where: { id, status: '1' },
+            attributes: PUBLIC_TENANT_ATTRIBUTES,
+        });
+
+        if (!tenant) return res.status(status.NotFound).json({ message: 'Restaurant not found' });
+
+        return res.status(status.OK).json({ data: tenant });
+    } catch (error) {
+        return common.throwException(error, 'Public Tenant By ID API', req, res);
+    }
+};

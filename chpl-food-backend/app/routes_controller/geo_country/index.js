@@ -82,6 +82,9 @@ router.get('/country-filter/options', auth, controller.countryForFilter);
 // get all country
 router.get('/country', auth, controller.findAll);
 
+// Public, unauthenticated lookup for the customer signup/address form
+router.get('/public/country/options', controller.findAll);
+
 //get country Options
 router.get('/country/options', auth, controller.findAll);
 

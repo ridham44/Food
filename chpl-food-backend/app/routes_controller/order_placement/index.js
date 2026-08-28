@@ -17,6 +17,10 @@ router.post('/order/item', auth, controller.addOrderItem);
 
 router.post('/order/prev', auth, validatereorder(), expressValidate, controller.reorderFromPreviousOrder);
 
+// Customer app order history — scoped to the caller's own customerId
+router.get('/order/my-orders', auth, controller.myOrders);
+router.get('/order/my-orders/:id', auth, controller.myOrderDetail);
+
 const staffAuth = require('../../middlewares/middleware');
 
 // Kitchen prep workflow: new -> preparing -> ready -> completed, or 'cancelled' (requires cancelReason)

@@ -114,6 +114,16 @@ exports.redeemPointsOnly = async (req, res) => {
 
         const { customerId } = order;
 
+        if (req.user.tenantId) {
+            if (req.user.tenantId !== order.tenantId) {
+                await transaction.rollback();
+                return res.status(status.Forbidden).json({ message: 'Access denied: order does not belong to this tenant' });
+            }
+        } else if (req.user.id !== customerId) {
+            await transaction.rollback();
+            return res.status(status.Forbidden).json({ message: 'Access denied: order does not belong to this customer' });
+        }
+
         const cp = await db.CustomerPoints.findOne({
             where: { customerId },
             transaction,

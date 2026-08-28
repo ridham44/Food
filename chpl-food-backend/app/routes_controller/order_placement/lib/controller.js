@@ -135,6 +135,8 @@ exports.approveOrRejectOrder = async (req, res) => {
 
         if (!isCustomer) {
             whereCondition.tenantId = tenantId;
+        } else {
+            whereCondition.customerId = user.id;
         }
 
         const order = await db.OrderList.findOne({ where: whereCondition });
@@ -398,8 +400,17 @@ exports.updateOrderItemQuantity = async (req, res) => {
             return res.status(status.BadRequest).json({ message: 'Order cannot be updated unless it is pending' });
         }
 
-        const menuItem = await db.Menu.findByPky(orderItem.menuId);
-        const newTotalPrice = quantity * parseFloat(menuItem.price);
+        let unitPrice;
+        if (orderItem.menuId) {
+            const menuItem = await db.Menu.findOne({ where: { id: orderItem.menuId }, disableTenantCheck: true });
+            if (!menuItem) return res.status(status.NotFound).json({ message: 'Menu item not found' });
+            unitPrice = parseFloat(menuItem.price);
+        } else {
+            const combo = await db.ComboGroup.findOne({ where: { id: orderItem.comboId }, disableTenantCheck: true });
+            if (!combo) return res.status(status.NotFound).json({ message: 'Combo not found' });
+            unitPrice = parseFloat(combo.price);
+        }
+        const newTotalPrice = quantity * unitPrice;
 
         await db.OrderItem.update({ quantity, totalPrice: newTotalPrice.toFixed(2) }, { where: { id: orderItemId } });
 
@@ -426,11 +437,20 @@ exports.addOrderItem = async (req, res) => {
 
         const orderList = await db.OrderList.findOne({
             where: { id: orderListId },
-            attributes: ['id', 'status'],
+            attributes: ['id', 'status', 'tenantId', 'customerId'],
         });
 
         if (!orderList) {
             return res.status(status.NotFound).json({ message: 'Order list not found' });
+        }
+
+        const user = req.user;
+        if (user.tenantId) {
+            if (user.tenantId !== orderList.tenantId) {
+                return res.status(status.Forbidden).json({ message: 'Access denied: order does not belong to this tenant' });
+            }
+        } else if (user.id !== orderList.customerId) {
+            return res.status(status.Forbidden).json({ message: 'Access denied: order does not belong to this customer' });
         }
 
         if (orderList.status !== '1') {
@@ -712,5 +732,159 @@ exports.listOrders = async (req, res) => {
         return res.status(status.OK).json({ data: { rows: data, count } });
     } catch (error) {
         return common.throwException(error, 'List Orders API', req, res);
+    }
+};
+
+// Customer app order history — scoped to the authenticated customer's own
+// id, never a client-supplied id, across every restaurant they've ordered
+// from.
+exports.myOrders = async (req, res) => {
+    try {
+        const customerId = req.user.id;
+        const { page = 1, pageSize = 20 } = req.query;
+        const limit = parseInt(pageSize) || 20;
+        const offset = (parseInt(page) - 1) * limit;
+
+        const { rows, count } = await db.OrderList.findAndCountAll({
+            where: { customerId },
+            include: [
+                {
+                    model: db.Tenant,
+                    as: 'Tenant',
+                    attributes: ['id', 'companyName', 'frontImage'],
+                    disableTenantCheck: true,
+                },
+                {
+                    model: db.OrderItem,
+                    as: 'OrderItem',
+                    attributes: ['id', 'quantity', 'totalPrice'],
+                    disableTenantCheck: true,
+                },
+                {
+                    model: db.OrderBill,
+                    as: 'OrderBill',
+                    attributes: ['id', 'finalAmount', 'status'],
+                    required: false,
+                    disableTenantCheck: true,
+                },
+            ],
+            distinct: true,
+            limit,
+            offset,
+            order: [['createdAt', 'DESC']],
+        });
+
+        const data = rows.map((row) => {
+            const plain = row.get({ plain: true });
+            const itemCount = (plain.OrderItem || []).reduce((sum, i) => sum + i.quantity, 0);
+            const bill = plain.OrderBill && plain.OrderBill[0] ? plain.OrderBill[0] : null;
+            return {
+                id: plain.id,
+                tenantId: plain.tenantId,
+                restaurantName: plain.Tenant?.companyName ?? null,
+                restaurantImage: plain.Tenant?.frontImage ?? null,
+                itemCount,
+                total: bill ? parseFloat(bill.finalAmount) : null,
+                paymentStatus: bill ? bill.status : null,
+                orderType: plain.orderType,
+                tableNumber: plain.tableNumber,
+                status: plain.status,
+                kitchenStatus: plain.kitchenStatus,
+                cancelReason: plain.cancelReason,
+                createdAt: plain.createdAt,
+            };
+        });
+
+        return res.status(status.OK).json({ data: { rows: data, count } });
+    } catch (error) {
+        return common.throwException(error, 'My Orders API', req, res);
+    }
+};
+
+exports.myOrderDetail = async (req, res) => {
+    try {
+        const customerId = req.user.id;
+        const { id } = req.params;
+
+        const order = await db.OrderList.findOne({
+            where: { id, customerId },
+            include: [
+                {
+                    model: db.Tenant,
+                    as: 'Tenant',
+                    attributes: ['id', 'companyName', 'address', 'mobile', 'frontImage'],
+                    disableTenantCheck: true,
+                },
+                {
+                    model: db.OrderItem,
+                    as: 'OrderItem',
+                    attributes: ['id', 'menuId', 'comboId', 'quantity', 'totalPrice', 'specialInstruction'],
+                    disableTenantCheck: true,
+                    include: [
+                        { model: db.Menu, as: 'Menu', attributes: ['name', 'filePath'], required: false, disableTenantCheck: true },
+                        { model: db.ComboGroup, as: 'ComboGroup', attributes: ['name'], required: false },
+                    ],
+                },
+                {
+                    model: db.OrderBill,
+                    as: 'OrderBill',
+                    required: false,
+                    disableTenantCheck: true,
+                },
+            ],
+        });
+
+        if (!order) {
+            return res.status(status.NotFound).json({ message: 'Order not found' });
+        }
+
+        const plain = order.get({ plain: true });
+        const bill = plain.OrderBill && plain.OrderBill[0] ? plain.OrderBill[0] : null;
+
+        return res.status(status.OK).json({
+            data: {
+                id: plain.id,
+                tenantId: plain.tenantId,
+                restaurant: plain.Tenant
+                    ? {
+                          id: plain.Tenant.id,
+                          name: plain.Tenant.companyName,
+                          address: plain.Tenant.address,
+                          mobile: plain.Tenant.mobile,
+                          image: plain.Tenant.frontImage,
+                      }
+                    : null,
+                orderType: plain.orderType,
+                tableNumber: plain.tableNumber,
+                status: plain.status,
+                kitchenStatus: plain.kitchenStatus,
+                cancelReason: plain.cancelReason,
+                createdAt: plain.createdAt,
+                items: (plain.OrderItem || []).map((item) => ({
+                    id: item.id,
+                    name: item.Menu?.name ?? item.ComboGroup?.name ?? 'Item',
+                    image: item.Menu?.filePath ?? null,
+                    isCombo: Boolean(item.comboId),
+                    quantity: item.quantity,
+                    totalPrice: parseFloat(item.totalPrice),
+                    specialInstruction: item.specialInstruction,
+                })),
+                bill: bill
+                    ? {
+                          id: bill.id,
+                          totalAmount: parseFloat(bill.totalAmount),
+                          gstPercent: parseFloat(bill.gstPercent || 0),
+                          packingFee: parseFloat(bill.packingFee || 0),
+                          discountAmount: parseFloat(bill.discountAmount || 0),
+                          pointsUsed: parseFloat(bill.pointsUsed || 0),
+                          couponCode: bill.couponCode || null,
+                          finalAmount: parseFloat(bill.finalAmount),
+                          status: bill.status,
+                      }
+                    : null,
+            },
+        });
+    } catch (error) {
+        return common.throwException(error, 'My Order Detail API', req, res);
     }
 };
