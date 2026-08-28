@@ -32,6 +32,12 @@ import CombosPage from '@/pages/restaurant/CombosPage';
 import ExpensesPage from '@/pages/restaurant/ExpensesPage';
 import VendorsPage from '@/pages/restaurant/VendorsPage';
 import ActivityLogPage from '@/pages/restaurant/ActivityLogPage';
+import AdminLayout from '@/app/AdminLayout';
+import { AdminProtectedRoute } from '@/app/AdminProtectedRoute';
+import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
+import AdminTenantsPage from '@/pages/admin/TenantsPage';
+import AdminReportsPage from '@/pages/admin/ReportsPage';
+import AdminSettingsPage from '@/pages/admin/SettingsPage';
 
 export const router = createBrowserRouter([
   {
@@ -91,6 +97,21 @@ export const router = createBrowserRouter([
       { path: 'settings/restaurant', element: <RestaurantSettingsPage /> },
       { path: 'settings/activity-log', element: <ActivityLogPage /> },
       { path: 'settings/profile', element: <ProfileSettingsPage /> },
+    ],
+  },
+  {
+    path: '/admin',
+    element: (
+      <AdminProtectedRoute>
+        <AdminLayout />
+      </AdminProtectedRoute>
+    ),
+    children: [
+      { index: true, element: <AdminDashboardPage /> },
+      { path: 'tenants', element: <AdminTenantsPage /> },
+      { path: 'reports', element: <AdminReportsPage /> },
+      { path: 'activity-log', element: <ActivityLogPage /> },
+      { path: 'settings', element: <AdminSettingsPage /> },
     ],
   },
 ]);

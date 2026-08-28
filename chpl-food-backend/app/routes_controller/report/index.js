@@ -1,5 +1,7 @@
 const router = require('express').Router();
 const auth = require('../../middlewares/CustomerMiddlewear');
+const staffAuth = require('../../middlewares/middleware');
+const adminOnly = require('../../middlewares/adminMiddleware');
 const controller = require('./lib/controller');
 const { expressValidate } = require('../../../utils/lib/common-function');
 const { dateValidation, validategetOrder } = require('./lib/validation');
@@ -24,6 +26,8 @@ router.get('/report/orders/:tenantId', auth, controller.getCustomerPreviousOrder
 router.post('/report/revenue-vs-expense', auth, controller.getBreakdown);
 // Dashboard home KPI summary (today vs yesterday)
 router.get('/report/dashboard-summary', auth, controller.dashboardSummary);
+// Platform-wide KPI summary for the admin dashboard
+router.get('/report/admin-dashboard-summary', staffAuth, adminOnly, controller.adminDashboardSummary);
 
 
 module.exports = router;

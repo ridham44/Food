@@ -921,3 +921,70 @@ exports.dashboardSummary = async (req, res) => {
         return common.throwException(error, 'Dashboard Summary API', req, res);
     }
 };
+
+// Platform-wide KPI summary for the admin dashboard — access is gated by
+// the `adminOnly` middleware on the route, not by anything in here.
+exports.adminDashboardSummary = async (req, res) => {
+    try {
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+        const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+        const startOfYesterday = new Date(startOfToday);
+        startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+        const endOfYesterday = new Date(endOfToday);
+        endOfYesterday.setDate(endOfYesterday.getDate() - 1);
+
+        const pctChange = (curr, prev) => {
+            if (!prev) return curr > 0 ? 100 : 0;
+            return parseFloat((((curr - prev) / prev) * 100).toFixed(1));
+        };
+
+        const revenueFor = async (start, end) => {
+            const sum = await db.OrderBill.sum('finalAmount', {
+                where: { status: '1', createdAt: { [Op.between]: [start, end] } },
+            });
+            return parseFloat(sum || 0);
+        };
+
+        const [
+            totalTenants,
+            pendingTenants,
+            approvedTenants,
+            rejectedTenants,
+            totalCustomers,
+            todayOrders,
+            yesterdayOrders,
+            todayRevenue,
+            yesterdayRevenue,
+            totalRevenue,
+        ] = await Promise.all([
+            db.Tenant.count(),
+            db.Tenant.count({ where: { status: '0' } }),
+            db.Tenant.count({ where: { status: '1' } }),
+            db.Tenant.count({ where: { status: '3' } }),
+            db.Customer.count(),
+            db.OrderList.count({ where: { createdAt: { [Op.between]: [startOfToday, endOfToday] } } }),
+            db.OrderList.count({ where: { createdAt: { [Op.between]: [startOfYesterday, endOfYesterday] } } }),
+            revenueFor(startOfToday, endOfToday),
+            revenueFor(startOfYesterday, endOfYesterday),
+            db.OrderBill.sum('finalAmount', { where: { status: '1' } }).then((v) => parseFloat(v || 0)),
+        ]);
+
+        return res.status(status.OK).json({
+            data: {
+                totalTenants,
+                pendingTenants,
+                approvedTenants,
+                rejectedTenants,
+                totalCustomers,
+                todayOrders,
+                todayOrdersChangePct: pctChange(todayOrders, yesterdayOrders),
+                todayRevenue,
+                todayRevenueChangePct: pctChange(todayRevenue, yesterdayRevenue),
+                totalRevenue,
+            },
+        });
+    } catch (error) {
+        return common.throwException(error, 'Admin Dashboard Summary API', req, res);
+    }
+};

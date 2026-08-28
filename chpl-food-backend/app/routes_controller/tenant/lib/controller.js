@@ -108,6 +108,18 @@ exports.update = async (req, res) => {
     try {
         const { id } = req.params;
         const { body, files, user } = req;
+        const isAdmin = user?.Role?.type === '1';
+
+        if (!isAdmin && id !== user.tenantId) {
+            await transaction.rollback();
+            if (req.files?.frontImage?.[0]?.path && fs.existsSync(req.files.frontImage[0].path)) {
+                fs.unlinkSync(req.files.frontImage[0].path);
+            }
+            if (req.files?.backImage?.[0]?.path && fs.existsSync(req.files.backImage[0].path)) {
+                fs.unlinkSync(req.files.backImage[0].path);
+            }
+            return res.status(status.Forbidden).json({ message: 'You can only update your own restaurant profile.' });
+        }
 
         const tenant = await db.Tenant.findByPk(id);
         if (!tenant) {
@@ -128,6 +140,11 @@ exports.update = async (req, res) => {
         // dashboard header's open/closed switch), and the latter would
         // otherwise null out every other NOT NULL column.
         const pick = (key) => (body[key] !== undefined ? body[key] : tenant[key]);
+        // Approval-workflow fields — only an admin may change these here (a
+        // regular tenant flipping their own `status`/`emailVerified` would
+        // bypass the approval flow entirely). Non-admin callers keep the
+        // tenant's current value regardless of what they send.
+        const pickAdminOnly = (key) => (isAdmin && body[key] !== undefined ? body[key] : tenant[key]);
 
         tenant.set({
             shortCode: pick('shortCode'),
@@ -150,9 +167,9 @@ exports.update = async (req, res) => {
             website: pick('website'),
             termAndCondition: pick('termAndCondition'),
             returnAndExchange: pick('returnAndExchange'),
-            status: pick('status'),
-            emailVerified: pick('emailVerified'),
-            emailVerifiedAt: pick('emailVerifiedAt'),
+            status: pickAdminOnly('status'),
+            emailVerified: pickAdminOnly('emailVerified'),
+            emailVerifiedAt: pickAdminOnly('emailVerifiedAt'),
             isOpen: pick('isOpen'),
             openingTime: pick('openingTime'),
             closingTime: pick('closingTime'),
@@ -212,6 +229,10 @@ exports.delete = async (req, res) => {
 exports.findById = async (req, res) => {
     try {
         const { id } = req.params;
+        const isAdmin = req.user?.Role?.type === '1';
+        if (!isAdmin && id !== req.user.tenantId) {
+            return res.status(status.Forbidden).json({ message: 'You can only view your own restaurant profile.' });
+        }
         const tenant = await db.Tenant.findByPk(id);
         if (!tenant) return res.status(status.NotFound).json({ message: 'Tenant not found' });
 
@@ -291,8 +312,7 @@ exports.updateStatus = async (req, res) => {
         const newStatus = String(req.body.status);
         const { rejectedReason } = req.body;
 
-        const role = await db.Role.findByPk(req.user.roleId);
-        if (!role || !role.name.toLowerCase().includes('admin')) {
+        if (req.user?.Role?.type !== '1') {
             await transaction.rollback();
             return res.status(status.Forbidden).json({ message: `Only admin can update status.` });
         }

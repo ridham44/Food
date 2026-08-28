@@ -6,6 +6,8 @@ export interface AuthUser {
   email: string | null;
   mobile: string | null;
   role: string | null;
+  /** '1'=Admin, '2'=Tenant, '3'=Customer — the stable signal for role-based routing. */
+  roleType: string | null;
   tenant: string | null;
   tenantId: string | null;
 }

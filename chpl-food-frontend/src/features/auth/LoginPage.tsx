@@ -34,8 +34,11 @@ export default function LoginPage() {
     resolver: zodResolver(loginSchema),
   });
 
+  const user = useAuthStore((state) => state.user);
+
   if (accessToken) {
-    const redirectTo = (location.state as { from?: string } | null)?.from ?? '/';
+    const defaultRoute = user?.roleType === '1' ? '/admin' : '/';
+    const redirectTo = (location.state as { from?: string } | null)?.from ?? defaultRoute;
     return <Navigate to={redirectTo} replace />;
   }
 
@@ -50,7 +53,8 @@ export default function LoginPage() {
       onSuccess: (data) => {
         setStatus('success');
         toast.success(data.message || 'Login successful');
-        window.setTimeout(() => navigate('/', { replace: true }), 450);
+        const redirectTo = data.userData.roleType === '1' ? '/admin' : '/';
+        window.setTimeout(() => navigate(redirectTo, { replace: true }), 450);
       },
       onError: (error) => {
         toast.error(getLoginErrorMessage(error));

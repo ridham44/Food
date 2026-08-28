@@ -134,22 +134,6 @@ exports.updateStatus = async (req, res) => {
 
 exports.getAllTenantTaxReport = async (req, res) => {
     try {
-        const user = req.user;
-        const userRoleId = user.roleId;
-
-        const role = await db.Role.findOne({
-            where: { id: userRoleId },
-            attributes: ['isAdmin'],
-            raw: true,
-        });
-
-        if (!role || role.isAdmin !== 1) {
-            return res.status(status.Forbidden).json({
-                status: false,
-                message: 'Admin/Superadmin access required to view all tenant tax reports.',
-            });
-        }
-
         const configs = await db.TaxConfig.findAll({
             include: [
                 {

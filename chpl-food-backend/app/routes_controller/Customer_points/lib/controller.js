@@ -64,19 +64,6 @@ exports.assignPointsOnOrder = async (orderListId) => {
     }
 };
 
-exports.testAssignPoints = async (req, res) => {
-    const orderListId = 'adcce3b4-d1d3-49d3-8c52-829b30d054e1';
-
-    for (let i = 1; i <= 9; i++) {
-        console.log(`\n--- Test Run #${i} ---`);
-        const result = await exports.assignPointsOnOrder(orderListId);
-        console.log(result);
-    }
-    return res.status(status.OK).json({
-        message: 'successfully',
-    });
-};
-
 exports.redeemPointsOnly = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {

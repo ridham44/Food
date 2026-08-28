@@ -257,6 +257,7 @@ exports.login = async (req, res) => {
                 email: user.email,
                 mobile: user.mobile,
                 role: user.Role ? user.Role.name : null,
+                roleType: user.Role ? user.Role.type : null,
                 tenant: user.Tenant ? user.Tenant.companyName : null,
                 tenantId: user.Tenant ? user.Tenant.id : null,
             },

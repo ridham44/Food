@@ -3,6 +3,7 @@ const fs = require('fs');
 const multer = require('multer');
 const controller = require('./lib/controller');
 const auth = require('../../middlewares/middleware');
+const adminOnly = require('../../middlewares/adminMiddleware');
 const { expressValidate } = require('../../../utils/lib/common-function');
 const { validationRules, updateValidations } = require('./lib/validation');
 const { status } = require('../../../utils');
@@ -90,10 +91,11 @@ router.put(
 );
 
 // Delete tenant
-router.delete('/tenant/:id', auth, controller.delete);
+router.delete('/tenant/:id', auth, adminOnly, controller.delete);
 
-// Get all tenants
-router.get('/tenant', auth, controller.findAll);
+// Get all tenants (platform admin only — a regular tenant has no business
+// browsing other restaurants' full records)
+router.get('/tenant', auth, adminOnly, controller.findAll);
 
 // Public, unauthenticated restaurant directory for the customer app. Must be
 // registered before `/tenant/:id` below, or "public-list" would be swallowed
@@ -110,18 +112,19 @@ router.get('/tenant/current', auth, controller.getCurrent);
 router.get('/tenant/:id', auth, controller.findById);
 
 // Tenant filter options
-router.get('/tenant-filter/options', auth, controller.tenantForFilter);
+router.get('/tenant-filter/options', auth, adminOnly, controller.tenantForFilter);
 
 // Tenant filtration
-router.post('/tenant-filter', auth, controller.tenantFiltration);
+router.post('/tenant-filter', auth, adminOnly, controller.tenantFiltration);
 
-// Update tenant status
-router.put('/tenant/status/:id', auth, controller.updateStatus);
+// Update tenant status (approve/reject) — admin-only, enforced again inside
+// the controller since this action also writes approvedBy/rejectedBy audit fields
+router.put('/tenant/status/:id', auth, adminOnly, controller.updateStatus);
 
 // Finding tenants by created user ID
-router.get('/tenant/by-user/:userId', auth, controller.findByCreatedUserId);
+router.get('/tenant/by-user/:userId', auth, adminOnly, controller.findByCreatedUserId);
 
 // Finding with date
-router.post('/tenant/filter', auth, controller.filtration);
+router.post('/tenant/filter', auth, adminOnly, controller.filtration);
 
 module.exports = router;
