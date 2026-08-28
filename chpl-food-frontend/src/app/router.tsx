@@ -4,6 +4,15 @@ import DashboardLayout from '@/app/DashboardLayout';
 import { ProtectedRoute } from '@/app/ProtectedRoute';
 import CustomerLoginPage from '@/features/customerAuth/CustomerLoginPage';
 import CustomerSignupPage from '@/features/customerAuth/CustomerSignupPage';
+import CustomerLayout from '@/app/CustomerLayout';
+import { CustomerProtectedRoute } from '@/app/CustomerProtectedRoute';
+import RestaurantsPage from '@/pages/customer/RestaurantsPage';
+import RestaurantDetailPage from '@/pages/customer/RestaurantDetailPage';
+import CartPage from '@/pages/customer/CartPage';
+import CheckoutPage from '@/pages/customer/CheckoutPage';
+import CustomerOrdersPage from '@/pages/customer/OrdersPage';
+import CustomerOrderDetailPage from '@/pages/customer/OrderDetailPage';
+import CustomerMyProfilePage from '@/pages/customer/ProfilePage';
 import DashboardHome from '@/pages/restaurant/DashboardHome';
 import OrdersPage from '@/pages/restaurant/OrdersPage';
 import KitchenPage from '@/pages/restaurant/KitchenPage';
@@ -36,6 +45,24 @@ export const router = createBrowserRouter([
   {
     path: '/app/signup',
     element: <CustomerSignupPage />,
+  },
+  {
+    path: '/app',
+    element: (
+      <CustomerProtectedRoute>
+        <CustomerLayout />
+      </CustomerProtectedRoute>
+    ),
+    children: [
+      { index: true, element: <RestaurantsPage /> },
+      { path: 'restaurants', element: <RestaurantsPage /> },
+      { path: 'restaurants/:tenantId', element: <RestaurantDetailPage /> },
+      { path: 'cart', element: <CartPage /> },
+      { path: 'checkout', element: <CheckoutPage /> },
+      { path: 'orders', element: <CustomerOrdersPage /> },
+      { path: 'orders/:id', element: <CustomerOrderDetailPage /> },
+      { path: 'profile', element: <CustomerMyProfilePage /> },
+    ],
   },
   {
     path: '/',
