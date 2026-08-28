@@ -7,9 +7,9 @@ const validationRules = () => {
             .notEmpty()
             .trim()
             .withMessage('Role name is required')
-            .custom(async (value) => {
+            .custom(async (value, { req }) => {
                 try {
-                    const role = await db.Role.findOne({ where: { name: value } });
+                    const role = await db.Role.findOne({ where: { name: value, tenantId: req.user?.tenantId ?? null } });
                     if (role) {
                         return Promise.reject('Role already exists!');
                     }
@@ -49,7 +49,7 @@ const validationRules = () => {
 
 const updateValidations = () => {
     return [
-        body('name').notEmpty().withMessage('Menu name is required').trim(),
+        body('name').notEmpty().withMessage('Role name is required').trim(),
 
         body('type').optional().isIn(['1', '2', '3']).withMessage('Invalid type. Allowed values: 1 (Admin), 2 (Tenant), 3 (Customer)'),
 

@@ -14,7 +14,7 @@ exports.create = async (req, res) => {
                 type: body.type,
                 isAdmin: body.isAdmin,
                 remark: body.remark,
-                status: body.statusValue,
+                status: body.status,
                 tenantId: user.tenantId,
                 createdBy: user.id,
             },
@@ -34,8 +34,10 @@ exports.update = async (req, res) => {
     try {
         const { body, user } = req;
         const { id } = req.params;
+        const isPlatformAdmin = user?.Role?.type === '1';
+        const scopeWhere = isPlatformAdmin ? { id } : { id, tenantId: user.tenantId };
 
-        const role = await db.Role.findByPk(id, { transaction });
+        const role = await db.Role.findOne({ where: scopeWhere, transaction });
         if (!role) {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'Role not found!' });
@@ -45,6 +47,7 @@ exports.update = async (req, res) => {
             where: {
                 id: { [Op.ne]: id },
                 name: body.name,
+                tenantId: role.tenantId,
             },
         });
 
@@ -59,7 +62,6 @@ exports.update = async (req, res) => {
             isAdmin: body.isAdmin,
             remark: body.remark,
             status: body.status,
-            tenantId: user.tenantId,
             updatedBy: user.id,
         });
 
@@ -77,8 +79,10 @@ exports.delete = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
         const { id } = req.params;
+        const isPlatformAdmin = req.user?.Role?.type === '1';
+        const scopeWhere = isPlatformAdmin ? { id } : { id, tenantId: req.user.tenantId };
 
-        const role = await db.Role.findByPk(id, { transaction });
+        const role = await db.Role.findOne({ where: scopeWhere, transaction });
         if (!role) {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'Role not found!' });
@@ -101,7 +105,9 @@ exports.delete = async (req, res) => {
 exports.findById = async (req, res) => {
     try {
         const { id } = req.params;
-        const role = await db.Role.findByPk(id);
+        const isPlatformAdmin = req.user?.Role?.type === '1';
+        const scopeWhere = isPlatformAdmin ? { id } : { id, tenantId: req.user.tenantId };
+        const role = await db.Role.findOne({ where: scopeWhere });
         if (!role) return res.status(status.NotFound).json({ message: 'Role not found!' });
         return res.status(status.OK).json({ data: role });
     } catch (error) {
@@ -129,7 +135,9 @@ exports.updateStatus = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
         const { id } = req.params;
-        const role = await db.Role.findByPk(id);
+        const isPlatformAdmin = req.user?.Role?.type === '1';
+        const scopeWhere = isPlatformAdmin ? { id } : { id, tenantId: req.user.tenantId };
+        const role = await db.Role.findOne({ where: scopeWhere });
         if (!role) {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'Invalid role ID!' });
@@ -149,11 +157,12 @@ exports.updateStatus = async (req, res) => {
 exports.roleFiltration = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
-        const { body } = req;
+        const { body, user } = req;
+        const isPlatformAdmin = user?.Role?.type === '1';
 
         const filters = await findWithFilters.findWithFilters(body, db.Role);
         const whereCondition = {
-            tenantId: body.tenantId, // optional
+            ...(isPlatformAdmin ? {} : { tenantId: user.tenantId }),
             ...filters.filterCondition,
         };
 
@@ -195,6 +204,7 @@ exports.filtration = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
         const { fromDate, toDate, page = 1, limit = 10, isAdmin, type, status: roleStatus } = req.body;
+        const isPlatformAdmin = req.user?.Role?.type === '1';
 
         if ((fromDate && isNaN(Date.parse(fromDate))) || (toDate && isNaN(Date.parse(toDate)))) {
             return res.status(status.BadRequest).json({
@@ -220,7 +230,7 @@ exports.filtration = async (req, res) => {
             });
         }
 
-        let whereCondition = {};
+        let whereCondition = isPlatformAdmin ? {} : { tenantId: req.user.tenantId };
         let roleFilter = {};
 
         if (req.body) {

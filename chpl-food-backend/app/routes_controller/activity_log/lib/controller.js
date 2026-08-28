@@ -60,7 +60,8 @@ exports.list = async (req, res) => {
         const { page = 1, limit = 10, module, action, startDate, endDate } = req.body;
 
         const offset = (parseInt(page) - 1) * parseInt(limit);
-        const where = {};
+        const isPlatformAdmin = req.user?.Role?.type === '1';
+        const where = isPlatformAdmin ? {} : { tenantId: req.user.tenantId };
 
         if (module) where.module = module;
         if (action) where.action = action;

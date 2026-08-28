@@ -16,6 +16,11 @@ import PaymentsPage from '@/pages/restaurant/PaymentsPage';
 import ReportsPage from '@/pages/restaurant/ReportsPage';
 import RestaurantSettingsPage from '@/pages/restaurant/RestaurantSettingsPage';
 import ProfileSettingsPage from '@/pages/restaurant/ProfileSettingsPage';
+import CouponsPage from '@/pages/restaurant/CouponsPage';
+import CombosPage from '@/pages/restaurant/CombosPage';
+import ExpensesPage from '@/pages/restaurant/ExpensesPage';
+import VendorsPage from '@/pages/restaurant/VendorsPage';
+import ActivityLogPage from '@/pages/restaurant/ActivityLogPage';
 
 export const router = createBrowserRouter([
   {
@@ -35,14 +40,19 @@ export const router = createBrowserRouter([
       { path: 'kitchen', element: <KitchenPage /> },
       { path: 'menu', element: <MenuPage /> },
       { path: 'categories', element: <CategoriesPage /> },
+      { path: 'combos', element: <CombosPage /> },
       { path: 'inventory', element: <InventoryPage /> },
       { path: 'tables', element: <TablesPage /> },
       { path: 'customers', element: <CustomersPage /> },
       { path: 'customers/:id', element: <CustomerProfilePage /> },
       { path: 'staff', element: <StaffPage /> },
+      { path: 'vendors', element: <VendorsPage /> },
+      { path: 'expenses', element: <ExpensesPage /> },
+      { path: 'coupons', element: <CouponsPage /> },
       { path: 'payments', element: <PaymentsPage /> },
       { path: 'reports', element: <ReportsPage /> },
       { path: 'settings/restaurant', element: <RestaurantSettingsPage /> },
+      { path: 'settings/activity-log', element: <ActivityLogPage /> },
       { path: 'settings/profile', element: <ProfileSettingsPage /> },
     ],
   },

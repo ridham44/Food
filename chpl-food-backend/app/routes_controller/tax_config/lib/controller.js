@@ -36,7 +36,7 @@ exports.update = async (req, res) => {
         const tenantId = req.user.tenantId;
         const { id } = req.params;
 
-        const tax = await db.TaxConfig.findByPk(id, { transaction });
+        const tax = await db.TaxConfig.findOne({ where: { id, tenantId }, transaction });
         if (!tax) {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'Tax config not found!' });
@@ -45,7 +45,6 @@ exports.update = async (req, res) => {
         const oldData = JSON.parse(JSON.stringify(tax.get({ plain: true })));
 
         tax.set({
-            tenantId,
             gst,
             packingFee,
             status: statusValue,
@@ -67,7 +66,7 @@ exports.delete = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const tax = await db.TaxConfig.findByPk(id, { transaction });
+        const tax = await db.TaxConfig.findOne({ where: { id, tenantId: req.user.tenantId }, transaction });
         if (!tax) {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'Tax config not found!' });
@@ -78,7 +77,7 @@ exports.delete = async (req, res) => {
             return res.status(status.Conflict).json({ message: hasChildren.message });
         }
 
-        await db.TaxConfig.destroy({ where: { id } });
+        await db.TaxConfig.destroy({ where: { id, tenantId: req.user.tenantId } });
         await transaction.commit();
         await logActivity(req, 'delete', tax);
         return res.status(status.OK).json({ message: 'Tax configuration deleted successfully.' });
@@ -91,7 +90,7 @@ exports.delete = async (req, res) => {
 exports.findById = async (req, res) => {
     try {
         const { id } = req.params;
-        const tax = await db.TaxConfig.findByPk(id);
+        const tax = await db.TaxConfig.findOne({ where: { id, tenantId: req.user.tenantId } });
         if (!tax) return res.status(status.NotFound).json({ message: 'Tax config not found!' });
         return res.status(status.OK).json({ data: tax });
     } catch (error) {
@@ -101,7 +100,10 @@ exports.findById = async (req, res) => {
 
 exports.findAll = async (req, res) => {
     try {
-        const taxes = await db.TaxConfig.findAll({ order: [['createdAt', 'DESC']] });
+        const taxes = await db.TaxConfig.findAll({
+            where: { tenantId: req.user.tenantId },
+            order: [['createdAt', 'DESC']],
+        });
         return res.status(status.OK).json({ data: taxes });
     } catch (error) {
         return common.throwException(error, 'Find All TaxConfigs', req, res);
@@ -112,7 +114,7 @@ exports.updateStatus = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
         const { id } = req.params;
-        const tax = await db.TaxConfig.findByPk(id);
+        const tax = await db.TaxConfig.findOne({ where: { id, tenantId: req.user.tenantId } });
         if (!tax) {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'Invalid tax config ID!' });
@@ -162,10 +164,9 @@ exports.getAllTenantTaxReport = async (req, res) => {
 
         const result = configs.map((cfg) => ({
             tenantName: cfg.Tenant?.companyName || 'N/A',
-            gstPercent: cfg.gstPercent,
+            gst: cfg.gst,
             packingFee: cfg.packingFee,
-            isPackingFeePercent: cfg.isPackingFeePercent,
-            status: cfg.status === 1 ? 'Active' : 'Inactive',
+            status: cfg.status === '1' ? 'Active' : 'Inactive',
         }));
 
         return res.status(status.OK).json({

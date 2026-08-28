@@ -310,7 +310,7 @@ exports.getExpenseReportCombo = async (req, res) => {
 exports.expenseByPaymentMode = async (req, res) => {
     try {
         const tenantId = req.user.tenantId;
-        const { from, to } = req.query;
+        const { from, to } = req.body;
 
         if (!tenantId) {
             return res.status(status.BadRequest).json({ message: 'Tenant ID is missing from token.' });

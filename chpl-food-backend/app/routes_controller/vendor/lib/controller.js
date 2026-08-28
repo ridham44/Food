@@ -242,7 +242,10 @@ exports.getVendorItemById = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const item = await db.VendorItem.findByPk(id);
+        const item = await db.VendorItem.findOne({
+            where: { id },
+            include: [{ model: db.Vendor, as: 'Vendor', where: { tenantId: req.user.tenantId }, attributes: [] }],
+        });
         if (!item) {
             return res.status(status.NotFound).json({ message: 'Vendor item not found' });
         }
@@ -260,7 +263,11 @@ exports.updateVendorItem = async (req, res) => {
         const { id } = req.params;
         const { ingredientName, costPerUnit, unit, category } = req.body;
 
-        const item = await db.VendorItem.findByPk(id, { transaction });
+        const item = await db.VendorItem.findOne({
+            where: { id },
+            include: [{ model: db.Vendor, as: 'Vendor', where: { tenantId: req.user.tenantId }, attributes: [] }],
+            transaction,
+        });
         if (!item) {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'Vendor item not found' });
@@ -297,7 +304,10 @@ exports.deleteVendorItem = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const item = await db.VendorItem.findByPk(id);
+        const item = await db.VendorItem.findOne({
+            where: { id },
+            include: [{ model: db.Vendor, as: 'Vendor', where: { tenantId: req.user.tenantId }, attributes: [] }],
+        });
         if (!item) {
             return res.status(status.NotFound).json({ message: 'Vendor item not found' });
         }

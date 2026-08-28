@@ -27,5 +27,6 @@ router.use('/', require('./tax_config'));
 router.use('/', require('./vendor'));
 router.use('/', require('./Ai_Ml'));
 router.use('/', require('./inventory'));
+router.use('/', require('./table'));
 
 module.exports = router;

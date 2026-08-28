@@ -69,7 +69,10 @@ exports.updateComboGroup = async (req, res) => {
         const { id } = req.params;
         const { name, isActive, price } = req.body;
 
-        const comboGroup = await db.ComboGroup.findByPk(id, { transaction });
+        const comboGroup = await db.ComboGroup.findOne({
+            where: { id, tenantId: req.user.tenantId },
+            transaction,
+        });
         if (!comboGroup) {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'Combo group not found!' });
@@ -103,10 +106,22 @@ exports.updateComboGroupItem = async (req, res) => {
         const { id } = req.params;
         const { menuId, quantity, type } = req.body;
 
-        const item = await db.ComboGroupItem.findByPk(id, { transaction });
+        const item = await db.ComboGroupItem.findOne({
+            where: { id },
+            include: [{ model: db.ComboGroup, as: 'ComboGroup', where: { tenantId: req.user.tenantId }, attributes: [] }],
+            transaction,
+        });
         if (!item) {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'Combo group item not found!' });
+        }
+
+        if (menuId !== undefined) {
+            const menu = await db.Menu.findOne({ where: { id: menuId, tenantId: req.user.tenantId }, transaction });
+            if (!menu) {
+                await transaction.rollback();
+                return res.status(status.NotFound).json({ message: 'Menu item not found' });
+            }
         }
 
         if (typeof menuId !== 'undefined') item.menuId = menuId;
@@ -136,7 +151,7 @@ exports.addComboGroupItem = async (req, res) => {
             return res.status(status.BadRequest).json({ message: 'All fields are required: comboGroupId, menuId, quantity, type' });
         }
 
-        const comboGroup = await db.ComboGroup.findByPk(comboGroupId);
+        const comboGroup = await db.ComboGroup.findOne({ where: { id: comboGroupId, tenantId: req.user.tenantId } });
         if (!comboGroup) {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'Combo group not found' });
@@ -146,8 +161,8 @@ exports.addComboGroupItem = async (req, res) => {
             where: {
                 id: menuId,
                 isAvailable: '1',
+                tenantId: req.user.tenantId,
             },
-            disableTenantCheck: true,
         });
 
         if (!menu) {
@@ -181,7 +196,10 @@ exports.deleteComboGroupItem = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const item = await db.ComboGroupItem.findByPk(id);
+        const item = await db.ComboGroupItem.findOne({
+            where: { id },
+            include: [{ model: db.ComboGroup, as: 'ComboGroup', where: { tenantId: req.user.tenantId }, attributes: [] }],
+        });
         if (!item) {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'Combo group item not found' });
@@ -203,7 +221,7 @@ exports.deleteCombo = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const combo = await db.ComboGroup.findByPk(id, { transaction });
+        const combo = await db.ComboGroup.findOne({ where: { id, tenantId: req.user.tenantId }, transaction });
         if (!combo) {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'Combo not found' });
@@ -339,12 +357,12 @@ exports.updateComboStatus = async (req, res) => {
         const { id } = req.params;
         const { isActive } = req.body;
 
-        if (isActive !== '1' || isActive !== '0') {
+        if (isActive !== '1' && isActive !== '0') {
             await transaction.rollback();
             return res.status(status.BadRequest).json({ message: 'isActive must be a  value (0/1).' });
         }
 
-        const combo = await db.ComboGroup.findOne({ where: { id }, transaction });
+        const combo = await db.ComboGroup.findOne({ where: { id, tenantId: req.user.tenantId }, transaction });
 
         if (!combo) {
             await transaction.rollback();

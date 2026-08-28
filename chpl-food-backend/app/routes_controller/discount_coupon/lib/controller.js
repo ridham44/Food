@@ -265,7 +265,11 @@ exports.redeemCoupon = async (req, res) => {
 exports.updateCoupon = async (req, res) => {
     const { id } = req.params;
     const { isActive, validTo, customerIds } = req.body;
-    const tenantId = req.user.tenantId;
+    const tenantId = req.user?.tenantId;
+
+    if (!tenantId) {
+        return res.status(status.Forbidden).json({ message: 'Tenant access only' });
+    }
 
     const transaction = await db.sequelize.transaction();
 
@@ -275,12 +279,12 @@ exports.updateCoupon = async (req, res) => {
             transaction,
         });
 
-        const oldData = JSON.parse(JSON.stringify(coupon.get({ plain: true })));
-
         if (!coupon) {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'Coupon not found' });
         }
+
+        const oldData = JSON.parse(JSON.stringify(coupon.get({ plain: true })));
 
         const updateFields = {};
         if (isActive !== undefined) updateFields.isActive = isActive;
@@ -290,7 +294,7 @@ exports.updateCoupon = async (req, res) => {
         await coupon.save({ transaction });
 
         if (Array.isArray(customerIds) && customerIds.length > 0) {
-            const existing = await db.DiscountCouponCustomer.findAll({
+            const existing = await db.DiscountCouponUser.findAll({
                 where: { couponId: id },
                 attributes: ['customerId'],
                 raw: true,
@@ -299,10 +303,12 @@ exports.updateCoupon = async (req, res) => {
 
             const existingIds = existing.map((e) => e.customerId);
 
-            const newEntries = customerIds.filter((cid) => !existingIds.includes(cid)).map((cid) => ({ couponId: id, customerId: cid }));
+            const newEntries = customerIds
+                .filter((cid) => !existingIds.includes(cid))
+                .map((cid) => ({ id: uuidv4(), couponId: id, customerId: cid, usedCount: 0 }));
 
             if (newEntries.length > 0) {
-                await db.DiscountCouponCustomer.bulkCreate(newEntries, { transaction });
+                await db.DiscountCouponUser.bulkCreate(newEntries, { transaction });
             }
         }
 
@@ -325,7 +331,11 @@ exports.updateCouponStatus = async (req, res) => {
     try {
         const { id } = req.params;
         const { isActive } = req.body;
-        const tenantId = req.user.tenantId;
+        const tenantId = req.user?.tenantId;
+
+        if (!tenantId) {
+            return res.status(status.Forbidden).json({ message: 'Tenant access only' });
+        }
 
         if (!['0', '1'].includes(isActive)) {
             return res.status(status.BadRequest).json({ message: 'isActive must be "0" or "1"' });
@@ -335,11 +345,11 @@ exports.updateCouponStatus = async (req, res) => {
             where: { id, tenantId },
         });
 
-        const oldData = JSON.parse(JSON.stringify(coupon.get({ plain: true })));
-
         if (!coupon) {
             return res.status(status.NotFound).json({ message: 'Coupon not found' });
         }
+
+        const oldData = JSON.parse(JSON.stringify(coupon.get({ plain: true })));
 
         coupon.isActive = isActive;
         await coupon.save();
@@ -357,7 +367,10 @@ exports.updateCouponStatus = async (req, res) => {
 
 exports.couponReport = async (req, res) => {
     try {
-        const tenantId = req.user.tenantId;
+        const tenantId = req.user?.tenantId;
+        if (!tenantId) {
+            return res.status(status.Forbidden).json({ message: 'Tenant access only' });
+        }
 
         const coupons = await db.DiscountCoupon.findAll({
             where: { tenantId },
@@ -412,8 +425,11 @@ exports.couponReport = async (req, res) => {
 
 exports.getCouponDetails = async (req, res) => {
     try {
-        const tenantId = req.user.tenantId;
+        const tenantId = req.user?.tenantId;
         const { id } = req.params;
+        if (!tenantId) {
+            return res.status(status.Forbidden).json({ message: 'Tenant access only' });
+        }
 
         const coupon = await db.DiscountCoupon.findOne({
             where: {

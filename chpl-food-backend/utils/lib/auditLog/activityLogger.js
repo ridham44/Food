@@ -14,9 +14,10 @@ const logActivity = async (req, action, instance, oldValue = null) => {
         let userType = 'user';
         let customerId = null;
         let userIdToSave = null;
+        let tenantId = null;
 
         const user = await db.User.findByPk(userId, {
-            attributes: ['id', 'roleId'],
+            attributes: ['id', 'roleId', 'tenantId'],
             disableTenantCheck: true,
         });
 
@@ -31,6 +32,7 @@ const logActivity = async (req, action, instance, oldValue = null) => {
             }
 
             userIdToSave = userId;
+            tenantId = user.tenantId || null;
         } else {
             const customer = await db.Customer.findByPk(userId, {
                 attributes: ['id'],
@@ -73,6 +75,7 @@ const logActivity = async (req, action, instance, oldValue = null) => {
         }
 
         await ActivityLog.create({
+            tenantId,
             userId: userIdToSave,
             customerId: customerId,
             module: modelName,
