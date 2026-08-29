@@ -37,34 +37,28 @@ module.exports = {
         }
     },
 
+    // Bulk-updates rows by referenceField. Previously built a raw UPDATE by
+    // string-concatenating row values straight into SQL (no escaping) — a
+    // SQL-injection footgun for whoever wired it up next. Sequelize's
+    // `.update()` parameterizes values, so this drives the exact same
+    // per-row CASE-style update safely, one bound query per row.
     async bulkUpdate(dataToUpdate, modelName, referenceField, transaction) {
-        let ids = dataToUpdate.map((m1) => `'${m1[referenceField]}'`);
-        let singleFields = 'SET';
+        const keys = Object.keys(dataToUpdate[0] || {}).filter((f1) => f1 !== referenceField);
 
-        let keys = Object.keys(dataToUpdate[0]).filter((f1) => f1 != referenceField);
+        const results = await Promise.all(
+            dataToUpdate.map((row) => {
+                const fields = {};
+                keys.forEach((key) => {
+                    fields[key] = row[key] ?? null;
+                });
+                return modelName.update(fields, {
+                    where: { [referenceField]: row[referenceField] },
+                    transaction,
+                });
+            })
+        );
 
-        keys.forEach((element, index) => {
-            singleFields = singleFields + ` ${element} = CASE `;
-            dataToUpdate.map((m1) => {
-                let myValue;
-
-                if (m1[element]) {
-                    myValue = `'${m1[element]}'`;
-                } else {
-                    myValue = null;
-                }
-
-                singleFields = singleFields + `WHEN ${referenceField} = '${m1[referenceField]}' THEN ${myValue} `;
-            });
-
-            singleFields = singleFields + `ELSE ${element} END`;
-
-            index != keys.length - 1 ? (singleFields = singleFields + ', ') : '';
-        });
-        const [results, metadata] = await db.sequelize.query(`UPDATE \`${modelName.tableName}\` ${singleFields} WHERE id IN(${ids});`, {
-            type: db.sequelize.QueryTypes.UPDATE,
-            transaction,
-        });
+        const metadata = results.reduce((sum, [affectedCount]) => sum + (affectedCount || 0), 0);
         return { results, metadata };
     },
 

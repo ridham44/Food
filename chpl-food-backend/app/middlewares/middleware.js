@@ -10,7 +10,7 @@ const authenticateUser = async (req, res, next) => {
             return res.status(status.Unauthorized).json({ message: 'Unauthorized access.' });
         }
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET_ADMIN);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET_ADMIN, { algorithms: ['HS256'] });
 
         if (!decoded) {
             return res.status(status.Unauthorized).json({ message: 'Unauthorized access.' });

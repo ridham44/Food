@@ -10,8 +10,8 @@ Multi-tenant Point-of-Sale (POS) backend for food/restaurant businesses. Built w
 - **Real-time:** Socket.io (available, currently disabled in `server.js`)
 - **Docs:** Swagger / OpenAPI (`swagger-ui-express`, `swagger-autogen`)
 - **Jobs:** `node-schedule` / `cron` for scheduled tasks (`schedule/`)
-- **Integrations:** Razorpay, Stripe (payments), SendGrid & Nodemailer (email), Firebase Admin (push notifications), Google APIs, Groq (AI chat), IMAP/POP3/mailparser (email sync), QR code generation, PDF generation (`pdfkit`), Excel export (`exceljs`)
-- **Other:** Winston (logging, with daily rotation), Morgan (access logs), Helmet/CORS/compression, `express-rate-limit`, `express-validator`
+- **Integrations:** Razorpay, Stripe (payment client setup present; no active checkout flow wired to either yet), SendGrid & Nodemailer (email), Firebase Admin (push notifications), Google APIs, Groq (AI chat, active), OpenRouter (configured as an alternative AI provider, not wired in by default), IMAP/POP3/mailparser (email sync), QR code generation, PDF generation (`pdfkit`), Excel export (`exceljs`)
+- **Other:** Winston (logging, with daily rotation), Morgan (access logs), Helmet, a CORS allowlist, `express-rate-limit` (general + auth + AI-specific tiers), `express-validator` — see [Security](#security)
 
 ## Project Structure
 
@@ -28,6 +28,7 @@ app/
     CustomerMiddlewear.js       # Customer/tenant JWT auth
     permission.middleware.js    # Permission checks
     roleBasedMiddleware.js      # Role/menu-key based access control
+    rateLimiters.js             # general/auth/AI-chat rate limit tiers (express-rate-limit)
   routes_controller/    # One folder per feature module, each with index.js (routes) + lib/ (controller, validation, service)
     auth/ user/ tenant/ role/ permission/
     menu/ menu_admin/ menu_rating/ combo_offer/ discount_coupon/
@@ -59,7 +60,7 @@ server.js                # App bootstrap (Express app, DB connection, middleware
 - **Tax configuration** — configurable tax rules per tenant.
 - **Geo data** — countries/states/cities reference data.
 - **Reporting** — reporting endpoints for sales/operations insight.
-- **AI features** — sales forecasting (`Ai_Ml`) and role-aware AI chat assistants for orders/tenant/admin/customer (`groq_chat`, powered by Groq).
+- **AI features** — sales forecasting (`Ai_Ml`) and role-aware AI chat assistants for orders/tenant/admin/customer (`groq_chat`, powered by Groq). Branded **"Alica"** in the frontend, where a floating assistant widget is mounted in the admin, tenant, and customer portals, each talking to its own scoped endpoint below. Every dataset the assistant can see is fetched server-side using the caller's own `tenantId`/customer id from their JWT — the model only ever reads pre-filtered, already-scoped JSON, so a prompt can influence the wording of an answer but never reach another tenant's or customer's data.
 - **RBAC** — role-based and menu-key based permission middleware for fine-grained access control.
 - **Notifications** — email (SendGrid/Nodemailer/Gmail), WhatsApp/SMS (11za), voice/IVR (MyOperator), and Firebase push notifications.
 - **API documentation** — Swagger UI at `/api-docs` (development only).
@@ -347,14 +348,14 @@ Cross-cutting sales and operations analytics.
 | --- | --- | --- | --- |
 | POST | `/sales-forecast` | Staff | Predict future sales using historical order data |
 
-### Groq Chat (`groq_chat/`)
-Conversational AI assistants (via `utils/lib/groqClient.js`) scoped to different audiences/data contexts.
+### Groq Chat (`groq_chat/`) — "Alica" in the frontend
+Conversational AI assistants (via `utils/lib/groqClient.js`, model `GROQ_API_MODEL_FAST`/`GROQ_API_MODEL_ACCURATE`) scoped to different audiences/data contexts. All four routes sit behind the `aiLimiter` rate limit (see [Security](#security)) since each call proxies to a paid LLM API.
 | Method | Endpoint | Auth | Description |
 | --- | --- | --- | --- |
 | POST | `/ask-order-ai` | Staff | Ask an AI assistant questions about orders |
-| POST | `/ask-tenant-ai` | Staff | Ask an AI assistant questions scoped to tenant data |
+| POST | `/ask-tenant-ai` | Staff | Ask an AI assistant questions scoped to tenant data (menu, customers, expenses, discounts, tax, vendors, orders) |
 | POST | `/ask-admin-ai` | Staff | Ask an AI assistant questions scoped to admin/platform data |
-| POST | `/ask-customer-ai` | Customer/Tenant | Customer-facing AI chat assistant |
+| POST | `/ask-customer-ai` | Customer/Tenant | Customer-facing AI chat assistant, scoped to the caller's own orders/points/coupons |
 
 ## Shared Utilities (`utils/lib/`)
 
@@ -378,6 +379,7 @@ Conversational AI assistants (via `utils/lib/groqClient.js`) scoped to different
 - **`schedule/index.js`** — registers cron/scheduled jobs at boot (currently commented out; scaffold for periodic sync/notification jobs using `node-schedule`).
 - **`scripts/generate-modules.js`** — reads the `MenuAdmin`/module hierarchy from the DB and writes a flattened `{ moduleKey: id }` JSON file, used to reference permission menu keys in code.
 - **`scripts/bulk-import/`** — one-off scripts/data files for bulk-importing records (e.g. geo or menu master data).
+- **`scripts/seed-demo-users.js`** (`node scripts/seed-demo-users.js`) — idempotent dev convenience script that ensures one demo login exists per role: Admin (`john@example.com` / `admin@123`), Tenant (`manager@chpl.test` / `manager@123`), and Customer (phone `9998877766`, OTP `1234`). Not wired into the seeder/migration pipeline — run it manually after `db:seed:all` when you need working logins for local testing.
 
 ## Prerequisites
 
@@ -428,8 +430,10 @@ Defined in `env.sample` (copy to `.env`). Key variables:
 - `STRIPE_PUBLISH_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOKS_SECRET` — Stripe payments
 - `CHPL_API_URL`, `ONEONEZA_API_URL`, `MYOPERATOR_API_URL`, `MYOPERATOR_RECORDINGS_URL`, `GRAPH_API_URL` — third-party API integrations (CRM, WhatsApp/SMS, IVR, Meta Graph API)
 - `CLOUDFLARED_URL` — tunnel/public URL for local dev
-- `CORS_ALLOW_TENNAT_URL`, `TENANT_VERIFY_TOKEN` — multi-tenant CORS/verification
+- `CORS_ALLOW_TENNAT_URL`, `TENANT_VERIFY_TOKEN` — multi-tenant CORS/verification. `CORS_ALLOW_TENNAT_URL` is also the production entry in the CORS allowlist (see [Security](#security))
 - `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET` — Gmail OAuth (email sync via IMAP)
+- `GROQ_API_KEY`, `GROQ_API_URL`, `GROQ_API_MODEL_FAST`, `GROQ_API_MODEL_ACCURATE` — Groq AI chat provider (active; powers `groq_chat`/`Ai_Ml`)
+- `OPENROUTER_API_KEY`, `OPENROUTER_API_URL`, `OPENROUTER_API_MODEL` — alternative AI provider; present for future use but not called by any code path yet
 
 Never commit real secrets — keep actual values only in your local `.env`.
 
@@ -438,6 +442,15 @@ Never commit real secrets — keep actual values only in your local `.env`.
 - **Admin/staff users:** `app/middlewares/middleware.js` verifies a JWT (signed with `JWT_SECRET_ADMIN`) and loads the user with their `Role` and `Tenant`.
 - **Customers/tenant portal:** `app/middlewares/CustomerMiddlewear.js` verifies the JWT and resolves either a `Customer` or a tenant-scoped `User`.
 - **Fine-grained access:** `permission.middleware.js` and `roleBasedMiddleware.js` check role/menu-key permissions (backed by the `Permission` and `MenuAdmin` models) before allowing access to a route.
+
+## Security
+
+- **Helmet** is enabled on every response (`server.js`). Its content-security-policy is left off since this is a JSON API rather than server-rendered HTML — a default CSP would otherwise break the Swagger UI page — and `crossOriginResourcePolicy` is relaxed to `cross-origin` so the frontend (a different origin/port) can still load images from `/uploads` and `/utils/icons`.
+- **CORS is an allowlist**, not `origin: '*'` — built from `CORS_ALLOW_TENNAT_URL` plus the local Vite dev ports. Requests with no `Origin` header (curl, Postman, server-to-server) are still permitted.
+- **Rate limiting** (`app/middlewares/rateLimiters.js`) has three tiers: a `generalLimiter` on all of `/api/v1`, a stricter `authLimiter` on login/OTP/registration/password-reset endpoints (brute-force protection), and an `aiLimiter` on the four `groq_chat` routes (cost/abuse protection, since each call proxies to a paid LLM API).
+- **JWTs** are verified with an explicit `algorithms: ['HS256']` allowlist everywhere `jwt.verify` is called, and signed with long random secrets (`JWT_SECRET_ADMIN`/`_CLIENT`/`_API` — rotate these if they're ever exposed; rotating invalidates existing sessions but nothing else, since login is password/OTP-based).
+- **File uploads** (`multer`) are mimetype-filtered and capped at 10MB across all upload routes (user/tenant/menu/geo_country).
+- Raw `sequelize.query` calls use bound replacements (`:paramName`), never string-interpolated request input.
 
 ## API Documentation
 

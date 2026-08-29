@@ -61,6 +61,7 @@ const multerMiddleware = (err, req, res, next) => {
 const uploads = multer({
     storage: fileStorage,
     fileFilter: fileFilter,
+    limits: { fileSize: 10 * 1024 * 1024 },
 });
 
 // Create tenant

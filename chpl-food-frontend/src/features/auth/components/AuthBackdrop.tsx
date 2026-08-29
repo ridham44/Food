@@ -1,4 +1,4 @@
-import loginBg from '../../../../images/login-bg.png';
+import loginBg from '../../../../images/login-bg.jpg';
 
 /**
  * Sign-in backdrop: a deep near-black stage with the plate shot presented as

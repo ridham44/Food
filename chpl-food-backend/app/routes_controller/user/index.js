@@ -8,6 +8,7 @@ const multer = require('multer');
 const { loginRules, createUserRules, updateUserRules, loginWithAuthRules, changePassword } = require('./lib/validation');
 
 const { expressValidate } = require('../../../utils/lib/common-function');
+const { authLimiter } = require('../../middlewares/rateLimiters');
 
 const allowedType = ['image/png', 'image/jpeg', 'image/jpg'];
 
@@ -59,13 +60,14 @@ const multerMiddleware = (err, req, res, next) => {
 const uploads = multer({
     storage: fileStorage,
     fileFilter: fileFilter,
+    limits: { fileSize: 10 * 1024 * 1024 },
 });
 
 // Login With Password
-router.post('/login/with-password', loginRules(), expressValidate, controller.loginWithPassword);
+router.post('/login/with-password', authLimiter, loginRules(), expressValidate, controller.loginWithPassword);
 
 // Login With Auth
-router.post('/login/with-auth', loginWithAuthRules(), expressValidate, controller.loginWithSocial);
+router.post('/login/with-auth', authLimiter, loginWithAuthRules(), expressValidate, controller.loginWithSocial);
 
 // create user
 router.post('/user', auth, uploads.single('profileImage'), multerMiddleware, createUserRules(), expressValidate, controller.create);
@@ -92,6 +94,6 @@ router.delete('/user/:id', auth, controller.delete);
 router.put('/profile/change-password', auth, changePassword(), expressValidate, controller.changePassword);
 
 // forgot-password
-router.put('/forgot-password', controller.forgotPassword);
+router.put('/forgot-password', authLimiter, controller.forgotPassword);
 
 module.exports = router;

@@ -3,6 +3,14 @@ import { Outlet } from 'react-router-dom';
 import * as Dialog from '@radix-ui/react-dialog';
 import { AdminSidebar, useAdminSidebarWidth } from '@/components/admin/AdminSidebar';
 import { AdminTopbar } from '@/components/admin/AdminTopbar';
+import { AlicaWidget } from '@/features/aiAssistant/AlicaWidget';
+import { apiClient } from '@/services/api/client';
+
+const ALICA_SUGGESTIONS = [
+  'How many tenants are pending approval?',
+  "What's this month's platform activity?",
+  'List the most recently registered tenants',
+];
 
 export default function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false);
@@ -37,6 +45,13 @@ export default function AdminLayout() {
           <Outlet />
         </main>
       </div>
+
+      <AlicaWidget
+        apiClient={apiClient}
+        endpoint="/ask-admin-ai"
+        greeting="Hi, I'm Alica. Ask me anything about tenants, users, or platform activity."
+        suggestions={ALICA_SUGGESTIONS}
+      />
     </div>
   );
 }

@@ -4,12 +4,16 @@ import { BrandMark } from '@/features/auth/components/BrandMark';
 import { cn } from '@/lib/cn';
 import { useCustomerAuthStore } from '@/stores/customerAuthStore';
 import { useCartCount } from '@/features/cart/cartStore';
+import { AlicaWidget } from '@/features/aiAssistant/AlicaWidget';
+import { customerApiClient } from '@/services/api/customerClient';
 
 const NAV_ITEMS = [
   { label: 'Restaurants', path: '/app/restaurants', icon: Store },
   { label: 'My orders', path: '/app/orders', icon: ClipboardList },
   { label: 'Profile', path: '/app/profile', icon: UserCircle },
 ];
+
+const ALICA_SUGGESTIONS = ["What's the status of my last order?", 'How many loyalty points do I have?', 'Show my available coupons'];
 
 export default function CustomerLayout() {
   const customer = useCustomerAuthStore((state) => state.customer);
@@ -105,6 +109,14 @@ export default function CustomerLayout() {
           </NavLink>
         ))}
       </nav>
+
+      <AlicaWidget
+        apiClient={customerApiClient}
+        endpoint="/ask-customer-ai"
+        greeting="Hi, I'm Alica. Ask me about your orders, points, or coupons."
+        suggestions={ALICA_SUGGESTIONS}
+        variant="mobile-tab-bar"
+      />
     </div>
   );
 }

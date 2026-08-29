@@ -473,6 +473,8 @@ exports.filtration = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
         const { fromDate, toDate, page = 1, limit = 10, gender, mobile, email, countryCode } = req.body;
+        let whereCondition = {};
+        let userFilter = {};
 
         if ((fromDate && isNaN(Date.parse(fromDate))) || (toDate && isNaN(Date.parse(toDate)))) {
             return res.status(status.BadRequest).json({
@@ -487,7 +489,6 @@ exports.filtration = async (req, res) => {
                     message: 'Invalid mobile number. Must be between 8 and 15 digits.',
                 });
             }
-            whereCondition.mobile = mobileStr;
         }
 
         if (email && !/^\S+@\S+\.\S+$/.test(email)) {
@@ -501,9 +502,6 @@ exports.filtration = async (req, res) => {
                 message: 'Invalid country code. Max length is 3 characters.',
             });
         }
-
-        let whereCondition = {};
-        let userFilter = {};
 
         if (req.body) {
             userFilter = await findWithFilters.findWithFilters(req.body, db.User);
@@ -524,7 +522,7 @@ exports.filtration = async (req, res) => {
         }
 
         if (gender) whereCondition.gender = gender;
-        if (mobile) whereCondition.mobile = mobile;
+        if (mobile) whereCondition.mobile = mobile.toString();
         if (email) whereCondition.email = email;
         if (countryCode) whereCondition.countryCode = countryCode;
 

@@ -230,7 +230,8 @@ exports.changePassword = async (req, res) => {
     try {
         const { body } = req;
 
-        const decoded = jwt.verify(req?.headers?.authorization, process.env.JWT_SECRET_ADMIN);
+        const bearerToken = req?.headers?.authorization?.split(' ')[1];
+        const decoded = jwt.verify(bearerToken, process.env.JWT_SECRET_ADMIN, { algorithms: ['HS256'] });
 
         if (!bcrypt.compareSync(body.oldPassword, req.user.password)) {
             await transaction.rollback();

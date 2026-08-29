@@ -3,6 +3,14 @@ import { Outlet } from 'react-router-dom';
 import * as Dialog from '@radix-ui/react-dialog';
 import { Sidebar, useSidebarWidth } from '@/components/dashboard/Sidebar';
 import { Topbar } from '@/components/dashboard/Topbar';
+import { AlicaWidget } from '@/features/aiAssistant/AlicaWidget';
+import { apiClient } from '@/services/api/client';
+
+const ALICA_SUGGESTIONS = [
+  "What were today's sales?",
+  'Which menu items sold best this week?',
+  'Show unpaid bills from last month',
+];
 
 export default function DashboardLayout() {
   const [collapsed, setCollapsed] = useState(false);
@@ -41,6 +49,13 @@ export default function DashboardLayout() {
           <Outlet />
         </main>
       </div>
+
+      <AlicaWidget
+        apiClient={apiClient}
+        endpoint="/ask-tenant-ai"
+        greeting="Hi, I'm Alica. Ask me about orders, sales, menu, inventory, or your customers."
+        suggestions={ALICA_SUGGESTIONS}
+      />
     </div>
   );
 }

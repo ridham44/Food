@@ -13,7 +13,7 @@ const authenticateCustomerOrTenant = async (req, res, next) => {
 
         const token = authHeader.split(' ')[1];
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET_ADMIN);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET_ADMIN, { algorithms: ['HS256'] });
 
         const userId = decoded?.user?.id;
         if (!userId) {

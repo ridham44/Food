@@ -1,5 +1,5 @@
 import { cn } from '@/lib/cn';
-import companyLogo from '../../../../images/Logo.png';
+import companyLogo from '../../../../images/Logo.webp';
 
 /**
  * Compact OrbitFood lockup (icon + wordmark) cropped from the company logo

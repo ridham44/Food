@@ -1,56 +1,64 @@
+import { lazy, Suspense, type ReactNode } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
-import LoginPage from '@/features/auth/LoginPage';
 import DashboardLayout from '@/app/DashboardLayout';
 import { ProtectedRoute } from '@/app/ProtectedRoute';
-import CustomerLoginPage from '@/features/customerAuth/CustomerLoginPage';
-import CustomerSignupPage from '@/features/customerAuth/CustomerSignupPage';
 import CustomerLayout from '@/app/CustomerLayout';
 import { CustomerProtectedRoute } from '@/app/CustomerProtectedRoute';
-import RestaurantsPage from '@/pages/customer/RestaurantsPage';
-import RestaurantDetailPage from '@/pages/customer/RestaurantDetailPage';
-import CartPage from '@/pages/customer/CartPage';
-import CheckoutPage from '@/pages/customer/CheckoutPage';
-import CustomerOrdersPage from '@/pages/customer/OrdersPage';
-import CustomerOrderDetailPage from '@/pages/customer/OrderDetailPage';
-import CustomerMyProfilePage from '@/pages/customer/ProfilePage';
-import DashboardHome from '@/pages/restaurant/DashboardHome';
-import OrdersPage from '@/pages/restaurant/OrdersPage';
-import KitchenPage from '@/pages/restaurant/KitchenPage';
-import MenuPage from '@/pages/restaurant/MenuPage';
-import CategoriesPage from '@/pages/restaurant/CategoriesPage';
-import InventoryPage from '@/pages/restaurant/InventoryPage';
-import TablesPage from '@/pages/restaurant/TablesPage';
-import CustomersPage from '@/pages/restaurant/CustomersPage';
-import CustomerProfilePage from '@/pages/restaurant/CustomerProfilePage';
-import StaffPage from '@/pages/restaurant/StaffPage';
-import PaymentsPage from '@/pages/restaurant/PaymentsPage';
-import ReportsPage from '@/pages/restaurant/ReportsPage';
-import RestaurantSettingsPage from '@/pages/restaurant/RestaurantSettingsPage';
-import ProfileSettingsPage from '@/pages/restaurant/ProfileSettingsPage';
-import CouponsPage from '@/pages/restaurant/CouponsPage';
-import CombosPage from '@/pages/restaurant/CombosPage';
-import ExpensesPage from '@/pages/restaurant/ExpensesPage';
-import VendorsPage from '@/pages/restaurant/VendorsPage';
-import ActivityLogPage from '@/pages/restaurant/ActivityLogPage';
 import AdminLayout from '@/app/AdminLayout';
 import { AdminProtectedRoute } from '@/app/AdminProtectedRoute';
-import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
-import AdminTenantsPage from '@/pages/admin/TenantsPage';
-import AdminReportsPage from '@/pages/admin/ReportsPage';
-import AdminSettingsPage from '@/pages/admin/SettingsPage';
+import { RouteLoadingFallback } from '@/components/RouteLoadingFallback';
+
+// Every page is loaded on demand (its own JS chunk) instead of one bundle —
+// a visitor to /login was otherwise downloading the admin, tenant, and
+// customer portals' code before seeing the sign-in form.
+const LoginPage = lazy(() => import('@/features/auth/LoginPage'));
+const CustomerLoginPage = lazy(() => import('@/features/customerAuth/CustomerLoginPage'));
+const CustomerSignupPage = lazy(() => import('@/features/customerAuth/CustomerSignupPage'));
+const RestaurantsPage = lazy(() => import('@/pages/customer/RestaurantsPage'));
+const RestaurantDetailPage = lazy(() => import('@/pages/customer/RestaurantDetailPage'));
+const CartPage = lazy(() => import('@/pages/customer/CartPage'));
+const CheckoutPage = lazy(() => import('@/pages/customer/CheckoutPage'));
+const CustomerOrdersPage = lazy(() => import('@/pages/customer/OrdersPage'));
+const CustomerOrderDetailPage = lazy(() => import('@/pages/customer/OrderDetailPage'));
+const CustomerMyProfilePage = lazy(() => import('@/pages/customer/ProfilePage'));
+const DashboardHome = lazy(() => import('@/pages/restaurant/DashboardHome'));
+const OrdersPage = lazy(() => import('@/pages/restaurant/OrdersPage'));
+const KitchenPage = lazy(() => import('@/pages/restaurant/KitchenPage'));
+const MenuPage = lazy(() => import('@/pages/restaurant/MenuPage'));
+const CategoriesPage = lazy(() => import('@/pages/restaurant/CategoriesPage'));
+const InventoryPage = lazy(() => import('@/pages/restaurant/InventoryPage'));
+const TablesPage = lazy(() => import('@/pages/restaurant/TablesPage'));
+const CustomersPage = lazy(() => import('@/pages/restaurant/CustomersPage'));
+const CustomerProfilePage = lazy(() => import('@/pages/restaurant/CustomerProfilePage'));
+const StaffPage = lazy(() => import('@/pages/restaurant/StaffPage'));
+const PaymentsPage = lazy(() => import('@/pages/restaurant/PaymentsPage'));
+const ReportsPage = lazy(() => import('@/pages/restaurant/ReportsPage'));
+const RestaurantSettingsPage = lazy(() => import('@/pages/restaurant/RestaurantSettingsPage'));
+const ProfileSettingsPage = lazy(() => import('@/pages/restaurant/ProfileSettingsPage'));
+const CouponsPage = lazy(() => import('@/pages/restaurant/CouponsPage'));
+const CombosPage = lazy(() => import('@/pages/restaurant/CombosPage'));
+const ExpensesPage = lazy(() => import('@/pages/restaurant/ExpensesPage'));
+const VendorsPage = lazy(() => import('@/pages/restaurant/VendorsPage'));
+const ActivityLogPage = lazy(() => import('@/pages/restaurant/ActivityLogPage'));
+const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage'));
+const AdminTenantsPage = lazy(() => import('@/pages/admin/TenantsPage'));
+const AdminReportsPage = lazy(() => import('@/pages/admin/ReportsPage'));
+const AdminSettingsPage = lazy(() => import('@/pages/admin/SettingsPage'));
+
+const withFallback = (element: ReactNode) => <Suspense fallback={<RouteLoadingFallback />}>{element}</Suspense>;
 
 export const router = createBrowserRouter([
   {
     path: '/login',
-    element: <LoginPage />,
+    element: withFallback(<LoginPage />),
   },
   {
     path: '/app/login',
-    element: <CustomerLoginPage />,
+    element: withFallback(<CustomerLoginPage />),
   },
   {
     path: '/app/signup',
-    element: <CustomerSignupPage />,
+    element: withFallback(<CustomerSignupPage />),
   },
   {
     path: '/app',
@@ -60,14 +68,14 @@ export const router = createBrowserRouter([
       </CustomerProtectedRoute>
     ),
     children: [
-      { index: true, element: <RestaurantsPage /> },
-      { path: 'restaurants', element: <RestaurantsPage /> },
-      { path: 'restaurants/:tenantId', element: <RestaurantDetailPage /> },
-      { path: 'cart', element: <CartPage /> },
-      { path: 'checkout', element: <CheckoutPage /> },
-      { path: 'orders', element: <CustomerOrdersPage /> },
-      { path: 'orders/:id', element: <CustomerOrderDetailPage /> },
-      { path: 'profile', element: <CustomerMyProfilePage /> },
+      { index: true, element: withFallback(<RestaurantsPage />) },
+      { path: 'restaurants', element: withFallback(<RestaurantsPage />) },
+      { path: 'restaurants/:tenantId', element: withFallback(<RestaurantDetailPage />) },
+      { path: 'cart', element: withFallback(<CartPage />) },
+      { path: 'checkout', element: withFallback(<CheckoutPage />) },
+      { path: 'orders', element: withFallback(<CustomerOrdersPage />) },
+      { path: 'orders/:id', element: withFallback(<CustomerOrderDetailPage />) },
+      { path: 'profile', element: withFallback(<CustomerMyProfilePage />) },
     ],
   },
   {
@@ -78,25 +86,25 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { index: true, element: <DashboardHome /> },
-      { path: 'orders', element: <OrdersPage /> },
-      { path: 'kitchen', element: <KitchenPage /> },
-      { path: 'menu', element: <MenuPage /> },
-      { path: 'categories', element: <CategoriesPage /> },
-      { path: 'combos', element: <CombosPage /> },
-      { path: 'inventory', element: <InventoryPage /> },
-      { path: 'tables', element: <TablesPage /> },
-      { path: 'customers', element: <CustomersPage /> },
-      { path: 'customers/:id', element: <CustomerProfilePage /> },
-      { path: 'staff', element: <StaffPage /> },
-      { path: 'vendors', element: <VendorsPage /> },
-      { path: 'expenses', element: <ExpensesPage /> },
-      { path: 'coupons', element: <CouponsPage /> },
-      { path: 'payments', element: <PaymentsPage /> },
-      { path: 'reports', element: <ReportsPage /> },
-      { path: 'settings/restaurant', element: <RestaurantSettingsPage /> },
-      { path: 'settings/activity-log', element: <ActivityLogPage /> },
-      { path: 'settings/profile', element: <ProfileSettingsPage /> },
+      { index: true, element: withFallback(<DashboardHome />) },
+      { path: 'orders', element: withFallback(<OrdersPage />) },
+      { path: 'kitchen', element: withFallback(<KitchenPage />) },
+      { path: 'menu', element: withFallback(<MenuPage />) },
+      { path: 'categories', element: withFallback(<CategoriesPage />) },
+      { path: 'combos', element: withFallback(<CombosPage />) },
+      { path: 'inventory', element: withFallback(<InventoryPage />) },
+      { path: 'tables', element: withFallback(<TablesPage />) },
+      { path: 'customers', element: withFallback(<CustomersPage />) },
+      { path: 'customers/:id', element: withFallback(<CustomerProfilePage />) },
+      { path: 'staff', element: withFallback(<StaffPage />) },
+      { path: 'vendors', element: withFallback(<VendorsPage />) },
+      { path: 'expenses', element: withFallback(<ExpensesPage />) },
+      { path: 'coupons', element: withFallback(<CouponsPage />) },
+      { path: 'payments', element: withFallback(<PaymentsPage />) },
+      { path: 'reports', element: withFallback(<ReportsPage />) },
+      { path: 'settings/restaurant', element: withFallback(<RestaurantSettingsPage />) },
+      { path: 'settings/activity-log', element: withFallback(<ActivityLogPage />) },
+      { path: 'settings/profile', element: withFallback(<ProfileSettingsPage />) },
     ],
   },
   {
@@ -107,11 +115,11 @@ export const router = createBrowserRouter([
       </AdminProtectedRoute>
     ),
     children: [
-      { index: true, element: <AdminDashboardPage /> },
-      { path: 'tenants', element: <AdminTenantsPage /> },
-      { path: 'reports', element: <AdminReportsPage /> },
-      { path: 'activity-log', element: <ActivityLogPage /> },
-      { path: 'settings', element: <AdminSettingsPage /> },
+      { index: true, element: withFallback(<AdminDashboardPage />) },
+      { path: 'tenants', element: withFallback(<AdminTenantsPage />) },
+      { path: 'reports', element: withFallback(<AdminReportsPage />) },
+      { path: 'activity-log', element: withFallback(<ActivityLogPage />) },
+      { path: 'settings', element: withFallback(<AdminSettingsPage />) },
     ],
   },
 ]);

@@ -6,7 +6,7 @@ const env = process.env.NODE_ENV || 'development';
 const config = require(__dirname + '/app/db/audit-logger/config.json')[env];
 
 const express = require('express');
-// const helmet = require('helmet');
+const helmet = require('helmet');
 const app = express();
 const httpServer = require('http').Server(app);
 const bodyParser = require('body-parser');
@@ -15,6 +15,7 @@ const cors = require('cors');
 const compression = require('compression');
 const fs = require('fs');
 const { createNamespace } = require('cls-hooked');
+const { generalLimiter } = require('./app/middlewares/rateLimiters');
 
 //* Swagger Docs
 const swaggerUi = require('swagger-ui-express');
@@ -45,8 +46,16 @@ app.use((req, res, next) => {
 //* Response Compression
 app.use(compression());
 
-//* Helmet
-// app.use(helmet());
+//* Helmet — CSP is left off since this is a JSON API (not server-rendered
+//* HTML) and a default CSP would break the Swagger UI page; CORP is relaxed
+//* to cross-origin so the frontend (a different origin/port) can still load
+//* uploaded images/icons served from /uploads and /utils/icons.
+app.use(
+    helmet({
+        contentSecurityPolicy: false,
+        crossOriginResourcePolicy: { policy: 'cross-origin' },
+    })
+);
 
 //* Overwrite the default res.json method to enable API response tracking.
 app.use(responseOverwrite);
@@ -90,12 +99,25 @@ db.sequelize
         console.error('DB connection failed!', err.message);
     });
 
-//* CORS Options
+//* CORS Options — allowlist instead of '*' so only our own frontend(s) can
+//* call the API from a browser. Requests with no Origin header (curl,
+//* Postman, server-to-server, mobile webviews) are still allowed through.
+const allowedOrigins = [process.env.CORS_ALLOW_TENNAT_URL, 'http://localhost:5173', 'http://localhost:4173'].filter(Boolean);
+
 app.use(
     cors({
-        origin: '*',
+        origin: (origin, callback) => {
+            if (!origin || allowedOrigins.includes(origin)) {
+                return callback(null, true);
+            }
+            return callback(new Error('Not allowed by CORS'));
+        },
     })
 );
+
+//* Rate limiting — applied to all API routes; login/OTP and AI-chat routes
+//* additionally layer on their own stricter limiters (see their routers).
+app.use(V1Routes, generalLimiter);
 
 //* App Routes
 app.use(V1Routes, require('./app/routes_controller'));
