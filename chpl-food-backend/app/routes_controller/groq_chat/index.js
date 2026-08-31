@@ -19,4 +19,7 @@ router.post('/ask-admin-ai', aiLimiter, auth, askAiValidation(), expressValidate
 // Route to get the Customer AI chat
 router.post('/ask-customer-ai', aiLimiter, Customerauth, askAiValidation(), expressValidate, controller.askCustomerAI);
 
+// Generic chat completion for agentic tool use
+router.post('/chat', aiLimiter, controller.chatWithTools);
+
 module.exports = router;

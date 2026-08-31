@@ -62,4 +62,30 @@ async function askGroqAccurate(prompt) {
         return 'Something went wrong while querying Groq.';
     }
 }
-module.exports = { askGroqFast, askGroqAccurate };
+
+async function chatCompletion(messages, tools = undefined) {
+    try {
+        const payload = {
+            model: GROQ_API_MODEL_FAST,
+            messages,
+        };
+        if (tools && tools.length > 0) {
+            payload.tools = tools;
+            payload.tool_choice = 'auto';
+        }
+
+        const response = await axios.post(GROQ_API_URL, payload, {
+            headers: {
+                Authorization: `Bearer ${GROQ_API_KEY}`,
+                'Content-Type': 'application/json',
+            },
+        });
+
+        return response.data.choices[0].message;
+    } catch (error) {
+        console.error('Groq API Error in chatCompletion:', error.response?.data || error.message);
+        throw error;
+    }
+}
+
+module.exports = { askGroqFast, askGroqAccurate, chatCompletion };

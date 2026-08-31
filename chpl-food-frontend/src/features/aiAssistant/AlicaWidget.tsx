@@ -11,14 +11,12 @@ interface ChatMessage {
 }
 
 interface AlicaWidgetProps {
-  /** Axios instance already carrying the right role's auth interceptor (apiClient or customerApiClient). */
   apiClient: AxiosInstance;
-  /** Backend route this portal's chat should hit, e.g. /ask-admin-ai. */
-  endpoint: string;
+  endpoint?: string;
   greeting: string;
   suggestions: string[];
-  /** 'mobile-tab-bar' clears the fixed bottom tab nav the customer layout shows below sm. */
   variant?: 'default' | 'mobile-tab-bar';
+  onAsk?: (question: string, history: any[], onProgress: (msg: string) => void) => Promise<{ reply: string; newHistory: any[] }>;
 }
 
 const FAB_OFFSET: Record<'default' | 'mobile-tab-bar', string> = {
@@ -34,11 +32,13 @@ const PANEL_OFFSET: Record<'default' | 'mobile-tab-bar', string> = {
 let idCounter = 0;
 const nextId = () => `alica-${++idCounter}`;
 
-export function AlicaWidget({ apiClient, endpoint, greeting, suggestions, variant = 'default' }: AlicaWidgetProps) {
+export function AlicaWidget({ apiClient, endpoint, greeting, suggestions, variant = 'default', onAsk }: AlicaWidgetProps) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [aiHistory, setAiHistory] = useState<any[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [progressMsg, setProgressMsg] = useState('Alica is thinking…');
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -66,10 +66,17 @@ export function AlicaWidget({ apiClient, endpoint, greeting, suggestions, varian
     setMessages((prev) => [...prev, { id: nextId(), role: 'user', text: trimmed }]);
     setInput('');
     setLoading(true);
+    setProgressMsg('Alica is thinking…');
 
     try {
-      const result = await askAssistant(apiClient, endpoint, trimmed);
-      setMessages((prev) => [...prev, { id: nextId(), role: 'assistant', text: result.message }]);
+      if (onAsk) {
+        const { reply, newHistory } = await onAsk(trimmed, aiHistory, (msg) => setProgressMsg(msg));
+        setMessages((prev) => [...prev, { id: nextId(), role: 'assistant', text: reply }]);
+        setAiHistory(newHistory);
+      } else if (endpoint) {
+        const result = await askAssistant(apiClient, endpoint, trimmed);
+        setMessages((prev) => [...prev, { id: nextId(), role: 'assistant', text: result.message }]);
+      }
     } catch {
       setMessages((prev) => [
         ...prev,
@@ -169,7 +176,7 @@ export function AlicaWidget({ apiClient, endpoint, greeting, suggestions, varian
               <div className="flex justify-start">
                 <div className="glass-panel flex items-center gap-2 rounded-card px-3 py-2 text-sm text-text-secondary">
                   <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-                  Alica is thinking…
+                  {progressMsg}
                 </div>
               </div>
             )}

@@ -4,12 +4,14 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { Sidebar, useSidebarWidth } from '@/components/dashboard/Sidebar';
 import { Topbar } from '@/components/dashboard/Topbar';
 import { AlicaWidget } from '@/features/aiAssistant/AlicaWidget';
+import { askOrderAssistant } from '@/features/aiAssistant/orderAssistant';
 import { apiClient } from '@/services/api/client';
 
 const ALICA_SUGGESTIONS = [
   "What were today's sales?",
-  'Which menu items sold best this week?',
-  'Show unpaid bills from last month',
+  "How many completed orders?",
+  "Which menu items sold best this week?",
+  "Give order of Rahul Patel",
 ];
 
 export default function DashboardLayout() {
@@ -19,9 +21,6 @@ export default function DashboardLayout() {
 
   return (
     <div className="flex min-h-screen w-full bg-bg-base">
-      {/* Desktop sidebar — pinned to the viewport height (not stretched to
-          match page content, which can grow taller than 100vh) so its own
-          nav list scrolls internally instead of the whole sidebar. */}
       <aside
         className="glass-panel sticky top-0 hidden h-screen shrink-0 self-start border-r border-border-subtle transition-[width] duration-200 ease-out lg:block"
         style={{ width: sidebarWidth }}
@@ -29,7 +28,6 @@ export default function DashboardLayout() {
         <Sidebar collapsed={collapsed} onToggleCollapsed={() => setCollapsed((v) => !v)} />
       </aside>
 
-      {/* Mobile drawer */}
       <Dialog.Root open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-modal bg-black/60 backdrop-blur-sm lg:hidden" />
@@ -52,8 +50,8 @@ export default function DashboardLayout() {
 
       <AlicaWidget
         apiClient={apiClient}
-        endpoint="/ask-tenant-ai"
-        greeting="Hi, I'm Alica. Ask me about orders, sales, menu, inventory, or your customers."
+        onAsk={askOrderAssistant}
+        greeting="Hi, I'm Alica. Ask me about your orders, sales, menu, and customers."
         suggestions={ALICA_SUGGESTIONS}
       />
     </div>

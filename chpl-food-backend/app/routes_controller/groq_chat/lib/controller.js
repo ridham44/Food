@@ -1,8 +1,22 @@
 const db = require('../../../db/models');
-const { askGroqFast, askGroqAccurate } = require('../../../../utils/lib/groqClient');
+const { askGroqFast, askGroqAccurate, chatCompletion } = require('../../../../utils/lib/groqClient');
 const { status } = require('../../../../utils');
 const { Op } = require('sequelize');
 const { sequelize } = db;
+
+exports.chatWithTools = async (req, res) => {
+    try {
+        const { messages, tools } = req.body;
+        if (!messages || !Array.isArray(messages)) {
+            return res.status(status.BadRequest).json({ message: 'Messages array is required.' });
+        }
+        const responseMessage = await chatCompletion(messages, tools);
+        return res.status(status.OK).json({ message: responseMessage });
+    } catch (err) {
+        console.error('chatWithTools Error:', err.message);
+        return res.status(status.InternalServerError).json({ message: 'Internal server error' });
+    }
+};
 
 exports.askOrderAI = async (req, res) => {
     try {
