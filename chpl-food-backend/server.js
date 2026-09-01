@@ -104,14 +104,17 @@ db.sequelize
 //* call the API from a browser. Requests with no Origin header (curl,
 //* Postman, server-to-server, mobile webviews) are still allowed through.
 const normalizeOrigin = (origin) => origin && origin.replace(/\/$/, '');
-const allowedOrigins = [process.env.CORS_ALLOW_TENNAT_URL, 'http://localhost:5173', 'http://localhost:4173']
-    .map(normalizeOrigin)
-    .filter(Boolean);
+const allowedOrigins = [
+    ...(process.env.CORS_ALLOW_TENNAT_URL ? process.env.CORS_ALLOW_TENNAT_URL.split(',') : []),
+    'http://localhost:5173', 
+    'http://localhost:4173'
+].map(normalizeOrigin).filter(Boolean);
 
 app.use(
     cors({
         origin: (origin, callback) => {
-            if (!origin || allowedOrigins.includes(normalizeOrigin(origin))) {
+            const normalizedOrigin = normalizeOrigin(origin);
+            if (!origin || allowedOrigins.includes(normalizedOrigin) || (normalizedOrigin && normalizedOrigin.endsWith('.onrender.com'))) {
                 return callback(null, true);
             }
             return callback(new Error('Not allowed by CORS'));
