@@ -14,6 +14,7 @@ const db = require('./app/db/models');
 const cors = require('cors');
 const compression = require('compression');
 const fs = require('fs');
+const path = require('path');
 const { createNamespace } = require('cls-hooked');
 const { generalLimiter } = require('./app/middlewares/rateLimiters');
 
@@ -102,12 +103,15 @@ db.sequelize
 //* CORS Options — allowlist instead of '*' so only our own frontend(s) can
 //* call the API from a browser. Requests with no Origin header (curl,
 //* Postman, server-to-server, mobile webviews) are still allowed through.
-const allowedOrigins = [process.env.CORS_ALLOW_TENNAT_URL, 'http://localhost:5173', 'http://localhost:4173'].filter(Boolean);
+const normalizeOrigin = (origin) => origin && origin.replace(/\/$/, '');
+const allowedOrigins = [process.env.CORS_ALLOW_TENNAT_URL, 'http://localhost:5173', 'http://localhost:4173']
+    .map(normalizeOrigin)
+    .filter(Boolean);
 
 app.use(
     cors({
         origin: (origin, callback) => {
-            if (!origin || allowedOrigins.includes(origin)) {
+            if (!origin || allowedOrigins.includes(normalizeOrigin(origin))) {
                 return callback(null, true);
             }
             return callback(new Error('Not allowed by CORS'));
@@ -122,9 +126,17 @@ app.use(V1Routes, generalLimiter);
 //* App Routes
 app.use(V1Routes, require('./app/routes_controller'));
 
-app.get('/', (req, res) => {
-    return res.json({ message: 'Server running.', lastUpdated: '20/01/2025' });
-});
+// Serve the production React build from this same Node service. In local
+// development Vite still runs independently and proxies API requests here.
+const frontendDist = path.resolve(__dirname, '../chpl-food-frontend/dist');
+if (fs.existsSync(frontendDist)) {
+    app.use(express.static(frontendDist));
+    app.get('*', (req, res) => res.sendFile(path.join(frontendDist, 'index.html')));
+} else {
+    app.get('/', (req, res) => {
+        return res.json({ message: 'Server running.', lastUpdated: '20/01/2025' });
+    });
+}
 
 //* Swagger Routes
 if (process.env.NODE_ENV !== 'production') {

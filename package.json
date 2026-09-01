@@ -2,12 +2,11 @@
   "name": "chpl-food",
   "private": true,
   "scripts": {
-    "install:all": "npm install --prefix chpl-food-backend && npm install --prefix chpl-food-frontend",
     "dev": "concurrently -n backend,frontend -c yellow,cyan \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "cross-env PORT=5003 npm --prefix chpl-food-backend run server",
     "dev:frontend": "npm --prefix chpl-food-frontend run dev",
-    "build": "npm --prefix chpl-food-frontend run build",
-    "start": "cross-env PORT=5003 npm --prefix chpl-food-backend start"
+    "build": "npm install --prefix chpl-food-backend --include=dev && npm install --prefix chpl-food-frontend --include=dev && npm --prefix chpl-food-frontend run build",
+    "start": "npm --prefix chpl-food-backend start"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",
