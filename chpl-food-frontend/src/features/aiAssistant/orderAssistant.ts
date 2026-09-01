@@ -174,7 +174,7 @@ async function executeTool(name: string, args: any): Promise<string> {
       
       let highestOrder = null;
       for (const o of completed) {
-        if (o.total != null && (!highestOrder || o.total > highestOrder.total)) {
+        if (o.total != null && (!highestOrder || o.total > highestOrder.total!)) {
           highestOrder = o;
         }
       }
