@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, useLocation, Navigate } from 'react-router-dom';
-import { Mail, Lock, ArrowRight, Check } from 'lucide-react';
+import { Mail, Lock, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { GlassPanel } from '@/components/ui/GlassPanel/GlassPanel';
 import { Input } from '@/components/ui/Input/Input';
@@ -15,6 +15,7 @@ import { loginSchema, type LoginFormValues } from '@/features/auth/loginSchema';
 import { AuthBackdrop } from '@/features/auth/components/AuthBackdrop';
 import { BrandMark } from '@/features/auth/components/BrandMark';
 import { TrustHighlights } from '@/features/auth/components/TrustHighlights';
+import { CinematicPortal } from '@/features/auth/components/CinematicPortal';
 
 type SubmitStatus = 'idle' | 'success' | 'error';
 
@@ -25,6 +26,8 @@ export default function LoginPage() {
   const { mutate, isPending } = useLogin();
   const [status, setStatus] = useState<SubmitStatus>('idle');
   const [rememberMe, setRememberMe] = useState(false);
+  const [isEntering, setIsEntering] = useState(false);
+  const animationStartedAt = useRef(0);
 
   const {
     register,
@@ -36,7 +39,7 @@ export default function LoginPage() {
 
   const user = useAuthStore((state) => state.user);
 
-  if (accessToken) {
+  if (accessToken && !isEntering) {
     const defaultRoute = user?.roleType === '1' ? '/admin' : '/';
     const redirectTo = (location.state as { from?: string } | null)?.from ?? defaultRoute;
     return <Navigate to={redirectTo} replace />;
@@ -49,28 +52,38 @@ export default function LoginPage() {
 
   const onSubmit = (values: LoginFormValues) => {
     setStatus('idle');
+    setIsEntering(true);
+    animationStartedAt.current = Date.now();
     mutate(values, {
       onSuccess: (data) => {
         setStatus('success');
         toast.success(data.message || 'Login successful');
         const redirectTo = data.userData.roleType === '1' ? '/admin' : '/';
-        window.setTimeout(() => navigate(redirectTo, { replace: true }), 450);
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const remaining = Math.max(0, (reducedMotion ? 80 : 2550) - (Date.now() - animationStartedAt.current));
+        window.setTimeout(() => {
+          // Releasing this state also lets the auth guard render its redirect,
+          // so the dashboard still arrives even if a router transition is delayed.
+          setIsEntering(false);
+          navigate(redirectTo, { replace: true });
+        }, remaining);
       },
       onError: (error) => {
+        setIsEntering(false);
         toast.error(getLoginErrorMessage(error));
         flashError();
       },
     });
   };
 
-  const busy = isPending || status === 'success';
+  const busy = isPending || isEntering;
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-bg-base">
+    <div className={cn('relative min-h-screen w-full overflow-hidden bg-bg-base', isEntering && 'auth-cinematic-entering')}>
       <AuthBackdrop />
 
       <div className="relative z-10 flex min-h-screen w-full items-center justify-center px-4 py-3 sm:px-6 lg:justify-end lg:px-10 lg:py-4 xl:px-14">
-        <div className="relative w-full max-w-[528px] animate-auth-panel-in">
+        <div className={cn('relative w-full max-w-[528px] animate-auth-panel-in', isEntering && 'auth-cinematic-card')}>
           <GlassPanel radius="dialog" className="auth-glass-card flex flex-col p-5">
             <div className="flex flex-col items-center text-center">
               <BrandMark className="border border-white/10 shadow-[0_12px_30px_rgba(0,0,0,0.4)]" />
@@ -125,15 +138,11 @@ export default function LoginPage() {
 
               <Button
                 type="submit"
-                loading={isPending}
                 disabled={busy}
-                className="auth-submit-btn w-full"
+                className="auth-submit-btn relative w-full disabled:opacity-100"
               >
-                {status === 'success' ? (
-                  <>
-                    <Check className="h-4 w-4" aria-hidden="true" />
-                    Logged in
-                  </>
+                {isEntering ? (
+                  'Signing in...'
                 ) : isPending ? (
                   'Logging in…'
                 ) : (
@@ -142,6 +151,7 @@ export default function LoginPage() {
                     <ArrowRight className="h-4 w-4" aria-hidden="true" />
                   </>
                 )}
+                <CinematicPortal isActive={isEntering} />
               </Button>
             </form>
 

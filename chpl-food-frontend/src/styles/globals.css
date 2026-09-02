@@ -79,6 +79,56 @@ body {
   background-image: linear-gradient(90deg, #5d79ff 0%, #9b6cf6 100%);
 }
 
+/* The login surface remains unchanged at rest; these transforms only run during
+   the short portal handoff, keeping the effect on the compositor. */
+.auth-cinematic-entering .auth-cinematic-card {
+  animation: auth-enter-app 2.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: 58% 50%;
+}
+
+.auth-cinematic-entering::after {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  content: '';
+  background: radial-gradient(circle at 66% 50%, rgba(92, 179, 255, 0.22), transparent 34%);
+  animation: auth-moonlight-pass 2.55s ease both;
+}
+
+.auth-cinematic-entering .auth-submit-btn {
+  box-shadow: 0 10px 30px rgba(139, 108, 255, 0.35), 0 0 30px rgba(102, 188, 255, 0.23);
+}
+
+@keyframes auth-enter-app {
+  0%, 8% { opacity: 1; transform: perspective(1100px) translate3d(0, 0, 0) scale(1); filter: brightness(1); }
+  55% { opacity: .88; transform: perspective(1100px) translate3d(-3px, 1px, -18px) scale(.984) rotateY(-.45deg); filter: brightness(.83); }
+  82% { opacity: .75; transform: perspective(1100px) translate3d(-7px, 2px, -34px) scale(.965) rotateY(-.8deg); filter: brightness(.72); }
+  100% { opacity: 0; transform: perspective(1100px) translate3d(-12px, 5px, -85px) scale(.91) rotateY(-1.2deg); filter: brightness(.55); }
+}
+
+@keyframes auth-moonlight-pass {
+  0%, 12%, 100% { opacity: 0; }
+  38%, 74% { opacity: 1; }
+}
+
+::view-transition-old(root) {
+  animation: auth-view-exit .28s ease-out both;
+}
+
+::view-transition-new(root) {
+  animation: auth-view-enter .42s cubic-bezier(.16, 1, .3, 1) both;
+}
+
+@keyframes auth-view-exit {
+  to { opacity: 0; transform: scale(.985); }
+}
+
+@keyframes auth-view-enter {
+  from { opacity: 0; transform: scale(1.018); }
+  to { opacity: 1; transform: scale(1); }
+}
+
 @keyframes auth-panel-in {
   from {
     opacity: 0;
@@ -125,5 +175,15 @@ body {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
+  }
+
+  .auth-cinematic-entering .auth-cinematic-card,
+  .auth-cinematic-entering::after {
+    animation: none;
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
   }
 }
