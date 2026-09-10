@@ -1,8 +1,0 @@
-/node_modules
-.eslintcache
-.DS_Store
-/uploads
-.env
-*.log
-/access-logs
-access.log

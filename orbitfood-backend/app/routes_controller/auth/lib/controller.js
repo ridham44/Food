@@ -106,7 +106,7 @@ exports.create = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     const DEFAULT_CUSTOMER_ROLE_ID = '6cff3da0-02d8-11ef-8c8d-74563c33253';
     try {
-        const { firstName, lastName, gender, email, phoneNo, address, cityId, stateId, countryCode, countryId, birthDate } = req.body;
+        const { firstName, lastName, gender, email, phoneNo, address, pincode, cityId, stateId, countryCode, countryId, birthDate } = req.body;
 
         const existing = await db.Customer.findOne({
             where: {
@@ -128,6 +128,7 @@ exports.create = async (req, res) => {
                 verified: true,
                 roleId: DEFAULT_CUSTOMER_ROLE_ID,
                 address,
+                pincode,
                 countryId,
                 cityId,
                 stateId,
@@ -157,7 +158,7 @@ exports.create = async (req, res) => {
 exports.update = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     const { id } = req.params;
-    const { firstName, lastName, email, phoneNo, gender, birthDate, address, countryId, stateId, cityId, countryCode } = req.body;
+    const { firstName, lastName, email, phoneNo, gender, birthDate, address, pincode, countryId, stateId, cityId, countryCode } = req.body;
 
     try {
         const customer = await db.Customer.findOne({ where: { id }, transaction });
@@ -186,6 +187,7 @@ exports.update = async (req, res) => {
             gender,
             birthDate,
             address,
+            pincode,
             countryId,
             stateId,
             cityId,
@@ -616,7 +618,7 @@ exports.updateMe = async (req, res) => {
             return res.status(status.Forbidden).json({ message: 'Customer access only' });
         }
 
-        const { firstName, lastName, email, phoneNo, gender, birthDate, address, countryId, stateId, cityId, countryCode } = req.body;
+        const { firstName, lastName, email, phoneNo, gender, birthDate, address, pincode, countryId, stateId, cityId, countryCode } = req.body;
 
         const customer = await db.Customer.findOne({ where: { id: req.user.id }, transaction });
         if (!customer) {
@@ -635,7 +637,7 @@ exports.updateMe = async (req, res) => {
             }
         }
 
-        const updateData = { firstName, lastName, email, phoneNo, gender, birthDate, address, countryId, stateId, cityId, countryCode };
+        const updateData = { firstName, lastName, email, phoneNo, gender, birthDate, address, pincode, countryId, stateId, cityId, countryCode };
         Object.keys(updateData).forEach((key) => {
             if (updateData[key] === undefined) delete updateData[key];
         });

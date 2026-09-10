@@ -29,6 +29,7 @@ const schema = z.object({
   phoneNo: z.string().min(8, 'Enter a valid mobile number'),
   birthDate: z.string(),
   address: z.string(),
+  pincode: z.string(),
   countryId: z.string(),
   stateId: z.string(),
   cityId: z.string(),
@@ -44,6 +45,7 @@ const EMPTY_VALUES: FormValues = {
   phoneNo: '',
   birthDate: '',
   address: '',
+  pincode: '',
   countryId: '',
   stateId: '',
   cityId: '',
@@ -79,6 +81,7 @@ export default function ProfilePage() {
         // Guard against a full ISO timestamp — <input type="date"> only accepts yyyy-MM-dd.
         birthDate: profile.birthDate ? profile.birthDate.slice(0, 10) : '',
         address: profile.address ?? '',
+        pincode: profile.pincode ?? '',
         countryId: profile.countryId ?? '',
         stateId: profile.stateId ?? '',
         cityId: profile.cityId ?? '',
@@ -107,6 +110,7 @@ export default function ProfilePage() {
       email: values.email.trim() ? values.email.trim() : null,
       birthDate: values.birthDate ? values.birthDate : null,
       address: values.address.trim() ? values.address.trim() : null,
+      pincode: values.pincode.trim() ? values.pincode.trim() : null,
       countryId: values.countryId ? values.countryId : null,
       stateId: values.stateId ? values.stateId : null,
       cityId: values.cityId ? values.cityId : null,
@@ -141,6 +145,8 @@ export default function ProfilePage() {
 
   return (
     <div className="flex flex-col gap-5">
+      <h1 className="text-2xl font-bold text-text-primary">Profile</h1>
+
       <GlassPanel radius="card" className="flex items-center gap-4 p-5">
         <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/25 to-cyan/10 text-xl font-semibold text-text-primary">
           {initial}
@@ -196,6 +202,7 @@ export default function ProfilePage() {
 
         <GlassPanel radius="card" className="p-5">
           <h3 className="text-sm font-semibold text-text-primary">Address</h3>
+          <p className="mt-1 text-xs text-text-muted">Used for delivery and to personalize nearby restaurants.</p>
           <div className="mt-4 flex flex-col gap-4">
             <div className="flex flex-col gap-2">
               <label htmlFor="profile-address" className="text-sm font-medium text-text-secondary">
@@ -214,7 +221,7 @@ export default function ProfilePage() {
               />
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <Controller
                 control={control}
                 name="countryId"
@@ -223,6 +230,8 @@ export default function ProfilePage() {
                     label="Country"
                     value={field.value}
                     placeholder="Select country"
+                    searchable
+                    searchPlaceholder="Search countries…"
                     onChange={(value) => {
                       field.onChange(value);
                       setValue('stateId', '');
@@ -246,8 +255,10 @@ export default function ProfilePage() {
                   <Select
                     label="State"
                     value={field.value}
-                    placeholder="Select state"
+                    placeholder={countryId ? 'Select state' : 'Select country first'}
                     disabled={!countryId}
+                    searchable
+                    searchPlaceholder="Search states…"
                     onChange={(value) => {
                       field.onChange(value);
                       setValue('cityId', '');
@@ -270,8 +281,10 @@ export default function ProfilePage() {
                   <Select
                     label="City"
                     value={field.value}
-                    placeholder="Select city"
+                    placeholder={stateId ? 'Select city' : 'Select state first'}
                     disabled={!stateId}
+                    searchable
+                    searchPlaceholder="Search cities…"
                     onChange={field.onChange}
                   >
                     <option value="">Select city</option>
@@ -282,6 +295,13 @@ export default function ProfilePage() {
                     ))}
                   </Select>
                 )}
+              />
+
+              <Input
+                label="Pincode / ZIP"
+                placeholder="e.g. 380007"
+                error={errors.pincode?.message}
+                {...register('pincode')}
               />
             </div>
           </div>

@@ -64,6 +64,10 @@ module.exports = (sequelize, Sequelize) => {
                 type: Sequelize.TEXT,
                 allowNull: true,
             },
+            pincode: {
+                type: Sequelize.STRING(10),
+                allowNull: true,
+            },
             countryId: {
                 type: Sequelize.UUID,
                 allowNull: true,

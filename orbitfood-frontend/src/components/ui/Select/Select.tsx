@@ -1,6 +1,6 @@
-import { Children, isValidElement, useId, type OptionHTMLAttributes, type ReactElement, type ReactNode } from 'react';
+import { Children, isValidElement, useId, useMemo, useState, type OptionHTMLAttributes, type ReactElement, type ReactNode } from 'react';
 import * as RadixSelect from '@radix-ui/react-select';
-import { Check, ChevronDown } from 'lucide-react';
+import { Check, ChevronDown, Search } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
 /**
@@ -21,6 +21,9 @@ interface SelectProps {
   className?: string;
   name?: string;
   children: ReactNode;
+  /** Adds a filter box above the option list — for long lists (e.g. country/city). */
+  searchable?: boolean;
+  searchPlaceholder?: string;
 }
 
 // Radix Select.Item rejects an empty-string value outright, but some of our
@@ -31,12 +34,31 @@ const EMPTY_VALUE = '__select_empty__';
 const toRadixValue = (v: string) => (v === '' ? EMPTY_VALUE : v);
 const fromRadixValue = (v: string) => (v === EMPTY_VALUE ? '' : v);
 
-export function Select({ label, error, value, onChange, placeholder, disabled, className, name, children }: SelectProps) {
+export function Select({
+  label,
+  error,
+  value,
+  onChange,
+  placeholder,
+  disabled,
+  className,
+  name,
+  children,
+  searchable = false,
+  searchPlaceholder = 'Search…',
+}: SelectProps) {
   const generatedId = useId();
+  const [search, setSearch] = useState('');
 
-  const options = Children.toArray(children).filter(isValidElement) as ReactElement<
+  const allOptions = Children.toArray(children).filter(isValidElement) as ReactElement<
     OptionHTMLAttributes<HTMLOptionElement>
   >[];
+
+  const options = useMemo(() => {
+    if (!searchable || !search.trim()) return allOptions;
+    const q = search.trim().toLowerCase();
+    return allOptions.filter((opt) => String(opt.props.children ?? '').toLowerCase().includes(q));
+  }, [allOptions, searchable, search]);
 
   return (
     <div className="flex flex-col gap-2">
@@ -50,6 +72,9 @@ export function Select({ label, error, value, onChange, placeholder, disabled, c
         onValueChange={(v) => onChange?.(fromRadixValue(v))}
         disabled={disabled}
         name={name}
+        onOpenChange={(open) => {
+          if (!open) setSearch('');
+        }}
       >
         <RadixSelect.Trigger
           id={generatedId}
@@ -75,8 +100,28 @@ export function Select({ label, error, value, onChange, placeholder, disabled, c
             sideOffset={6}
             className="glass-panel--strong z-dropdown overflow-hidden rounded-card data-[state=open]:animate-auth-panel-in"
             style={{ width: 'var(--radix-select-trigger-width)' }}
+            onCloseAutoFocus={(e) => searchable && e.preventDefault()}
+            {...(searchable ? { onOpenAutoFocus: (e: Event) => e.preventDefault() } : {})}
           >
+            {searchable && (
+              <div className="flex items-center gap-2 border-b border-border-subtle px-2.5 py-2">
+                <Search className="h-3.5 w-3.5 shrink-0 text-text-muted" aria-hidden="true" />
+                <input
+                  autoFocus
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key !== 'Escape') e.stopPropagation();
+                  }}
+                  placeholder={searchPlaceholder}
+                  className="w-full bg-transparent text-sm text-text-primary outline-none placeholder:text-text-muted"
+                />
+              </div>
+            )}
             <RadixSelect.Viewport className="max-h-72 p-1.5">
+              {options.length === 0 && (
+                <p className="px-2.5 py-3 text-center text-xs text-text-muted">No matches</p>
+              )}
               {options.map((opt) => {
                 const optValue = String(opt.props.value ?? '');
                 return (

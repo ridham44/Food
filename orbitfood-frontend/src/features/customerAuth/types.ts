@@ -16,6 +16,7 @@ export interface CustomerProfile {
   email: string | null;
   phoneNo: string;
   address: string | null;
+  pincode: string | null;
   countryId: string | null;
   stateId: string | null;
   cityId: string | null;
@@ -26,6 +27,17 @@ export interface CustomerProfile {
 export type CustomerProfileInput = Partial<
   Pick<
     CustomerProfile,
-    'firstName' | 'lastName' | 'email' | 'phoneNo' | 'gender' | 'birthDate' | 'address' | 'countryId' | 'stateId' | 'cityId' | 'countryCode'
+    | 'firstName'
+    | 'lastName'
+    | 'email'
+    | 'phoneNo'
+    | 'gender'
+    | 'birthDate'
+    | 'address'
+    | 'pincode'
+    | 'countryId'
+    | 'stateId'
+    | 'cityId'
+    | 'countryCode'
   >
 >;

@@ -208,6 +208,7 @@ exports.findAll = async (req, res) => {
         let columns = {};
 
         let whereCondition = {};
+        let order = [['createdAt', 'DESC']];
 
         if (req.params.id) {
             whereCondition.countryId = req.params.id;
@@ -220,6 +221,7 @@ exports.findAll = async (req, res) => {
                 [db.sequelize.col('GeoState.name'), 'label'],
                 [db.sequelize.col('GeoState.stateCode'), 'State Code'],
             ];
+            order = [['name', 'ASC']];
         } else {
             columns.include = [];
         }
@@ -228,7 +230,7 @@ exports.findAll = async (req, res) => {
             where: {
                 ...whereCondition,
             },
-            order: [['createdAt', 'DESC']],
+            order,
             ...columns,
             transaction,
         });

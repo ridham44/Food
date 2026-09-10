@@ -71,8 +71,13 @@ export default function OrdersPage() {
   const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
 
   return (
-    <div className="flex flex-col gap-5">
-      <h1 className="text-xl font-bold text-text-primary">My orders</h1>
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl font-bold text-text-primary">My orders</h1>
+        <p className="text-sm text-text-muted">
+          {isLoading ? 'Loading your orders…' : count > 0 ? `${count} order${count === 1 ? '' : 's'} placed so far` : 'Track and manage your past orders here'}
+        </p>
+      </div>
 
       {isError ? (
         <ErrorState onRetry={() => refetch()} description="We couldn't load your orders." />

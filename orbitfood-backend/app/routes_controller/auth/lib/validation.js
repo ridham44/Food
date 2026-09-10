@@ -29,6 +29,9 @@ const createCustomerValidator = [
         .isLength({ min: 8, max: 15 }).withMessage('Phone number must be 8–15 digits.'),
     body('address')
         .isString().withMessage('Address must be a string.'),
+    body('pincode')
+        .optional({ checkFalsy: true })
+        .isString().isLength({ min: 3, max: 10 }).withMessage('Pincode must be 3-10 characters.'),
     body('cityId')
         .isUUID().withMessage('Invalid city ID.'),
     body('stateId')
@@ -47,6 +50,7 @@ const validateUpdate = [
     body('gender').optional().isIn(['male', 'female']).withMessage('Invalid gender'),
     body('birthDate').optional().isISO8601().toDate().withMessage('Invalid birth date'),
     body('countryCode').optional().isString().isLength({ max: 5 }),
+    body('pincode').optional({ checkFalsy: true }).isString().isLength({ min: 3, max: 10 }).withMessage('Pincode must be 3-10 characters.'),
 
     body('countryId').optional().isUUID().withMessage('Invalid countryId format')
         .bail()

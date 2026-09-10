@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Search, Store } from 'lucide-react';
+import { Clock, MapPin, Search, Store } from 'lucide-react';
 import { GlassPanel } from '@/components/ui/GlassPanel/GlassPanel';
 import { Badge } from '@/components/ui/Badge/Badge';
 import { EmptyState, ErrorState } from '@/components/ui/EmptyState/EmptyState';
@@ -10,10 +10,16 @@ import { assetUrl } from '@/lib/assetUrl';
 import { useRestaurants } from '@/features/restaurants/useRestaurants';
 import type { Restaurant } from '@/features/restaurants/types';
 
+function formatHours(restaurant: Restaurant): string | null {
+  if (!restaurant.openingTime || !restaurant.closingTime) return null;
+  return `${restaurant.openingTime.slice(0, 5)} – ${restaurant.closingTime.slice(0, 5)}`;
+}
+
 function RestaurantCard({ restaurant }: { restaurant: Restaurant }) {
   const navigate = useNavigate();
   const image = assetUrl(restaurant.frontImage);
   const open = restaurant.isOpen && restaurant.acceptOrders;
+  const hours = formatHours(restaurant);
 
   return (
     <GlassPanel
@@ -25,30 +31,39 @@ function RestaurantCard({ restaurant }: { restaurant: Restaurant }) {
         if (e.key === 'Enter' || e.key === ' ') navigate(`/app/restaurants/${restaurant.id}`);
       }}
       className={cn(
-        'flex cursor-pointer flex-col overflow-hidden p-0 transition-all duration-200 hover:border-border-active',
+        'group flex cursor-pointer flex-col overflow-hidden p-0 transition-all duration-200',
+        'hover:-translate-y-0.5 hover:border-border-active hover:shadow-[0_16px_40px_rgba(0,0,0,0.28)]',
         !open && 'opacity-60 saturate-50'
       )}
     >
-      <div className="flex h-32 items-center justify-center bg-surface-glass">
+      <div className="relative flex h-36 items-center justify-center overflow-hidden bg-surface-glass">
         {image ? (
-          <img src={image} alt={restaurant.companyName} className="h-full w-full object-cover" />
+          <img
+            src={image}
+            alt={restaurant.companyName}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          />
         ) : (
-          <span className="flex h-12 w-12 items-center justify-center rounded-control bg-primary/15 text-primary-hover">
-            <Store className="h-6 w-6" aria-hidden="true" />
+          <span className="flex h-14 w-14 items-center justify-center rounded-control bg-primary/15 text-primary-hover">
+            <Store className="h-7 w-7" aria-hidden="true" />
           </span>
         )}
+        <Badge tone={open ? 'success' : 'neutral'} className="absolute right-2.5 top-2.5 shadow-sm">
+          {open ? 'Open now' : 'Closed'}
+        </Badge>
       </div>
-      <div className="flex flex-1 flex-col gap-2 p-4">
-        <div className="flex items-start justify-between gap-2">
-          <p className="truncate text-sm font-semibold text-text-primary">{restaurant.companyName}</p>
-          <Badge tone={open ? 'success' : 'neutral'} className="shrink-0">
-            {open ? 'Open now' : 'Closed'}
-          </Badge>
-        </div>
+      <div className="flex flex-1 flex-col gap-1.5 p-4">
+        <p className="truncate text-sm font-semibold text-text-primary">{restaurant.companyName}</p>
         {restaurant.address && (
           <p className="flex items-start gap-1.5 text-xs text-text-muted">
             <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
             <span className="line-clamp-2">{restaurant.address}</span>
+          </p>
+        )}
+        {hours && (
+          <p className="mt-auto flex items-center gap-1.5 pt-1 text-xs text-text-muted">
+            <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            {hours}
           </p>
         )}
       </div>
@@ -61,26 +76,29 @@ export default function RestaurantsPage() {
   const { data: restaurants = [], isLoading, isError, refetch } = useRestaurants(search);
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-xl font-bold text-text-primary">Restaurants</h2>
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl font-bold text-text-primary">Restaurants</h1>
+        <p className="text-sm text-text-muted">
+          {isLoading ? 'Loading nearby restaurants…' : `${restaurants.length} restaurant${restaurants.length === 1 ? '' : 's'} available to order from`}
+        </p>
       </div>
 
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" aria-hidden="true" />
+      <div className="relative max-w-lg">
+        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" aria-hidden="true" />
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search restaurants by name…"
-          className="h-11 w-full max-w-md rounded-control border border-border-subtle bg-input-bg pl-9 pr-3 text-sm text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-[var(--border-active)] focus:ring-4 focus:ring-primary/15"
+          className="h-12 w-full rounded-control border border-border-subtle bg-input-bg pl-10 pr-3 text-sm text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-[var(--border-active)] focus:ring-4 focus:ring-primary/15"
         />
       </div>
 
       {isError ? (
         <ErrorState onRetry={() => refetch()} description="Couldn't load restaurants. Please try again." />
       ) : isLoading ? (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4">
           {Array.from({ length: 8 }).map((_, i) => (
             <SkeletonCard key={i} />
           ))}
@@ -94,7 +112,7 @@ export default function RestaurantsPage() {
           />
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4">
           {restaurants.map((restaurant) => (
             <RestaurantCard key={restaurant.id} restaurant={restaurant} />
           ))}
