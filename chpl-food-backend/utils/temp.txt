@@ -1,0 +1,74 @@
+// Sequelize Hooks 
+define: {
+    hooks: {
+        afterSave(model, options) {
+            console.log(model.constructor.name);
+        },
+    },
+},
+
+// get difference from two objects
+/* eslint-disable-next-line no-unused-vars */
+function getObjectDifference(obj1, obj2) {
+    // Find keys present in obj1 but not in obj2
+    const keysOnlyInObj1 = _.difference(Object.keys(obj1), Object.keys(obj2));
+
+    // Find keys present in obj2 but not in obj1
+    const keysOnlyInObj2 = _.difference(Object.keys(obj2), Object.keys(obj1));
+
+    // Find keys present in both objects
+    const commonKeys = _.intersection(Object.keys(obj1), Object.keys(obj2));
+
+    // Find values that are different for common keys
+    const diffValues = commonKeys.reduce((result, key) => {
+        if (!_.isEqual(obj1[key], obj2[key])) {
+            result[key] = obj1[key];
+        }
+        return result;
+    }, {});
+
+    // Combine all the differences
+    const difference = {
+        keysOnlyInObj1,
+        keysOnlyInObj2,
+        diffValues,
+    };
+
+    return difference;
+}
+
+
+// rate limiter code
+const rateLimit = require('express-rate-limit');
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 100,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    message: 'Too many requests, please try again later.',
+    handler: function (req, res /*, next*/) {
+        res.status(429).json({
+            message: 'You have exceeded your 5 requests per minute limit.',
+        });
+    },
+});
+
+// Apply the rate limiting middleware to all requests.
+app.use(limiter);
+
+// ip code 
+       // / for ip address
+
+        // const forwardedFor = req.headers['x-forwarded-for'];
+        // console.error('forwardedFor', forwardedFor);
+        // if (forwardedFor) {
+        //     // const ip = forwardedFor.split(',')[0].trim();
+        //     const ip = forwardedFor;
+
+        //     req.clientIp = ip;
+        //     console.error('req.clientIp', req.clientIp);
+        // } else {
+        //     console.error('req.connection.remoteAddress', req.connection.remoteAddress);
+        //     req.clientIp = req.connection.remoteAddress;
+        // }
+        // / for ip address -end

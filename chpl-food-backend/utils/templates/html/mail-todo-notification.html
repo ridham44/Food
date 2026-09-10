@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>To-Do Item</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #ff7e5f, #feb47b);
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      color: #333;
+    }
+
+    .container {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+      width: 90%;
+      max-width: 600px;
+      overflow: hidden;
+    }
+
+    .header {
+      background: #ff7e5f;
+      padding: 20px;
+      text-align: center;
+      color: #fff;
+      border-bottom: 5px solid #feb47b;
+    }
+
+    .header h2 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    .content {
+      padding: 20px;
+    }
+
+    .details {
+      margin: 10px 0;
+      display: flex;
+      align-items: center;
+      font-size: 16px;
+    }
+
+    .icon {
+      margin-right: 10px;
+      font-size: 18px;
+      color: #ff7e5f;
+    }
+
+    .details span {
+      font-weight: 600;
+      margin-right: 5px;
+    }
+
+    .priority {
+      padding: 5px 10px;
+      border-radius: 5px;
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .priority.high {
+      background-color: #e94e77;
+    }
+
+    .priority.medium {
+      background-color: #f6c90e;
+    }
+
+    .priority.low {
+      background-color: #4caf50;
+    }
+
+    .footer {
+      background: #f4f4f4;
+      padding: 15px;
+      text-align: center;
+      font-size: 14px;
+      border-top: 1px solid #ddd;
+      color: #555;
+    }
+
+    /* Media Queries */
+    @media (max-width: 768px) {
+      .header h2 {
+        font-size: 20px;
+      }
+
+      .details {
+        font-size: 14px;
+      }
+
+      .icon {
+        font-size: 16px;
+      }
+
+      .footer {
+        font-size: 12px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        width: 100%;
+        border-radius: 0;
+      }
+
+      .header h2 {
+        font-size: 18px;
+      }
+
+      .details {
+        font-size: 12px;
+      }
+
+      .icon {
+        font-size: 14px;
+      }
+
+      .footer {
+        font-size: 10px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <div class="header">
+      <h2>📝 To-Do Item</h2>
+    </div>
+
+    <div class="content">
+      <div class="details">
+        <span class="icon">📋</span> <span>Title:</span> {{title}}
+      </div>
+
+      <div class="details">
+        <span class="icon">⚡</span> <span>Priority:</span>
+        <span class="priority {{priorityClass}}">
+          {{priority}}
+        </span>
+      </div>
+
+      <div class="details">
+        <span class="icon">🗓️</span> <span>Due Date:</span> {{dueDate}}
+      </div>
+
+      <div class="details">
+        <span class="icon">🔔</span> <span>Reminder Date:</span> {{reminder}}
+      </div>
+
+      <div class="details">
+        <span class="icon">⏳</span> <span>Reminder Type:</span> {{reminderType}} before the due date
+      </div>
+
+      <p>🚀 Keep track of your tasks and stay on top of your priorities!</p>
+    </div>
+
+    <div class="footer">
+      <p>Complete your to-do item on time and achieve your goals!</p>
+    </div>
+  </div>
+
+</body>
+
+</html>
