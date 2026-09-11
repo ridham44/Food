@@ -63,7 +63,7 @@ export function PayBillModal({ open, onOpenChange, billId, orderId, finalAmount 
       open={open}
       onOpenChange={onOpenChange}
       title="Pay now"
-      description={`Total due: ₹${finalAmount.toFixed(2)}`}
+      description={`Total due: $${finalAmount.toFixed(2)}`}
       size="sm"
       footer={
         <>
@@ -82,8 +82,8 @@ export function PayBillModal({ open, onOpenChange, billId, orderId, finalAmount 
         <Input label="Card" type="number" min={0} step="0.01" value={card} onChange={(e) => setCard(e.target.value)} />
         <p className={cn('text-xs', short ? 'text-danger' : 'text-text-muted')}>
           {short
-            ? `Amounts must add up to at least ₹${finalAmount.toFixed(2)}.`
-            : `Total entered: ₹${total.toFixed(2)}`}
+            ? `Amounts must add up to at least $${finalAmount.toFixed(2)}.`
+            : `Total entered: $${total.toFixed(2)}`}
         </p>
       </div>
     </Modal>

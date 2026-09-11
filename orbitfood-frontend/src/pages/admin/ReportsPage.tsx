@@ -28,12 +28,12 @@ function RankBadge({ rank }: { rank: number }) {
 const taxColumns: ColumnDef<TenantTaxReportRow>[] = [
   { header: 'Restaurant', accessorKey: 'tenantName' },
   {
-    header: 'GST %',
+    header: 'Tax %',
     cell: ({ row }) => <span className="text-text-primary">{row.original.gst}%</span>,
   },
   {
     header: 'Packing fee',
-    cell: ({ row }) => <span className="font-medium text-text-primary">₹{row.original.packingFee.toFixed(2)}</span>,
+    cell: ({ row }) => <span className="font-medium text-text-primary">${row.original.packingFee.toFixed(2)}</span>,
   },
   {
     header: 'Status',
@@ -50,7 +50,7 @@ const customerColumns: ColumnDef<TopCustomer>[] = [
   { header: 'Mobile', accessorKey: 'mobile' },
   {
     header: 'Points',
-    cell: ({ row }) => <span className="font-medium text-text-primary">{row.original.points.toLocaleString('en-IN')}</span>,
+    cell: ({ row }) => <span className="font-medium text-text-primary">{row.original.points.toLocaleString('en-US')}</span>,
   },
 ];
 
@@ -69,8 +69,8 @@ export default function ReportsPage() {
         <div>
           <h3 className="text-sm font-semibold text-text-primary">Tax policy audit</h3>
           <p className="mt-1 text-xs text-text-muted">
-            Every restaurant&apos;s current GST and packing fee configuration — spot outliers or an inactive config that needs
-            follow-up.
+            Every restaurant&apos;s current sales tax and packing fee configuration — spot outliers or an inactive config that
+            needs follow-up.
           </p>
         </div>
         <div className="mt-4">
@@ -82,7 +82,7 @@ export default function ReportsPage() {
             onRetry={() => taxReport.refetch()}
             emptyIcon={Percent}
             emptyTitle="No tax configurations found yet"
-            emptyDescription="Once restaurants set up GST and packing fees, they'll show up here."
+            emptyDescription="Once restaurants set up sales tax and packing fees, they'll show up here."
             getRowId={(row) => row.tenantName}
           />
         </div>

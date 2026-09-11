@@ -17,7 +17,7 @@ export default function PaymentsPage() {
     { header: 'Transaction', cell: ({ row }) => `#${row.original.id.slice(0, 6).toUpperCase()}` },
     { header: 'Order', cell: ({ row }) => (row.original.orderId ? `#${row.original.orderId.slice(0, 6).toUpperCase()}` : '—') },
     { header: 'Customer', cell: ({ row }) => row.original.customerName ?? 'Guest' },
-    { header: 'Amount', cell: ({ row }) => `₹${row.original.amount.toFixed(2)}` },
+    { header: 'Amount', cell: ({ row }) => `$${row.original.amount.toFixed(2)}` },
     { header: 'Method', cell: ({ row }) => METHOD_LABEL[row.original.method] },
     {
       header: 'Status',
@@ -31,10 +31,10 @@ export default function PaymentsPage() {
       <h2 className="text-xl font-bold text-text-primary">Payments</h2>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <KpiCard label="Total revenue" value={`₹${(overview?.totalAmount ?? 0).toFixed(0)}`} icon={Wallet} loading={overviewLoading} />
-        <KpiCard label="Cash" value={`₹${(overview?.cash ?? 0).toFixed(0)}`} icon={Banknote} loading={overviewLoading} />
-        <KpiCard label="Card" value={`₹${(overview?.card ?? 0).toFixed(0)}`} icon={CreditCard} loading={overviewLoading} />
-        <KpiCard label="Online" value={`₹${(overview?.online ?? 0).toFixed(0)}`} icon={Smartphone} loading={overviewLoading} />
+        <KpiCard label="Total revenue" value={`$${(overview?.totalAmount ?? 0).toFixed(0)}`} icon={Wallet} loading={overviewLoading} />
+        <KpiCard label="Cash" value={`$${(overview?.cash ?? 0).toFixed(0)}`} icon={Banknote} loading={overviewLoading} />
+        <KpiCard label="Card" value={`$${(overview?.card ?? 0).toFixed(0)}`} icon={CreditCard} loading={overviewLoading} />
+        <KpiCard label="Online" value={`$${(overview?.online ?? 0).toFixed(0)}`} icon={Smartphone} loading={overviewLoading} />
       </div>
 
       <DataTable

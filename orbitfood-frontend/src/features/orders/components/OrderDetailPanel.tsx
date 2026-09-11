@@ -94,7 +94,7 @@ export function OrderDetailPanel({ order, onClose }: { order: OrderListItem | nu
                     {item.quantity} × {item.type === 'combo' ? item.comboName : item.menuName}
                     {item.specialInstruction && <span className="ml-1.5 text-xs text-text-muted">({item.specialInstruction})</span>}
                   </span>
-                  <span className="font-medium text-text-primary">₹{item.totalPrice.toFixed(2)}</span>
+                  <span className="font-medium text-text-primary">${item.totalPrice.toFixed(2)}</span>
                 </div>
               ))}
             </div>
@@ -104,27 +104,27 @@ export function OrderDetailPanel({ order, onClose }: { order: OrderListItem | nu
             <div className="flex flex-col gap-1.5 rounded-control border border-border-subtle bg-surface-glass px-3 py-3 text-sm">
               <div className="flex justify-between text-text-secondary">
                 <span>Subtotal</span>
-                <span>₹{detail.bill.totalAmount.toFixed(2)}</span>
+                <span>${detail.bill.totalAmount.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-text-secondary">
-                <span>GST ({detail.bill.gstPercent}%)</span>
-                <span>₹{((detail.bill.totalAmount * detail.bill.gstPercent) / 100).toFixed(2)}</span>
+                <span>Tax ({detail.bill.gstPercent}%)</span>
+                <span>${((detail.bill.totalAmount * detail.bill.gstPercent) / 100).toFixed(2)}</span>
               </div>
               {detail.bill.packingFee > 0 && (
                 <div className="flex justify-between text-text-secondary">
                   <span>Packing fee</span>
-                  <span>₹{detail.bill.packingFee.toFixed(2)}</span>
+                  <span>${detail.bill.packingFee.toFixed(2)}</span>
                 </div>
               )}
               {detail.bill.discount > 0 && (
                 <div className="flex justify-between text-success">
                   <span>Discount</span>
-                  <span>-₹{detail.bill.discount.toFixed(2)}</span>
+                  <span>-${detail.bill.discount.toFixed(2)}</span>
                 </div>
               )}
               <div className="mt-1 flex justify-between border-t border-border-subtle pt-1.5 text-sm font-semibold text-text-primary">
                 <span>Total</span>
-                <span>₹{detail.bill.finalAmount.toFixed(2)}</span>
+                <span>${detail.bill.finalAmount.toFixed(2)}</span>
               </div>
               <p className="mt-1 text-xs text-text-muted">Payment: {detail.bill.paymentStatus}</p>
             </div>

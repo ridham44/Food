@@ -154,7 +154,7 @@ function ItemRow({ item, vendorId }: { item: VendorItem; vendorId: string }) {
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-3">
-        <span className="text-sm font-semibold text-text-primary">₹{item.costPerUnit.toFixed(2)}</span>
+        <span className="text-sm font-semibold text-text-primary">${item.costPerUnit.toFixed(2)}</span>
         <div className="flex items-center gap-1">
           <button
             type="button"

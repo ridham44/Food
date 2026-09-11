@@ -39,6 +39,10 @@ module.exports = (sequelize, Sequelize) => {
                 type: Sequelize.STRING(15),
                 allowNull: false,
             },
+            profileImage: {
+                type: Sequelize.TEXT,
+                allowNull: true,
+            },
             verified: {
                 type: Sequelize.BOOLEAN,
                 allowNull: false,

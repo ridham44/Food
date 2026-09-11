@@ -27,7 +27,7 @@ export function useOrdersReportData(days: number) {
 
     const byDay = new Map<string, { orders: number; revenue: number }>();
     inRange.forEach((row) => {
-      const key = new Date(row.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+      const key = new Date(row.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       const entry = byDay.get(key) ?? { orders: 0, revenue: 0 };
       entry.orders += 1;
       entry.revenue += row.total ?? 0;

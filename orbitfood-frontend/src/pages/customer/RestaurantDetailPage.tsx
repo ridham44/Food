@@ -29,7 +29,7 @@ function MenuItemRow({ item }: { item: MenuCategoryItem }) {
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <p className="truncate text-sm font-semibold text-text-primary">{item.name}</p>
         {item.description && <p className="line-clamp-2 text-xs text-text-muted">{item.description}</p>}
-        <p className="text-sm font-semibold text-text-primary">₹{item.price.toFixed(0)}</p>
+        <p className="text-sm font-semibold text-text-primary">${item.price.toFixed(0)}</p>
       </div>
 
       <div className="shrink-0">
@@ -239,7 +239,7 @@ export default function RestaurantDetailPage() {
                 <ShoppingCart className="h-4 w-4" aria-hidden="true" />
                 {cartCount} item{cartCount === 1 ? '' : 's'}
               </span>
-              <span className="text-sm font-semibold text-text-primary">View cart · ₹{cartTotal.toFixed(0)}</span>
+              <span className="text-sm font-semibold text-text-primary">View cart · ${cartTotal.toFixed(0)}</span>
             </GlassPanel>
           </Link>
         </div>

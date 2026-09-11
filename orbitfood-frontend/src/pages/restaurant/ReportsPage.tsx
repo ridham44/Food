@@ -11,7 +11,7 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { IndianRupee, ShoppingBag, Receipt, TrendingUp } from 'lucide-react';
+import { DollarSign, ShoppingBag, Receipt, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { GlassPanel } from '@/components/ui/GlassPanel/GlassPanel';
 import { Select } from '@/components/ui/Select/Select';
@@ -40,10 +40,10 @@ export default function ReportsPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <KpiCard label="Revenue" value={`₹${totalRevenue.toFixed(0)}`} icon={IndianRupee} loading={isLoading} />
+        <KpiCard label="Revenue" value={`$${totalRevenue.toFixed(0)}`} icon={DollarSign} loading={isLoading} />
         <KpiCard label="Orders" value={String(totalOrders)} icon={ShoppingBag} loading={isLoading} />
-        <KpiCard label="Avg. order value" value={`₹${avgOrderValue.toFixed(0)}`} icon={Receipt} loading={isLoading} />
-        <KpiCard label="Profit" value={`₹${(breakdown?.profit ?? 0).toFixed(0)}`} icon={TrendingUp} />
+        <KpiCard label="Avg. order value" value={`$${avgOrderValue.toFixed(0)}`} icon={Receipt} loading={isLoading} />
+        <KpiCard label="Profit" value={`$${(breakdown?.profit ?? 0).toFixed(0)}`} icon={TrendingUp} />
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
@@ -130,7 +130,7 @@ export default function ReportsPage() {
                   <span className={cn('py-2.5 text-sm text-text-primary', rowBorder)}>{item.itemName}</span>
                   <span className={cn('whitespace-nowrap py-2.5 text-sm text-text-muted', rowBorder)}>{item.quantity} sold</span>
                   <span className={cn('whitespace-nowrap py-2.5 text-right text-sm font-medium text-text-primary', rowBorder)}>
-                    ₹{item.totalRevenue.toFixed(0)}
+                    ${item.totalRevenue.toFixed(0)}
                   </span>
                 </Fragment>
               );

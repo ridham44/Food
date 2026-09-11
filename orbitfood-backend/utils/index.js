@@ -5,7 +5,7 @@ module.exports = {
     // sendGrid: require('./lib/sendGrid').sendMail,
     mailTemplate: require('./lib/sendGrid').mailTemplate,
     removeImage: require('./lib/removeImage').removeImage,
-    // razorpayInstance: require('./lib/razorpay').instance,
+    razorpayInstance: require('./lib/razorpay').instance,
     // stripeInstance: require('./lib/stripe').instance,
     common: require('./lib/common-function'),
     dbCommon: require('./lib/db-common-function'),

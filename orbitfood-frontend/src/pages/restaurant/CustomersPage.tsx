@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Users, Plus, Pencil, Trash2 } from 'lucide-react';
 import { DataTable } from '@/components/ui/DataTable/DataTable';
 import { Button } from '@/components/ui/Button/Button';
+import { Avatar } from '@/components/ui/Avatar/Avatar';
 import { useCustomers } from '@/features/customers/useCustomers';
 import { AddEditCustomerModal } from '@/features/customers/components/AddEditCustomerModal';
 import { DeleteCustomerModal } from '@/features/customers/components/DeleteCustomerModal';
@@ -45,7 +46,10 @@ export default function CustomersPage() {
     {
       header: 'Name',
       cell: ({ row }) => (
-        <span className="font-medium text-text-primary">{row.original.name ?? 'Unknown'}</span>
+        <div className="flex items-center gap-2.5">
+          <Avatar src={row.original.profileImage} name={row.original.name} size="sm" />
+          <span className="font-medium text-text-primary">{row.original.name ?? 'Unknown'}</span>
+        </div>
       ),
     },
     { header: 'Phone', accessorKey: 'phone' },
@@ -53,7 +57,7 @@ export default function CustomersPage() {
     { header: 'Total orders', accessorKey: 'totalOrders' },
     {
       header: 'Total spent',
-      cell: ({ row }) => `₹${row.original.totalSpent.toFixed(0)}`,
+      cell: ({ row }) => `$${row.original.totalSpent.toFixed(0)}`,
     },
     {
       header: 'Last order',

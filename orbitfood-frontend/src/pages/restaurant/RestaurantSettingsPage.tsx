@@ -65,19 +65,19 @@ function TaxConfigSection() {
   return (
     <GlassPanel radius="card" className="p-5">
       <h3 className="text-sm font-semibold text-text-primary">Tax configuration</h3>
-      <p className="mt-1 text-xs text-text-muted">GST and packing fee applied to customer bills.</p>
+      <p className="mt-1 text-xs text-text-muted">Sales tax and packing fee applied to customer bills.</p>
       <form onSubmit={handleSubmit(onSubmit)} className="mt-4 flex flex-col gap-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Input
-            label="GST (%)"
+            label="Sales tax (%)"
             type="number"
             step="0.01"
             min="0"
             error={errors.gst?.message}
-            {...register('gst', { required: 'GST is required' })}
+            {...register('gst', { required: 'Sales tax is required' })}
           />
           <Input
-            label="Packing fee (₹)"
+            label="Packing fee ($)"
             type="number"
             step="0.01"
             min="0"
@@ -167,7 +167,7 @@ export default function RestaurantSettingsPage() {
             <Input label="Contact person" {...register('contactPerson')} />
             <Input label="Phone" {...register('phone')} />
             <Input label="Email" type="email" {...register('email')} />
-            <Input label="GST number" {...register('gstNumber')} />
+            <Input label="Tax ID (EIN)" {...register('gstNumber')} />
             <Input label="Address" {...register('address')} />
           </div>
         </GlassPanel>

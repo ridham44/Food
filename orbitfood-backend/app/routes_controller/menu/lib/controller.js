@@ -16,7 +16,7 @@ exports.create = async (req, res) => {
 
         const menu = await db.Menu.create(
             {
-                parentId: body.parentId,
+                parentId: body.parentId || null,
                 name: body.name,
                 price: body.price,
                 description: body.description,
@@ -68,7 +68,7 @@ exports.update = async (req, res) => {
         }
         const oldData = JSON.parse(JSON.stringify(menu.get({ plain: true })));
         menu.set({
-            parentId: body.parentId,
+            parentId: body.parentId || null,
             name: body.name,
             price: body.price,
             description: body.description,

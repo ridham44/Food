@@ -67,7 +67,17 @@ app.use(morgan(':remote-addr [:date[web]] :method :url :status - :response-time 
 
 //* Body Parser Options
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
-app.use(bodyParser.json({ limit: '50mb' }));
+// `verify` stashes the raw bytes on req.rawBody — needed to check the
+// Razorpay webhook's HMAC signature, which must be computed over the exact
+// bytes received, not the re-serialized parsed JSON.
+app.use(
+    bodyParser.json({
+        limit: '50mb',
+        verify: (req, res, buf) => {
+            req.rawBody = buf;
+        },
+    })
+);
 
 //* Checks if folders exist else create folders for static files
 let folders = ['uploads'];

@@ -45,7 +45,7 @@ export function MenuCard({
       <div className="flex flex-1 flex-col gap-2 p-4">
         <div className="flex items-start justify-between gap-2">
           <p className="truncate text-sm font-semibold text-text-primary">{item.name}</p>
-          <span className="shrink-0 text-sm font-semibold text-text-primary">₹{item.price?.toFixed(0) ?? '—'}</span>
+          <span className="shrink-0 text-sm font-semibold text-text-primary">${item.price?.toFixed(0) ?? '—'}</span>
         </div>
         {item.description && <p className="line-clamp-2 text-xs text-text-muted">{item.description}</p>}
 

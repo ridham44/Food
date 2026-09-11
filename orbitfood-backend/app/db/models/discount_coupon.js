@@ -13,6 +13,7 @@ module.exports = (sequelize, Sequelize) => {
             tenantId: {
                 type: Sequelize.UUID,
                 allowNull: false,
+                unique: 'discount_coupon_tenant_id_code_unique',
                 association: {
                     model: 'Tenant',
                     key: 'id',
@@ -23,7 +24,7 @@ module.exports = (sequelize, Sequelize) => {
             code: {
                 type: Sequelize.STRING(50),
                 allowNull: false,
-                unique: true,
+                unique: 'discount_coupon_tenant_id_code_unique',
             },
             type: {
                 type: Sequelize.ENUM('flat', 'percent'),

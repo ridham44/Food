@@ -1,10 +1,17 @@
 const Razorpay = require('razorpay');
 
-var instance;
+let instance;
 try {
-    instance = new Razorpay({ key_id: process.env.RAZORPAY_KEY, key_secret: process.env.RAZORPAY_SECRET });
+    if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
+        instance = new Razorpay({
+            key_id: process.env.RAZORPAY_KEY_ID,
+            key_secret: process.env.RAZORPAY_KEY_SECRET,
+        });
+    } else {
+        console.log('Razorpay not configured — RAZORPAY_KEY_ID/RAZORPAY_KEY_SECRET missing from env.');
+    }
 } catch (err) {
-    return console.log('Error initiating RazorPay.', err.message);
+    console.log('Error initiating Razorpay.', err.message);
 }
 
 module.exports = {

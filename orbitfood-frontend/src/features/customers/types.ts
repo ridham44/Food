@@ -3,6 +3,9 @@ export interface CustomerListItem {
   name: string | null;
   phone: string | null;
   email: string | null;
+  gender: 'male' | 'female' | null;
+  address: string | null;
+  profileImage: string | null;
   totalOrders: number;
   totalSpent: number;
   lastOrderAt: string | null;
@@ -30,6 +33,7 @@ export interface CustomerProfile {
     email: string | null;
     gender: string | null;
     address: string | null;
+    profileImage: string | null;
   };
   totalOrders: number;
   totalSpent: number;
@@ -50,6 +54,7 @@ export interface CustomerCreateInput {
   cityId?: string;
   countryCode?: string;
   birthDate?: string;
+  profileImage?: string;
 }
 
 /** Fields accepted by PUT /customer-update/:id */

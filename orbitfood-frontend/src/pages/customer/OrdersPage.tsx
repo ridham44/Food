@@ -1,20 +1,44 @@
-import { useState } from 'react';
+import { useState, type MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { ClipboardList, ImageOff } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { ClipboardList, ImageOff, RotateCcw } from 'lucide-react';
+import { toast } from 'sonner';
 import { Badge } from '@/components/ui/Badge/Badge';
 import { Button } from '@/components/ui/Button/Button';
 import { EmptyState, ErrorState } from '@/components/ui/EmptyState/EmptyState';
 import { SkeletonCard } from '@/components/ui/LoadingSkeleton/LoadingSkeleton';
 import { assetUrl } from '@/lib/assetUrl';
 import { cn } from '@/lib/cn';
-import { useMyOrders } from '@/features/customerOrders/useOrders';
+import { useMyOrders, myOrderDetailQueryKey } from '@/features/customerOrders/useOrders';
+import { fetchMyOrderDetail } from '@/features/customerOrders/ordersApi';
 import { getOrderTypeLabel, type OrderSummary } from '@/features/customerOrders/types';
 import { OrderStatusBadge } from '@/features/customerOrders/components/OrderStatusBadge';
+import { useReorderIntoCart } from '@/features/reorder/useReorderIntoCart';
 
 const PAGE_SIZE = 10;
 
 function OrderCard({ order }: { order: OrderSummary }) {
   const image = assetUrl(order.restaurantImage);
+  const queryClient = useQueryClient();
+  const { reorder } = useReorderIntoCart();
+  const [reordering, setReordering] = useState(false);
+
+  const handleReorder = async (e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setReordering(true);
+    try {
+      const detail = await queryClient.fetchQuery({
+        queryKey: myOrderDetailQueryKey(order.id),
+        queryFn: () => fetchMyOrderDetail(order.id),
+      });
+      await reorder(detail);
+    } catch {
+      toast.error("Couldn't load this order to reorder it.");
+    } finally {
+      setReordering(false);
+    }
+  };
 
   return (
     <Link
@@ -48,15 +72,19 @@ function OrderCard({ order }: { order: OrderSummary }) {
         </p>
       </div>
 
-      <div className="shrink-0 text-right">
+      <div className="flex shrink-0 flex-col items-end gap-1.5">
         <p className="text-sm font-semibold text-text-primary">
-          {order.total != null ? `₹${order.total.toFixed(2)}` : 'Awaiting bill'}
+          {order.total != null ? `$${order.total.toFixed(2)}` : 'Awaiting bill'}
         </p>
         {order.paymentStatus && (
-          <Badge tone={order.paymentStatus === '1' ? 'success' : 'neutral'} className="mt-1">
+          <Badge tone={order.paymentStatus === '1' ? 'success' : 'neutral'}>
             {order.paymentStatus === '1' ? 'Paid' : 'Unpaid'}
           </Badge>
         )}
+        <Button variant="secondary" onClick={handleReorder} loading={reordering} className="h-7 px-2.5 text-xs">
+          <RotateCcw className="h-3 w-3" aria-hidden="true" />
+          Reorder
+        </Button>
       </div>
     </Link>
   );

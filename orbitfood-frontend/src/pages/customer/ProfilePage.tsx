@@ -2,12 +2,13 @@ import { useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useNavigate } from 'react-router-dom';
-import { LogOut } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { LogOut, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { GlassPanel } from '@/components/ui/GlassPanel/GlassPanel';
 import { Input } from '@/components/ui/Input/Input';
 import { Select } from '@/components/ui/Select/Select';
+import { Avatar } from '@/components/ui/Avatar/Avatar';
 import { Button } from '@/components/ui/Button/Button';
 import { Skeleton } from '@/components/ui/LoadingSkeleton/LoadingSkeleton';
 import { ErrorState } from '@/components/ui/EmptyState/EmptyState';
@@ -141,16 +142,12 @@ export default function ProfilePage() {
     );
   }
 
-  const initial = (profile.fullName || profile.firstName || 'U').charAt(0).toUpperCase();
-
   return (
     <div className="flex flex-col gap-5">
       <h1 className="text-2xl font-bold text-text-primary">Profile</h1>
 
       <GlassPanel radius="card" className="flex items-center gap-4 p-5">
-        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/25 to-cyan/10 text-xl font-semibold text-text-primary">
-          {initial}
-        </span>
+        <Avatar src={profile.profileImage} name={profile.fullName || profile.firstName} size="lg" />
         <div className="min-w-0 flex-1">
           <p className="truncate text-lg font-bold text-text-primary">{profile.fullName}</p>
           <p className="truncate text-sm text-text-muted">{profile.phoneNo}</p>
@@ -313,6 +310,19 @@ export default function ProfilePage() {
           </Button>
         </div>
       </form>
+
+      <GlassPanel radius="card" className="flex items-center justify-between gap-4 p-5">
+        <div>
+          <p className="text-sm font-medium text-text-primary">Delivery addresses</p>
+          <p className="text-xs text-text-muted">Manage the addresses used at checkout.</p>
+        </div>
+        <Link to="/app/addresses">
+          <Button type="button" variant="secondary">
+            <MapPin className="h-4 w-4" aria-hidden="true" />
+            Manage addresses
+          </Button>
+        </Link>
+      </GlassPanel>
 
       <GlassPanel radius="card" className="flex items-center justify-between gap-4 p-5">
         <div>

@@ -57,6 +57,7 @@ export interface CouponInput {
   validFrom: string;
   validTo: string;
   isPublic?: boolean;
+  customerIds?: string[];
   description?: string;
   minOrderAmount?: number;
 }

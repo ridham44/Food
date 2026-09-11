@@ -1,57 +1,20 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, ImageOff, MapPin, Phone, UtensilsCrossed } from 'lucide-react';
+import { ArrowLeft, ImageOff, MapPin, Phone, RotateCcw, Star, UtensilsCrossed } from 'lucide-react';
 import { GlassPanel } from '@/components/ui/GlassPanel/GlassPanel';
 import { Badge } from '@/components/ui/Badge/Badge';
 import { Button } from '@/components/ui/Button/Button';
 import { Skeleton } from '@/components/ui/LoadingSkeleton/LoadingSkeleton';
 import { ErrorState } from '@/components/ui/EmptyState/EmptyState';
 import { assetUrl } from '@/lib/assetUrl';
-import { cn } from '@/lib/cn';
 import { useMyOrderDetail } from '@/features/customerOrders/useOrders';
-import {
-  KITCHEN_SEQUENCE,
-  KITCHEN_STATUS_LABEL,
-  getOrderTypeLabel,
-  type KitchenStatus,
-  type OrderDetailItem,
-} from '@/features/customerOrders/types';
+import { getOrderTypeLabel, type OrderDetailItem } from '@/features/customerOrders/types';
 import { OrderStatusBadge } from '@/features/customerOrders/components/OrderStatusBadge';
+import { OrderTimeline } from '@/features/customerOrders/components/OrderTimeline';
 import { CancelOrderModal } from '@/features/customerOrders/components/CancelOrderModal';
 import { PayBillModal } from '@/features/customerOrders/components/PayBillModal';
-
-function KitchenProgress({ kitchenStatus }: { kitchenStatus: KitchenStatus | null }) {
-  const currentIndex = Math.max(0, kitchenStatus ? KITCHEN_SEQUENCE.indexOf(kitchenStatus) : 0);
-
-  return (
-    <div className="flex items-center">
-      {KITCHEN_SEQUENCE.map((stage, i) => {
-        const reached = i <= currentIndex;
-        const isLast = i === KITCHEN_SEQUENCE.length - 1;
-        return (
-          <div key={stage} className={cn('flex items-center', !isLast && 'flex-1')}>
-            <div className="flex flex-col items-center gap-1.5">
-              <span
-                className={cn(
-                  'flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-semibold',
-                  reached
-                    ? 'border-primary bg-primary/20 text-primary-hover'
-                    : 'border-border-subtle bg-surface-glass text-text-muted'
-                )}
-              >
-                {i + 1}
-              </span>
-              <span className={cn('whitespace-nowrap text-[11px] font-medium', reached ? 'text-text-primary' : 'text-text-muted')}>
-                {KITCHEN_STATUS_LABEL[stage]}
-              </span>
-            </div>
-            {!isLast && <div className={cn('mx-2 h-0.5 flex-1', i < currentIndex ? 'bg-primary' : 'bg-border-subtle')} />}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
+import { useReorderIntoCart } from '@/features/reorder/useReorderIntoCart';
+import { RateOrderModal } from '@/features/reviews/components/RateOrderModal';
 
 function OrderItemRow({ item }: { item: OrderDetailItem }) {
   const image = assetUrl(item.image);
@@ -78,7 +41,7 @@ function OrderItemRow({ item }: { item: OrderDetailItem }) {
         </div>
         {item.specialInstruction && <p className="mt-0.5 text-xs text-text-muted">Note: {item.specialInstruction}</p>}
       </div>
-      <span className="shrink-0 text-sm font-medium text-text-primary">₹{item.totalPrice.toFixed(2)}</span>
+      <span className="shrink-0 text-sm font-medium text-text-primary">${item.totalPrice.toFixed(2)}</span>
     </div>
   );
 }
@@ -87,8 +50,10 @@ export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: order, isLoading, isError, refetch } = useMyOrderDetail(id);
+  const { reorder } = useReorderIntoCart();
   const [cancelOpen, setCancelOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
+  const [rateOpen, setRateOpen] = useState(false);
 
   const subtotal = order ? order.items.reduce((sum, item) => sum + item.totalPrice, 0) : 0;
 
@@ -154,9 +119,20 @@ export default function OrderDetailPage() {
               <span>{new Date(order.createdAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</span>
             </div>
 
+            {order.deliveryAddress && (
+              <div className="flex items-start gap-1.5 rounded-control border border-border-subtle bg-surface-glass px-3 py-2 text-xs text-text-secondary">
+                <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-text-muted" aria-hidden="true" />
+                <span>
+                  <span className="font-medium text-text-primary">{order.deliveryAddress.label}</span> —{' '}
+                  {order.deliveryAddress.addressLine}
+                  {order.deliveryAddress.pincode ? `, ${order.deliveryAddress.pincode}` : ''}
+                </span>
+              </div>
+            )}
+
             {order.status === '2' && (
               <div className="pt-1">
-                <KitchenProgress kitchenStatus={order.kitchenStatus} />
+                <OrderTimeline kitchenStatus={order.kitchenStatus} paidUpfront={order.bill?.status === '1'} />
               </div>
             )}
 
@@ -167,13 +143,23 @@ export default function OrderDetailPage() {
               </div>
             )}
 
-            {order.status === '1' && (
-              <div>
+            <div className="flex flex-wrap items-center gap-2.5">
+              {order.status === '1' && (
                 <Button variant="destructive" onClick={() => setCancelOpen(true)}>
                   Cancel order
                 </Button>
-              </div>
-            )}
+              )}
+              {order.status === '2' && order.kitchenStatus === 'completed' && (
+                <Button variant="secondary" onClick={() => setRateOpen(true)}>
+                  <Star className="h-4 w-4" aria-hidden="true" />
+                  Rate order
+                </Button>
+              )}
+              <Button variant="secondary" onClick={() => reorder(order)}>
+                <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                Reorder
+              </Button>
+            </div>
           </GlassPanel>
 
           <GlassPanel radius="card" className="p-5">
@@ -196,22 +182,22 @@ export default function OrderDetailPage() {
               <div className="mt-3 flex flex-col gap-1.5 text-sm">
                 <div className="flex justify-between text-text-secondary">
                   <span>Subtotal</span>
-                  <span>₹{subtotal.toFixed(2)}</span>
+                  <span>${subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-text-secondary">
-                  <span>GST ({order.bill.gstPercent}%)</span>
-                  <span>₹{((order.bill.totalAmount * order.bill.gstPercent) / 100).toFixed(2)}</span>
+                  <span>Tax ({order.bill.gstPercent}%)</span>
+                  <span>${((order.bill.totalAmount * order.bill.gstPercent) / 100).toFixed(2)}</span>
                 </div>
                 {order.bill.packingFee > 0 && (
                   <div className="flex justify-between text-text-secondary">
                     <span>Packing fee</span>
-                    <span>₹{order.bill.packingFee.toFixed(2)}</span>
+                    <span>${order.bill.packingFee.toFixed(2)}</span>
                   </div>
                 )}
                 {order.bill.discountAmount > 0 && (
                   <div className="flex justify-between text-success">
                     <span>Discount{order.bill.couponCode ? ` (${order.bill.couponCode})` : ''}</span>
-                    <span>-₹{order.bill.discountAmount.toFixed(2)}</span>
+                    <span>-${order.bill.discountAmount.toFixed(2)}</span>
                   </div>
                 )}
                 {order.bill.pointsUsed > 0 && (
@@ -222,7 +208,7 @@ export default function OrderDetailPage() {
                 )}
                 <div className="mt-1 flex justify-between border-t border-border-subtle pt-1.5 text-sm font-semibold text-text-primary">
                   <span>Total</span>
-                  <span>₹{order.bill.finalAmount.toFixed(2)}</span>
+                  <span>${order.bill.finalAmount.toFixed(2)}</span>
                 </div>
 
                 <div className="mt-2 flex items-center justify-between">
@@ -246,6 +232,7 @@ export default function OrderDetailPage() {
           )}
 
           <CancelOrderModal open={cancelOpen} onOpenChange={setCancelOpen} orderId={order.id} />
+          <RateOrderModal open={rateOpen} onOpenChange={setRateOpen} order={order} />
         </>
       )}
     </div>

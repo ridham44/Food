@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import {
   ShoppingBag,
-  IndianRupee,
+  DollarSign,
   Flame,
   Users,
   Plus,
@@ -71,7 +71,7 @@ export default function DashboardHome() {
     { new: 0, preparing: 0, ready: 0, completed: 0 }
   );
 
-  const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
   return (
     <div className="flex flex-col gap-6">
@@ -86,7 +86,7 @@ export default function DashboardHome() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard label="Today's orders" value={String(summary?.todayOrders ?? 0)} icon={ShoppingBag} changePct={summary?.todayOrdersChangePct} loading={summaryLoading} />
-        <KpiCard label="Today's revenue" value={`₹${(summary?.todayRevenue ?? 0).toFixed(0)}`} icon={IndianRupee} changePct={summary?.todayRevenueChangePct} loading={summaryLoading} />
+        <KpiCard label="Today's revenue" value={`$${(summary?.todayRevenue ?? 0).toFixed(0)}`} icon={DollarSign} changePct={summary?.todayRevenueChangePct} loading={summaryLoading} />
         <KpiCard label="Active orders" value={String(summary?.activeOrders ?? 0)} icon={Flame} loading={summaryLoading} />
         <KpiCard label="Customers" value={String(summary?.customersCount ?? 0)} icon={Users} changePct={summary?.customersChangePct} loading={summaryLoading} />
       </div>
@@ -175,7 +175,7 @@ export default function DashboardHome() {
                   <span className="font-medium text-text-primary">#{order.id.slice(0, 6).toUpperCase()}</span>
                   <span className="flex-1 truncate text-text-secondary">{order.customerName ?? 'Guest'}</span>
                   <span className="text-text-muted">{order.itemCount} items</span>
-                  <span className="text-text-primary">{order.total != null ? `₹${order.total.toFixed(0)}` : '—'}</span>
+                  <span className="text-text-primary">{order.total != null ? `$${order.total.toFixed(0)}` : '—'}</span>
                   <OrderStatusBadge status={order.status} kitchenStatus={order.kitchenStatus} />
                 </div>
               ))}
@@ -197,7 +197,7 @@ export default function DashboardHome() {
               {mostSold.slice(0, 4).map((item, i) => (
                 <li key={`${item.itemName}-${i}`} className="flex items-center justify-between text-sm">
                   <span className="truncate text-text-secondary">{item.itemName}</span>
-                  <span className="shrink-0 font-medium text-text-primary">₹{item.totalRevenue.toFixed(0)}</span>
+                  <span className="shrink-0 font-medium text-text-primary">${item.totalRevenue.toFixed(0)}</span>
                 </li>
               ))}
             </ul>

@@ -17,14 +17,16 @@ router.delete('/tax-config/:id', auth, controller.delete);
 // Get all tax configs
 router.get('/tax-config', auth, controller.findAll);
 
+// Get tax policy report of all tenants (Admin only) — must be registered
+// before the `/tax-config/:id` route below, or "report-all" would be
+// swallowed as an :id param.
+router.get('/tax-config/report-all', auth, adminOnly, controller.getAllTenantTaxReport);
+
 // Get tax config by ID
 router.get('/tax-config/:id', auth, controller.findById);
 
 // Update tax config status
 router.put('/tax-config/status/:id', auth, controller.updateStatus);
-
-// Get tax policy report of all tenants (Admin only)
-router.get('/tax-config/report-all', auth, adminOnly, controller.getAllTenantTaxReport);
 
 // Get tax summary for a specific tenant
 router.post('/tax-config/report-summary', auth, controller.getTenantTaxSummary);

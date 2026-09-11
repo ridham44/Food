@@ -16,7 +16,7 @@ const validationRules = () => {
                 }
                 return true;
             }),
-        body('perentId')
+        body('parentId')
             .optional({ nullable: true })
             .custom(async (value) => {
                 if (value) {
@@ -39,7 +39,7 @@ const updateValidations = () => {
     return [
         body('name').notEmpty().withMessage('Menu name is required').trim(),
 
-        body('perentId')
+        body('parentId')
             .optional({ nullable: true })
             .custom(async (value) => {
                 if (value) {

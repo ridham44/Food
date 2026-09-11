@@ -7,8 +7,10 @@ import { Modal } from '@/components/ui/Modal/Modal';
 import { Input } from '@/components/ui/Input/Input';
 import { Select } from '@/components/ui/Select/Select';
 import { Switch } from '@/components/ui/Switch/Switch';
+import { Checkbox } from '@/components/ui/Checkbox/Checkbox';
 import { Button } from '@/components/ui/Button/Button';
 import { useCouponMutations, getCouponErrorMessage } from '@/features/coupons/useCoupons';
+import { useCustomers } from '@/features/customers/useCustomers';
 
 const schema = z
   .object({
@@ -23,6 +25,7 @@ const schema = z
     validFrom: z.string().min(1, 'Valid from date is required'),
     validTo: z.string().min(1, 'Valid to date is required'),
     isPublic: z.boolean(),
+    customerIds: z.array(z.string()),
     description: z.string().optional(),
   })
   .refine((data) => Number(data.value) > 0, { message: 'Value must be greater than 0', path: ['value'] })
@@ -30,6 +33,10 @@ const schema = z
   .refine((data) => data.validTo >= data.validFrom, {
     message: 'Valid to must be on or after valid from',
     path: ['validTo'],
+  })
+  .refine((data) => data.isPublic || data.customerIds.length > 0, {
+    message: 'Select at least one customer, or mark the coupon Public',
+    path: ['customerIds'],
   });
 
 type FormValues = z.infer<typeof schema>;
@@ -43,11 +50,14 @@ const DEFAULT_VALUES: FormValues = {
   validFrom: '',
   validTo: '',
   isPublic: false,
+  customerIds: [],
   description: '',
 };
 
 export function CouponFormModal({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const { create } = useCouponMutations();
+  const { data: customersData } = useCustomers({ pageSize: 100 });
+  const customers = customersData?.rows ?? [];
 
   const {
     register,
@@ -58,6 +68,7 @@ export function CouponFormModal({ open, onOpenChange }: { open: boolean; onOpenC
   } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: DEFAULT_VALUES });
 
   const type = useWatch({ control, name: 'type' });
+  const isPublic = useWatch({ control, name: 'isPublic' });
 
   useEffect(() => {
     if (open) {
@@ -76,6 +87,7 @@ export function CouponFormModal({ open, onOpenChange }: { open: boolean; onOpenC
       validFrom: values.validFrom,
       validTo: values.validTo,
       isPublic: values.isPublic,
+      customerIds: values.isPublic ? undefined : values.customerIds,
       description: values.description?.trim() || undefined,
       minOrderAmount: values.minOrderAmount ? Number(values.minOrderAmount) : undefined,
     };
@@ -108,7 +120,7 @@ export function CouponFormModal({ open, onOpenChange }: { open: boolean; onOpenC
 
         <div className="grid grid-cols-2 gap-3">
           <Input
-            label={type === 'percent' ? 'Value (% off)' : 'Value (₹ off)'}
+            label={type === 'percent' ? 'Value (% off)' : 'Value ($ off)'}
             placeholder={type === 'percent' ? '10' : '50'}
             error={errors.value?.message}
             {...register('value')}
@@ -117,7 +129,7 @@ export function CouponFormModal({ open, onOpenChange }: { open: boolean; onOpenC
         </div>
 
         <Input
-          label="Minimum order amount (₹, optional)"
+          label="Minimum order amount ($, optional)"
           placeholder="0"
           error={errors.minOrderAmount?.message}
           {...register('minOrderAmount')}
@@ -136,6 +148,39 @@ export function CouponFormModal({ open, onOpenChange }: { open: boolean; onOpenC
         />
 
         <Switch label="Public" description="Visible to all customers instead of a specific list" {...register('isPublic')} />
+
+        {!isPublic && (
+          <Controller
+            control={control}
+            name="customerIds"
+            render={({ field }) => (
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-text-secondary">Eligible customers</label>
+                <div className="flex max-h-40 flex-col gap-2 overflow-y-auto rounded-control border border-border-subtle p-3">
+                  {customers.length === 0 ? (
+                    <p className="text-xs text-text-muted">
+                      No customers yet — customers appear here once they place an order with you.
+                    </p>
+                  ) : (
+                    customers.map((c) => (
+                      <Checkbox
+                        key={c.id}
+                        label={`${c.name ?? 'Unknown'} — ${c.phone ?? ''}`}
+                        checked={field.value.includes(c.id)}
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.checked ? [...field.value, c.id] : field.value.filter((id) => id !== c.id)
+                          )
+                        }
+                      />
+                    ))
+                  )}
+                </div>
+                {errors.customerIds?.message && <p className="text-xs text-danger">{errors.customerIds.message}</p>}
+              </div>
+            )}
+          />
+        )}
 
         <div className="mt-2 flex justify-end gap-2.5">
           <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>

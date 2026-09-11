@@ -28,5 +28,7 @@ router.use('/', require('./vendor'));
 router.use('/', require('./Ai_Ml'));
 router.use('/', require('./inventory'));
 router.use('/', require('./table'));
+router.use('/', require('./checkout_payment'));
+router.use('/', require('./customer_address'));
 
 module.exports = router;

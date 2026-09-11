@@ -106,7 +106,8 @@ exports.create = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     const DEFAULT_CUSTOMER_ROLE_ID = '6cff3da0-02d8-11ef-8c8d-74563c33253';
     try {
-        const { firstName, lastName, gender, email, phoneNo, address, pincode, cityId, stateId, countryCode, countryId, birthDate } = req.body;
+        const { firstName, lastName, gender, email, phoneNo, address, pincode, cityId, stateId, countryCode, countryId, birthDate, profileImage } =
+            req.body;
 
         const existing = await db.Customer.findOne({
             where: {
@@ -134,6 +135,7 @@ exports.create = async (req, res) => {
                 stateId,
                 countryCode,
                 birthDate,
+                profileImage,
                 createdAt: new Date(),
                 createdBy: req.user?.id || null,
             },
@@ -158,7 +160,8 @@ exports.create = async (req, res) => {
 exports.update = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     const { id } = req.params;
-    const { firstName, lastName, email, phoneNo, gender, birthDate, address, pincode, countryId, stateId, cityId, countryCode } = req.body;
+    const { firstName, lastName, email, phoneNo, gender, birthDate, address, pincode, countryId, stateId, cityId, countryCode, profileImage } =
+        req.body;
 
     try {
         const customer = await db.Customer.findOne({ where: { id }, transaction });
@@ -192,6 +195,7 @@ exports.update = async (req, res) => {
             stateId,
             cityId,
             countryCode,
+            profileImage,
         };
 
         Object.keys(updateData).forEach((key) => {
@@ -395,6 +399,9 @@ exports.customerList = async (req, res) => {
                 CONCAT(c.firstName, ' ', c.lastName) AS name,
                 c.phoneNo AS phone,
                 c.email AS email,
+                c.gender AS gender,
+                c.address AS address,
+                c.profileImage AS profileImage,
                 COUNT(ol.id) AS totalOrders,
                 COALESCE(SUM(ob.finalAmount), 0) AS totalSpent,
                 MAX(ol.createdAt) AS lastOrderAt
@@ -402,7 +409,7 @@ exports.customerList = async (req, res) => {
             INNER JOIN customer c ON c.id = ol.customerId
             LEFT JOIN order_bill ob ON ob.orderListId = ol.id
             WHERE ol.tenantId = :tenantId ${searchClause}
-            GROUP BY ol.customerId, c.firstName, c.lastName, c.phoneNo, c.email
+            GROUP BY ol.customerId, c.firstName, c.lastName, c.phoneNo, c.email, c.gender, c.address, c.profileImage
             ORDER BY MAX(ol.createdAt) DESC
             `,
             { replacements, type: db.Sequelize.QueryTypes.SELECT }
@@ -416,6 +423,9 @@ exports.customerList = async (req, res) => {
             name: r.name?.trim() || null,
             phone: r.phone,
             email: r.email,
+            gender: r.gender,
+            address: r.address,
+            profileImage: r.profileImage,
             totalOrders: parseInt(r.totalOrders, 10) || 0,
             totalSpent: parseFloat(r.totalSpent || 0),
             lastOrderAt: r.lastOrderAt,
@@ -438,7 +448,7 @@ exports.customerProfile = async (req, res) => {
         const { id } = req.params;
 
         const customer = await db.Customer.findByPk(id, {
-            attributes: ['id', 'firstName', 'lastName', 'phoneNo', 'email', 'gender', 'address'],
+            attributes: ['id', 'firstName', 'lastName', 'phoneNo', 'email', 'gender', 'address', 'profileImage'],
         });
         if (!customer) {
             return res.status(status.NotFound).json({ message: 'Customer not found' });
@@ -505,6 +515,7 @@ exports.customerProfile = async (req, res) => {
                     email: customer.email,
                     gender: customer.gender,
                     address: customer.address,
+                    profileImage: customer.profileImage,
                 },
                 totalOrders: orders.length,
                 totalSpent,
@@ -618,7 +629,8 @@ exports.updateMe = async (req, res) => {
             return res.status(status.Forbidden).json({ message: 'Customer access only' });
         }
 
-        const { firstName, lastName, email, phoneNo, gender, birthDate, address, pincode, countryId, stateId, cityId, countryCode } = req.body;
+        const { firstName, lastName, email, phoneNo, gender, birthDate, address, pincode, countryId, stateId, cityId, countryCode, profileImage } =
+            req.body;
 
         const customer = await db.Customer.findOne({ where: { id: req.user.id }, transaction });
         if (!customer) {
@@ -637,7 +649,21 @@ exports.updateMe = async (req, res) => {
             }
         }
 
-        const updateData = { firstName, lastName, email, phoneNo, gender, birthDate, address, pincode, countryId, stateId, cityId, countryCode };
+        const updateData = {
+            firstName,
+            lastName,
+            email,
+            phoneNo,
+            gender,
+            birthDate,
+            address,
+            pincode,
+            countryId,
+            stateId,
+            cityId,
+            countryCode,
+            profileImage,
+        };
         Object.keys(updateData).forEach((key) => {
             if (updateData[key] === undefined) delete updateData[key];
         });

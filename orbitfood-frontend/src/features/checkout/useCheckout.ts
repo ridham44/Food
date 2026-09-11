@@ -1,7 +1,8 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
-import { placeOrder } from '@/features/checkout/checkoutApi';
+import { createRazorpayOrder, fetchPaymentConfig, placeOrder, verifyPayment } from '@/features/checkout/checkoutApi';
 import type { PlaceOrderInput, PlaceOrderResult } from '@/features/checkout/checkoutApi';
+import type { CreateRazorpayOrderInput, VerifyPaymentInput } from '@/features/checkout/types';
 
 /**
  * Wraps POST /order/customer. Deliberately does not clear the cart or
@@ -11,6 +12,22 @@ import type { PlaceOrderInput, PlaceOrderResult } from '@/features/checkout/chec
 export function usePlaceOrder() {
   return useMutation<PlaceOrderResult, unknown, PlaceOrderInput>({
     mutationFn: (payload) => placeOrder(payload),
+  });
+}
+
+export function usePaymentConfig() {
+  return useQuery({ queryKey: ['payment-config'], queryFn: fetchPaymentConfig, staleTime: Infinity });
+}
+
+export function useCreateRazorpayOrder() {
+  return useMutation({
+    mutationFn: (payload: CreateRazorpayOrderInput) => createRazorpayOrder(payload),
+  });
+}
+
+export function useVerifyPayment() {
+  return useMutation({
+    mutationFn: (payload: VerifyPaymentInput) => verifyPayment(payload),
   });
 }
 

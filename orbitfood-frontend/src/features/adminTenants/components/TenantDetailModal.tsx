@@ -7,6 +7,7 @@ import { ErrorState } from '@/components/ui/EmptyState/EmptyState';
 import { assetUrl } from '@/lib/assetUrl';
 import { useAdminTenantDetail } from '@/features/adminTenants/useAdminTenants';
 import { TENANT_STATUS_BADGE_TONE, TENANT_STATUS_LABEL } from '@/features/adminTenants/types';
+import { useCityOptions, useCountryOptions, useStateOptions } from '@/features/geo/useGeo';
 
 function DetailRow({ label, value }: { label: string; value: ReactNode }) {
   return (
@@ -44,6 +45,14 @@ export function TenantDetailModal({
 }) {
   const { data: tenant, isLoading, isError, refetch } = useAdminTenantDetail(tenantId ?? undefined);
 
+  const { data: countryOptions = [] } = useCountryOptions();
+  const { data: stateOptions = [] } = useStateOptions(tenant?.countryId ?? undefined);
+  const { data: cityOptions = [] } = useCityOptions(tenant?.stateId ?? undefined);
+
+  const countryName = countryOptions.find((opt) => opt.value === tenant?.countryId)?.label;
+  const stateName = stateOptions.find((opt) => opt.value === tenant?.stateId)?.label;
+  const cityName = cityOptions.find((opt) => opt.value === tenant?.cityId)?.label;
+
   return (
     <Modal open={open} onOpenChange={onOpenChange} title={tenant?.companyName ?? 'Restaurant application'} size="lg">
       {isLoading ? (
@@ -75,11 +84,17 @@ export function TenantDetailModal({
             <DetailRow label="Mobile" value={tenant.mobile} />
             <DetailRow label="Phone" value={tenant.phone} />
             <DetailRow label="Website" value={tenant.website} />
-            <DetailRow label="GST number" value={tenant.gstNumber} />
-            <DetailRow label="PAN number" value={tenant.panNumber} />
+            <DetailRow label="Tax ID (EIN)" value={tenant.gstNumber} />
+            <DetailRow label="Business license #" value={tenant.panNumber} />
           </div>
 
           <DetailRow label="Address" value={tenant.address} />
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <DetailRow label="Country" value={countryName} />
+            <DetailRow label="State" value={stateName} />
+            <DetailRow label="City" value={cityName} />
+          </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <DocImage label="Front image" path={tenant.frontImage} />

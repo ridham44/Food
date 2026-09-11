@@ -128,7 +128,8 @@ exports.updateStatus = async (req, res) => {
         }
         const oldData = JSON.parse(JSON.stringify(setting.get({ plain: true })));
 
-        setting.status = setting.status === '1' ? '0' : '1';
+        const requestedStatus = req.body?.status;
+        setting.status = requestedStatus === '1' || requestedStatus === '0' ? requestedStatus : setting.status === '1' ? '0' : '1';
         await setting.save({ transaction });
         await transaction.commit();
         await logActivity(req, 'update', setting, oldData);

@@ -7,7 +7,7 @@ import { useCartStore, useCartTotal } from '@/features/cart/cartStore';
 import type { CartItem } from '@/features/cart/types';
 
 function formatCurrency(value: number): string {
-  return `₹${value.toFixed(2)}`;
+  return `$${value.toFixed(2)}`;
 }
 
 function CartLineItem({ item }: { item: CartItem }) {

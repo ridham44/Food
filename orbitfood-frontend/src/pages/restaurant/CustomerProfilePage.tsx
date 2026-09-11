@@ -5,6 +5,7 @@ import { cn } from '@/lib/cn';
 import { GlassPanel } from '@/components/ui/GlassPanel/GlassPanel';
 import { Skeleton } from '@/components/ui/LoadingSkeleton/LoadingSkeleton';
 import { ErrorState } from '@/components/ui/EmptyState/EmptyState';
+import { Avatar } from '@/components/ui/Avatar/Avatar';
 import { useCustomerProfile } from '@/features/customers/useCustomers';
 
 export default function CustomerProfilePage() {
@@ -33,11 +34,16 @@ export default function CustomerProfilePage() {
       ) : (
         <>
           <GlassPanel radius="card" className="p-6">
-            <h2 className="text-xl font-bold text-text-primary">{data.customer.name}</h2>
-            <p className="mt-1 text-sm text-text-muted">
-              {data.customer.phone}
-              {data.customer.email ? ` · ${data.customer.email}` : ''}
-            </p>
+            <div className="flex items-center gap-4">
+              <Avatar src={data.customer.profileImage} name={data.customer.name} size="lg" />
+              <div>
+                <h2 className="text-xl font-bold text-text-primary">{data.customer.name}</h2>
+                <p className="mt-1 text-sm text-text-muted">
+                  {data.customer.phone}
+                  {data.customer.email ? ` · ${data.customer.email}` : ''}
+                </p>
+              </div>
+            </div>
             <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-2 sm:max-w-sm">
               <div>
                 <p className="text-xs text-text-muted">Total orders</p>
@@ -45,7 +51,7 @@ export default function CustomerProfilePage() {
               </div>
               <div>
                 <p className="text-xs text-text-muted">Total spent</p>
-                <p className="text-lg font-bold text-text-primary">₹{data.totalSpent.toFixed(0)}</p>
+                <p className="text-lg font-bold text-text-primary">${data.totalSpent.toFixed(0)}</p>
               </div>
             </div>
           </GlassPanel>
@@ -86,7 +92,7 @@ export default function CustomerProfilePage() {
                           #{order.id.slice(0, 6).toUpperCase()}
                         </span>
                         <span className={cn('whitespace-nowrap py-2 text-sm text-text-muted', rowBorder)}>
-                          {order.total != null ? `₹${order.total.toFixed(0)}` : '—'}
+                          {order.total != null ? `$${order.total.toFixed(0)}` : '—'}
                         </span>
                         <span className={cn('py-2 text-right text-xs text-text-muted', rowBorder)}>
                           {new Date(order.createdAt).toLocaleDateString()}

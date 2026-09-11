@@ -31,12 +31,23 @@ export interface OrderDetailRestaurant {
 
 export interface OrderDetailItem {
   id: string;
+  /** Live catalog ids — used to re-add this line to the cart on "Reorder". */
+  menuId: string | null;
+  comboId: string | null;
   name: string;
   image: string | null;
   isCombo: boolean;
   quantity: number;
   totalPrice: number;
   specialInstruction: string | null;
+}
+
+export interface OrderDeliveryAddress {
+  label: string;
+  contactName: string;
+  contactPhone: string;
+  addressLine: string;
+  pincode: string | null;
 }
 
 export interface OrderDetailBill {
@@ -58,6 +69,7 @@ export interface OrderDetail {
   restaurant: OrderDetailRestaurant | null;
   orderType: string;
   tableNumber: string | null;
+  deliveryAddress: OrderDeliveryAddress | null;
   status: OrderStatus;
   kitchenStatus: KitchenStatus | null;
   cancelReason: string | null;

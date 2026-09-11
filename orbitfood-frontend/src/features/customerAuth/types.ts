@@ -22,6 +22,7 @@ export interface CustomerProfile {
   cityId: string | null;
   countryCode: string | null;
   birthDate: string | null;
+  profileImage: string | null;
 }
 
 export type CustomerProfileInput = Partial<

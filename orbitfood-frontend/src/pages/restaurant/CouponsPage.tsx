@@ -18,7 +18,7 @@ import { CouponRedemptionsModal } from '@/features/coupons/components/CouponRede
 import type { Coupon } from '@/features/coupons/types';
 
 function formatCurrency(amount: number): string {
-  return `₹${amount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+  return `$${amount.toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
 }
 
 function formatDiscount(coupon: Coupon): string {

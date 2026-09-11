@@ -66,10 +66,10 @@ export function AddEditCustomerModal({
         reset({
           firstName: parts[0] ?? '',
           lastName: parts.slice(1).join(' ') || '',
-          gender: 'male',
+          gender: customer.gender ?? 'male',
           phoneNo: customer.phone ?? '',
           email: customer.email ?? '',
-          address: '',
+          address: customer.address ?? '',
         });
       } else {
         reset(EMPTY);

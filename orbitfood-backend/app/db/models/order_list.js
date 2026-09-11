@@ -69,6 +69,22 @@ module.exports = (sequelize, Sequelize) => {
                 allowNull: true,
                 comment: '0 = Customer, 1 = Tenant',
             },
+            deliveryAddressId: {
+                type: Sequelize.UUID,
+                allowNull: true,
+                association: {
+                    model: 'CustomerAddress',
+                    key: 'id',
+                    onDelete: 'SET NULL',
+                    belongsToAlias: 'DeliveryAddress',
+                    hasManyAlias: 'DeliveryOrders',
+                },
+            },
+            deliveryAddressSnapshot: {
+                type: Sequelize.TEXT,
+                allowNull: true,
+                comment: 'JSON snapshot frozen at order time — authoritative, independent of later address-book edits',
+            },
             createdAt: Sequelize.DATE,
             updatedAt: Sequelize.DATE,
         },

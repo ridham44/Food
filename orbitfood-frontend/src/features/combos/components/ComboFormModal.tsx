@@ -36,7 +36,10 @@ export function ComboFormModal({
   onOpenChange: (open: boolean) => void;
 }) {
   const { create } = useComboMutations();
-  const { data: menuItems = [] } = useQuery({ queryKey: ['menu'], queryFn: fetchMenuItems, enabled: open });
+  const { data: allMenuRows = [] } = useQuery({ queryKey: ['menu'], queryFn: fetchMenuItems, enabled: open });
+  // Categories (parentId === null) aren't orderable items — exclude them so a
+  // combo can't be built out of e.g. "Starters" instead of an actual dish.
+  const menuItems = allMenuRows.filter((item) => item.parentId);
 
   const {
     control,
@@ -88,7 +91,7 @@ export function ComboFormModal({
             error={errors.name?.message}
             {...register('name')}
           />
-          <Input label="Combo price (₹)" placeholder="249" error={errors.comboPrice?.message} {...register('comboPrice')} />
+          <Input label="Combo price ($)" placeholder="249" error={errors.comboPrice?.message} {...register('comboPrice')} />
         </div>
 
         <div className="flex flex-col gap-3">

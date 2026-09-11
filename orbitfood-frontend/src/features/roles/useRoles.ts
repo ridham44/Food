@@ -3,12 +3,10 @@ import { isAxiosError } from 'axios';
 import { createRole, deleteRole, fetchRoles, toggleRoleStatus, updateRole } from '@/features/roles/rolesApi';
 import type { RoleInput } from '@/features/roles/types';
 
-// Distinct from src/features/staff/useStaff.ts's own `['roles']` query key —
-// that hook fetches the same `/role` list for the staff-assignment dropdown.
-// Keeping these as separate cache entries avoids one feature's queryFn/shape
-// clobbering the other's cached data; the tradeoff is that mutating a role
-// here won't immediately refresh the roles shown in the staff form dropdown
-// until it naturally refetches.
+// Shared with src/features/staff/useStaff.ts's own useRoles() — both hooks
+// fetch the same `/role` list (just typed to different subsets of the same
+// response), so creating/editing a role here refreshes the staff-assignment
+// dropdown immediately too.
 const ROLES_KEY = ['roles-management'] as const;
 
 export function useRoles() {

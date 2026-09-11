@@ -11,7 +11,7 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core';
 import { toast } from 'sonner';
-import { Clock, IndianRupee, User } from 'lucide-react';
+import { Clock, DollarSign, User } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { EmptyState } from '@/components/ui/EmptyState/EmptyState';
 import { SkeletonCard } from '@/components/ui/LoadingSkeleton/LoadingSkeleton';
@@ -48,7 +48,7 @@ function OrderKanbanCard({ order, onOpen }: { order: OrderListItem; onOpen: (id:
       </p>
       <div className="mt-2 flex items-center justify-between text-xs text-text-muted">
         <span className="flex items-center gap-1">
-          <IndianRupee className="h-3 w-3" aria-hidden="true" />
+          <DollarSign className="h-3 w-3" aria-hidden="true" />
           {order.total?.toFixed(0) ?? '—'} · {order.itemCount} items
         </span>
         <span className="flex items-center gap-1">

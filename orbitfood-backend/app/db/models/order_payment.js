@@ -40,6 +40,24 @@ module.exports = (sequelize, Sequelize) => {
                 allowNull: false,
                 defaultValue: 'paid',
             },
+            razorpayOrderId: {
+                type: Sequelize.STRING(64),
+                allowNull: true,
+            },
+            razorpayPaymentId: {
+                type: Sequelize.STRING(64),
+                allowNull: true,
+            },
+            pendingPaymentId: {
+                type: Sequelize.UUID,
+                allowNull: true,
+                association: {
+                    model: 'RazorpayOrder',
+                    key: 'id',
+                    belongsToAlias: 'RazorpayOrder',
+                    hasManyAlias: 'OrderPayment',
+                },
+            },
             createdAt: Sequelize.DATE,
         },
         {

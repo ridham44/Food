@@ -93,7 +93,7 @@ export function MenuFormModal({
         <Input label="Name" placeholder="Paneer Tikka" error={errors.name?.message} {...register('name')} />
         <Input label="Description" placeholder="Short description" error={errors.description?.message} {...register('description')} />
         <div className="grid grid-cols-2 gap-3">
-          <Input label="Price (₹)" placeholder="240" error={errors.price?.message} {...register('price')} />
+          <Input label="Price ($)" placeholder="240" error={errors.price?.message} {...register('price')} />
           <Controller
             control={control}
             name="parentId"

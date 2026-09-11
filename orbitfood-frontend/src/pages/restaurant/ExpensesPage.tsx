@@ -71,7 +71,7 @@ export default function ExpensesPage() {
     { header: 'Payment mode', accessorKey: 'paymentMode' },
     {
       header: 'Amount',
-      cell: ({ row }) => <span className="block text-right font-medium text-text-primary">₹{row.original.amount.toFixed(2)}</span>,
+      cell: ({ row }) => <span className="block text-right font-medium text-text-primary">${row.original.amount.toFixed(2)}</span>,
     },
     {
       header: 'Date',
@@ -117,8 +117,8 @@ export default function ExpensesPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <KpiCard label="Total expenses" value={`₹${summary.total.toFixed(0)}`} icon={Wallet} loading={isLoading} />
-        <KpiCard label="This month" value={`₹${summary.thisMonth.toFixed(0)}`} icon={Receipt} loading={isLoading} />
+        <KpiCard label="Total expenses" value={`$${summary.total.toFixed(0)}`} icon={Wallet} loading={isLoading} />
+        <KpiCard label="This month" value={`$${summary.thisMonth.toFixed(0)}`} icon={Receipt} loading={isLoading} />
         <KpiCard label="Top category" value={summary.topCategory} icon={PiggyBank} loading={isLoading} />
       </div>
 

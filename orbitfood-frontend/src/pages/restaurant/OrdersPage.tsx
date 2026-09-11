@@ -55,7 +55,7 @@ export default function OrdersPage() {
     { header: 'Items', accessorFn: (row) => `${row.itemCount} items` },
     {
       header: 'Amount',
-      cell: ({ row }) => (row.original.total != null ? `₹${row.original.total.toFixed(0)}` : '—'),
+      cell: ({ row }) => (row.original.total != null ? `$${row.original.total.toFixed(0)}` : '—'),
     },
     {
       header: 'Type',

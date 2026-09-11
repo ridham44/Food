@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Building2, ShoppingBag, IndianRupee, Wallet, Users, AlertTriangle, CheckCircle2, Clock, XCircle } from 'lucide-react';
+import { Building2, ShoppingBag, DollarSign, Wallet, Users, AlertTriangle, CheckCircle2, Clock, XCircle } from 'lucide-react';
 import { GlassPanel } from '@/components/ui/GlassPanel/GlassPanel';
 import { Badge } from '@/components/ui/Badge/Badge';
 import { Skeleton } from '@/components/ui/LoadingSkeleton/LoadingSkeleton';
@@ -8,7 +8,7 @@ import { KpiCard } from '@/components/dashboard/KpiCard';
 import { useAdminDashboardSummary } from '@/features/adminDashboard/useAdminDashboard';
 
 function formatCurrency(value: number): string {
-  return `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+  return `$${value.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
 }
 
 const TONE_ICON_CLASS = {
@@ -26,7 +26,7 @@ const STATUS_BREAKDOWN = [
 export default function AdminDashboardPage() {
   const { data: summary, isLoading, isError, refetch, isFetching } = useAdminDashboardSummary();
 
-  const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
   if (isError) {
     return (
@@ -94,7 +94,7 @@ export default function AdminDashboardPage() {
         <KpiCard
           label="Today's revenue"
           value={formatCurrency(summary?.todayRevenue ?? 0)}
-          icon={IndianRupee}
+          icon={DollarSign}
           changePct={summary?.todayRevenueChangePct}
           loading={isLoading}
         />

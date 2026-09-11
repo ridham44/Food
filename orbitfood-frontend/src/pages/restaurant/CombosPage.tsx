@@ -93,7 +93,7 @@ function ComboCard({ combo, onManage }: { combo: ComboGroup; onManage: () => voi
       <p className="line-clamp-2 text-xs text-text-secondary">{getComboPreview(combo)}</p>
 
       <div className="flex items-center justify-between">
-        <span className="text-lg font-bold text-text-primary">₹{combo.price.toFixed(0)}</span>
+        <span className="text-lg font-bold text-text-primary">${combo.price.toFixed(0)}</span>
         <Badge tone={isActive ? 'success' : 'neutral'}>{isActive ? 'Active' : 'Inactive'}</Badge>
       </div>
     </GlassPanel>

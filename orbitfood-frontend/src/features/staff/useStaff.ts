@@ -18,8 +18,12 @@ export function useStaff(tenantId: string | undefined) {
   });
 }
 
+// Shares its cache entry with src/features/roles/useRoles.ts's ROLES_KEY —
+// both hooks fetch the same /role list, just typed to different subsets of
+// the same response, so a role created/edited in the Roles tab immediately
+// shows up in this Staff form dropdown too.
 export function useRoles() {
-  return useQuery({ queryKey: ['roles'], queryFn: fetchRoles });
+  return useQuery({ queryKey: ['roles-management'], queryFn: fetchRoles });
 }
 
 export function useStaffMutations(tenantId: string | undefined) {

@@ -2,7 +2,7 @@ export interface TenantTaxReportRow {
   tenantName: string;
   /** Percentage, e.g. 5 for 5%. */
   gst: number;
-  /** Currency amount (INR). */
+  /** Currency amount (USD). */
   packingFee: number;
   status: 'Active' | 'Inactive';
 }

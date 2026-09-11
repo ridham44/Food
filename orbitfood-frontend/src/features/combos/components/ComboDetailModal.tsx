@@ -161,7 +161,10 @@ export function ComboDetailModal({
   combo: ComboGroup | null;
 }) {
   const { update, addItem, removeItem } = useComboMutations();
-  const { data: menuItems = [] } = useQuery({ queryKey: ['menu'], queryFn: fetchMenuItems, enabled: open });
+  const { data: allMenuRows = [] } = useQuery({ queryKey: ['menu'], queryFn: fetchMenuItems, enabled: open });
+  // Categories (parentId === null) aren't orderable items — exclude them so a
+  // combo can't be built out of e.g. "Starters" instead of an actual dish.
+  const menuItems = allMenuRows.filter((item) => item.parentId);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
 
   const {
@@ -235,7 +238,7 @@ export function ComboDetailModal({
         <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSaveDetails)} noValidate>
           <div className="grid grid-cols-2 gap-3">
             <Input label="Combo name" error={errors.name?.message} {...register('name')} />
-            <Input label="Combo price (₹)" error={errors.price?.message} {...register('price')} />
+            <Input label="Combo price ($)" error={errors.price?.message} {...register('price')} />
           </div>
           <div className="flex justify-end">
             <Button type="submit" variant="secondary" loading={update.isPending}>

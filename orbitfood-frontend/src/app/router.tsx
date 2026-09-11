@@ -21,6 +21,7 @@ const CheckoutPage = lazy(() => import('@/pages/customer/CheckoutPage'));
 const CustomerOrdersPage = lazy(() => import('@/pages/customer/OrdersPage'));
 const CustomerOrderDetailPage = lazy(() => import('@/pages/customer/OrderDetailPage'));
 const CustomerMyProfilePage = lazy(() => import('@/pages/customer/ProfilePage'));
+const CustomerAddressesPage = lazy(() => import('@/pages/customer/AddressesPage'));
 const DashboardHome = lazy(() => import('@/pages/restaurant/DashboardHome'));
 const OrdersPage = lazy(() => import('@/pages/restaurant/OrdersPage'));
 const KitchenPage = lazy(() => import('@/pages/restaurant/KitchenPage'));
@@ -76,6 +77,7 @@ export const router = createBrowserRouter([
       { path: 'orders', element: withFallback(<CustomerOrdersPage />) },
       { path: 'orders/:id', element: withFallback(<CustomerOrderDetailPage />) },
       { path: 'profile', element: withFallback(<CustomerMyProfilePage />) },
+      { path: 'addresses', element: withFallback(<CustomerAddressesPage />) },
     ],
   },
   {

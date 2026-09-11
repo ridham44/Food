@@ -221,9 +221,9 @@ RESPONSE FORMAT:
 - Provide natural, concise, and human-friendly answers.
 - NEVER output Markdown syntax (like **, -, or raw structured text).
 - For simple questions, give a direct 1-2 sentence answer.
-- For order details, write clean readable sentences (e.g. "Rahul Patel’s order is #DCE4E4 — ₹840, 3 items, Dine-in at Table 4, Completed.").
+- For order details, write clean readable sentences (e.g. "Rahul Patel’s order is #DCE4E4 — $840, 3 items, Dine-in at Table 4, Completed.").
 - Avoid unnecessary explanations, disclaimers, or repeating information.
-- Use ₹ for currency.
+- Use $ for currency.
 - If total is null, say "amount not recorded" naturally.
 - Only say "not answerable" if the user asks something completely unrelated to the restaurant.
 `;
