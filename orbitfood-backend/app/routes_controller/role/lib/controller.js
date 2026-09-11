@@ -7,12 +7,17 @@ exports.create = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
         const { body, user } = req;
+        const isPlatformAdmin = user?.Role?.type === '1';
 
+        // A tenant user must never be able to mint a role with a
+        // platform-admin `type`/`isAdmin` flag for themselves or their staff —
+        // only an actual platform admin may create anything but an ordinary
+        // tenant-level ('2') role.
         const role = await db.Role.create(
             {
                 name: body.name,
-                type: body.type,
-                isAdmin: body.isAdmin,
+                type: isPlatformAdmin ? body.type : '2',
+                isAdmin: isPlatformAdmin ? body.isAdmin : false,
                 remark: body.remark,
                 status: body.status,
                 tenantId: user.tenantId,
@@ -56,10 +61,12 @@ exports.update = async (req, res) => {
             return res.status(status.Conflict).json({ message: 'Role with this name already exists.' });
         }
         const oldData = JSON.parse(JSON.stringify(role.get({ plain: true })));
+        // Same rationale as create(): a tenant user editing their own tenant's
+        // role must not be able to escalate it to a platform-admin type.
         role.set({
             name: body.name,
-            type: body.type,
-            isAdmin: body.isAdmin,
+            type: isPlatformAdmin ? body.type : role.type,
+            isAdmin: isPlatformAdmin ? body.isAdmin : role.isAdmin,
             remark: body.remark,
             status: body.status,
             updatedBy: user.id,

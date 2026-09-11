@@ -352,12 +352,25 @@ exports.askTenantAI = async (req, res) => {
                 promises.push(db.ComboGroup.findAll({ where: { tenantId }, limit: 5 }));
             }
             if (fetchCustomer) {
-                promises.push(db.Customer.findAll({ limit: 20 }));
-                promises.push(db.CustomerPoints.findAll({ limit: 20 }));
+                // Customer has no tenantId column — scope to customers who
+                // have actually ordered from this tenant, same derivation
+                // used by auth/lib/controller.js's customerList/customerProfile,
+                // so this tenant's AI assistant can't be asked about another
+                // tenant's customers.
+                const tenantCustomerIds = (
+                    await db.OrderList.findAll({ where: { tenantId }, attributes: ['customerId'], group: ['customerId'], raw: true })
+                ).map((o) => o.customerId);
+                promises.push(tenantCustomerIds.length ? db.Customer.findAll({ where: { id: tenantCustomerIds }, limit: 20 }) : []);
+                promises.push(tenantCustomerIds.length ? db.CustomerPoints.findAll({ where: { customerId: tenantCustomerIds }, limit: 20 }) : []);
             }
             if (fetchDiscount) {
                 promises.push(db.DiscountCoupon.findAll({ where: { tenantId }, limit: 10 }));
-                promises.push(db.DiscountCouponUser.findAll({ limit: 20 }));
+                promises.push(
+                    db.DiscountCouponUser.findAll({
+                        include: [{ model: db.DiscountCoupon, as: 'DiscountCoupon', attributes: [], where: { tenantId }, required: true }],
+                        limit: 20,
+                    })
+                );
             }
             if (fetchExpense) {
                 promises.push(db.ExpenseEntry.findAll({ where: { tenantId }, limit: 20 }));

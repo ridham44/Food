@@ -42,7 +42,7 @@ export default function CustomerSignupPage() {
   });
 
   if (accessToken) {
-    return <Navigate to="/app/restaurants" replace />;
+    return <Navigate to="/app" replace />;
   }
 
   const flashError = () => {

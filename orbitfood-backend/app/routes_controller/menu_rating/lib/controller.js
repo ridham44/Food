@@ -103,6 +103,13 @@ exports.menuRatingReport = async (req, res) => {
         const { filter } = req.body;
         const tenantId = req.user.tenantId;
 
+        // Tenant-dashboard report — a customer token has no tenantId, and
+        // silently dropping the filter in that case would return every
+        // tenant's ratings blended together instead of 403ing.
+        if (!tenantId) {
+            return res.status(status.Forbidden).json({ message: 'Tenant access only' });
+        }
+
         let havingCondition = {};
         if (filter === 'high') {
             havingCondition = Sequelize.where(Sequelize.fn('AVG', Sequelize.col('rating')), {
@@ -213,9 +220,24 @@ exports.menuReviewDetails = async (req, res) => {
 
 exports.comboMenuReport = async (req, res) => {
     try {
+        // Tenant-dashboard report — ComboGroup.hasTenantCondition(false)
+        // means this needs an explicit tenant filter, or every tenant's
+        // combo reviews get blended into one shared report.
+        const tenantId = req.user.tenantId;
+        if (!tenantId) {
+            return res.status(status.Forbidden).json({ message: 'Tenant access only' });
+        }
+
+        const tenantCombos = await db.ComboGroup.findAll({ where: { tenantId }, attributes: ['id'], raw: true });
+        const tenantComboIds = tenantCombos.map((c) => c.id);
+
+        if (tenantComboIds.length === 0) {
+            return res.status(status.OK).json({ combos: [] });
+        }
+
         const ratings = await db.MenuRating.findAll({
             where: {
-                comboItemId: { [db.Sequelize.Op.ne]: null },
+                comboItemId: { [db.Sequelize.Op.in]: tenantComboIds },
             },
             attributes: ['comboItemId', 'menuId', 'customerId', 'rating', 'review', 'createdAt'],
             raw: true,
@@ -303,9 +325,15 @@ exports.comboMenuReport = async (req, res) => {
     }
 };
 
+// Scoped to the authenticated customer's own id — never trust a
+// client-supplied customerId, or Customer A could read Customer B's full
+// review history by changing the URL.
 exports.getCustomerReviewHistory = async (req, res) => {
     try {
-        const { customerId } = req.params;
+        if (req.userType !== 'customer') {
+            return res.status(status.Forbidden).json({ message: 'Customer access only' });
+        }
+        const customerId = req.user.id;
 
         const user = await db.Customer.findByPk(customerId, {
             attributes: ['firstName', 'lastName'],
@@ -326,6 +354,17 @@ exports.getCustomerReviewHistory = async (req, res) => {
             ],
             attributes: ['rating', 'review', 'createdAt'],
             order: [['createdAt', 'DESC']],
+            // NOTE: the audit-logger's beforeFind hook only reads
+            // disableTenantCheck off this top-level options object — it does
+            // NOT check it on individual `include` entries, so setting it on
+            // the Menu include above would be a silent no-op. A customer's
+            // reviews span menus from many different tenants, and
+            // Menu.hasTenantCondition() would otherwise try to filter that
+            // include by the caller's own tenantId, which is undefined for a
+            // customer token and throws. MenuRating.hasTenantCondition(false)
+            // means this top-level flag costs nothing (there was no
+            // tenant-scoping being applied to MenuRating itself anyway).
+            disableTenantCheck: true,
         });
 
         const customerName = `${user.firstName} ${user.lastName || ''}`.trim();

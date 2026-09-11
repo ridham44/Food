@@ -172,11 +172,6 @@ export function AnimatedOtpFlow({
                 ? "You're signed in on this device."
                 : `Sent to ${identifier}`}
             </p>
-            {demoOtp && step !== 'success' && (
-              <p className="mt-1 text-sm font-semibold text-cyan">
-                Demo OTP: <span className="tracking-widest">{demoOtp}</span>
-              </p>
-            )}
           </div>
 
           <div className={cn(

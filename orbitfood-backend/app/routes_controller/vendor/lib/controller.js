@@ -104,10 +104,16 @@ exports.updateVendor = async (req, res) => {
 
         const oldData = JSON.parse(JSON.stringify(vendor.get({ plain: true })));
 
-        vendor.set({
-            ...req.body,
-            updatedAt: new Date(),
+        // Explicit allowlist instead of spreading req.body — a raw spread let
+        // a client overwrite tenantId (reassigning the vendor to another
+        // tenant) or id/createdAt via the same request.
+        const { name, contactPerson, phone, email, address, note, status: vendorStatus } = req.body;
+        const updateData = { name, contactPerson, phone, email, address, note, status: vendorStatus, updatedAt: new Date() };
+        Object.keys(updateData).forEach((key) => {
+            if (updateData[key] === undefined) delete updateData[key];
         });
+
+        vendor.set(updateData);
 
         await vendor.save({ transaction });
         await transaction.commit();

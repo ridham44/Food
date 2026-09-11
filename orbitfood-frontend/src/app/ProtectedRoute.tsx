@@ -8,7 +8,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   const location = useLocation();
 
   if (!accessToken) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+    return <Navigate to="/login/business" replace state={{ from: location.pathname }} />;
   }
 
   // Platform admins don't have a restaurant of their own to manage — send

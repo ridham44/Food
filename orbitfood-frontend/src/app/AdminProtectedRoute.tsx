@@ -8,7 +8,7 @@ export function AdminProtectedRoute({ children }: { children: ReactNode }) {
   const location = useLocation();
 
   if (!accessToken) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+    return <Navigate to="/login/business" replace state={{ from: location.pathname }} />;
   }
 
   // A logged-in tenant/staff user has no business in the admin portal —

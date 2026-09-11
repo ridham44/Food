@@ -20,6 +20,7 @@ router.post('/order/prev', auth, validatereorder(), expressValidate, controller.
 // Customer app order history — scoped to the caller's own customerId
 router.get('/order/my-orders', auth, controller.myOrders);
 router.get('/order/my-orders/:id', auth, controller.myOrderDetail);
+router.get('/order/my-dashboard', auth, controller.myDashboard);
 
 const staffAuth = require('../../middlewares/middleware');
 

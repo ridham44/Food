@@ -116,10 +116,18 @@ module.exports = {
         }
 
         if (res) {
-            return res.status(status.InternalServerError).json({
+            // Full detail (raw DB/driver error text) still goes to the
+            // console/log above for debugging — it must not also go out in
+            // the HTTP response in production, since Sequelize/MySQL error
+            // messages routinely echo back column names, constraint names,
+            // and query fragments.
+            const body = {
                 message: customMessage ? customMessage : 'Something went wrong, please try again!',
-                error: error.message,
-            });
+            };
+            if (process.env.NODE_ENV !== 'production') {
+                body.error = error.message;
+            }
+            return res.status(status.InternalServerError).json(body);
         } else {
             return true;
         }

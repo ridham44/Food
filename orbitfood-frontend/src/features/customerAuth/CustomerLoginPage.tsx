@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useLocation, Navigate, Link } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { GlassPanel } from '@/components/ui/GlassPanel/GlassPanel';
 import { useCustomerAuthStore } from '@/stores/customerAuthStore';
@@ -22,7 +23,7 @@ export default function CustomerLoginPage() {
   const [demoOtp, setDemoOtp] = useState<string | null>(null);
 
   if (accessToken) {
-    const redirectTo = (location.state as { from?: string } | null)?.from ?? '/app/restaurants';
+    const redirectTo = (location.state as { from?: string } | null)?.from ?? '/app';
     return <Navigate to={redirectTo} replace />;
   }
 
@@ -57,7 +58,7 @@ export default function CustomerLoginPage() {
   };
 
   const handleSuccessContinue = () => {
-    const redirectTo = (location.state as { from?: string } | null)?.from ?? '/app/restaurants';
+    const redirectTo = (location.state as { from?: string } | null)?.from ?? '/app';
     navigate(redirectTo, { replace: true });
   };
 
@@ -68,7 +69,15 @@ export default function CustomerLoginPage() {
       <div className="relative z-10 flex min-h-screen w-full items-center justify-center px-4 py-3 sm:px-6 lg:justify-end lg:px-10 lg:py-4 xl:px-14">
         <div className="relative w-full max-w-[528px] animate-auth-panel-in">
           <GlassPanel radius="dialog" className="auth-glass-card flex flex-col p-6 relative overflow-hidden">
-            <div className="flex flex-col items-center text-center mb-4">
+            <Link
+              to="/login"
+              className="inline-flex w-fit items-center gap-1 text-xs font-medium text-text-secondary transition-colors hover:text-text-primary"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+              Back to sign-in options
+            </Link>
+
+            <div className="flex flex-col items-center text-center mb-4 mt-2">
               <BrandMark className="border border-white/10 shadow-[0_12px_30px_rgba(0,0,0,0.4)]" />
             </div>
 

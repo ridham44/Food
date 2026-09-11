@@ -125,12 +125,9 @@ exports.redeemPointsOnly = async (req, res) => {
         let discountAmount = parseFloat(points);
         if (discountAmount > totalAmount) discountAmount = totalAmount;
 
-        await db.CustomerPoints.update(
-            {
-                totalPoints: db.Sequelize.literal(`totalPoints - ${discountAmount}`),
-            },
-            { where: { customerId }, transaction }
-        );
+        // decrement() binds the value as a query parameter instead of
+        // interpolating it into a raw SQL literal string.
+        await db.CustomerPoints.decrement('totalPoints', { by: discountAmount, where: { customerId }, transaction });
 
         const finalAmount = (totalAmount - discountAmount).toFixed(2);
 

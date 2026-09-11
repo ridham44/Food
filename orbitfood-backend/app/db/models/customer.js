@@ -52,6 +52,25 @@ module.exports = (sequelize, Sequelize) => {
                 type: Sequelize.STRING(10),
                 allowNull: true,
             },
+            otpExpiresAt: {
+                type: Sequelize.DATE,
+                allowNull: true,
+            },
+            otpAttempts: {
+                type: Sequelize.INTEGER,
+                allowNull: false,
+                defaultValue: 0,
+            },
+            otpLastSentAt: {
+                type: Sequelize.DATE,
+                allowNull: true,
+            },
+            // Same server-side session-invalidation watermark as User — see
+            // that model for the rationale.
+            tokenValidAfter: {
+                type: Sequelize.DATE,
+                allowNull: true,
+            },
             roleId: {
                 type: Sequelize.UUID,
                 allowNull: false,
@@ -142,7 +161,16 @@ module.exports = (sequelize, Sequelize) => {
             },
             defaultScope: {
                 attributes: {
-                    exclude: [],
+                    // otp is a live one-time-password value — it must never
+                    // be serialized back to any client by default (several
+                    // endpoints return `req.user`/a Customer instance
+                    // directly, e.g. GET /customer/me).
+                    exclude: ['otp'],
+                },
+            },
+            scopes: {
+                withOtp: {
+                    attributes: { include: ['otp'] },
                 },
             },
         }

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import { fetchCurrentTenant, updateTenant } from '@/features/tenant/tenantApi';
-import type { TenantSettingsPayload } from '@/features/tenant/types';
+import type { TenantSettingsPayload, TenantUpdateOptions } from '@/features/tenant/types';
 
 export const tenantQueryKey = ['tenant', 'current'] as const;
 
@@ -15,9 +15,9 @@ export function useCurrentTenant() {
 export function useUpdateTenant(tenantId: string | undefined) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: TenantSettingsPayload) => {
+    mutationFn: ({ payload, opts }: { payload: TenantSettingsPayload; opts?: TenantUpdateOptions }) => {
       if (!tenantId) throw new Error('Missing tenant id');
-      return updateTenant(tenantId, payload);
+      return updateTenant(tenantId, payload, opts);
     },
     onSuccess: (tenant) => {
       queryClient.setQueryData(tenantQueryKey, tenant);

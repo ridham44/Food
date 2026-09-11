@@ -31,3 +31,18 @@ export const requestSendOtp = async (identifier: string) => {
   const response = await customerApiClient.post<{ message: string; otp: string }>('/customer/send-otp', { identifier });
   return response.data;
 };
+
+export async function uploadProfileImage(file: File): Promise<{ profileImage: string | null }> {
+  const formData = new FormData();
+  formData.append('profileImage', file);
+  const { data } = await customerApiClient.post<{ data: { profileImage: string | null } }>(
+    '/customer/me/profile-image',
+    formData
+  );
+  return data.data;
+}
+
+export async function removeProfileImage(): Promise<{ profileImage: string | null }> {
+  const { data } = await customerApiClient.delete<{ data: { profileImage: string | null } }>('/customer/me/profile-image');
+  return data.data;
+}

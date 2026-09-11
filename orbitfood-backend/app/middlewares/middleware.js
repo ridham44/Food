@@ -48,6 +48,14 @@ const authenticateUser = async (req, res, next) => {
             });
         }
 
+        // Server-side session invalidation: reject tokens issued before the
+        // user's last logout/password-change, even though the JWT itself
+        // hasn't expired yet — otherwise "logout" only ever cleared client
+        // state and a captured token stayed usable for its full lifetime.
+        if (user.tokenValidAfter && decoded.iat * 1000 < new Date(user.tokenValidAfter).getTime()) {
+            return res.status(status.Unauthorized).json({ message: 'Session expired. Please log in again.' });
+        }
+
         // Add the current user instance in request.
         req.user = user;
         // let namespace = getNamespace(config.clsNamespace);

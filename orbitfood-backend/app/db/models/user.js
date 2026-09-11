@@ -155,6 +155,14 @@ module.exports = (sequelize, Sequelize) => {
                 allowNull: false,
                 defaultValue: '1',
             },
+            // Watermark for server-side session invalidation: any JWT issued
+            // (`iat`) before this timestamp is rejected by the auth
+            // middleware, even though the token itself hasn't expired yet.
+            // Set on logout and on password change.
+            tokenValidAfter: {
+                type: Sequelize.DATE,
+                allowNull: true,
+            },
             createdAt: {
                 type: Sequelize.DATE,
                 allowNull: false,
@@ -174,7 +182,12 @@ module.exports = (sequelize, Sequelize) => {
             },
             defaultScope: {
                 attributes: {
-                    exclude: ['password'],
+                    // passwordShow is a legacy plaintext mirror of the hashed
+                    // password (see the `password` setter above) — it must
+                    // never leave the server by default. Several controllers
+                    // already excluded it ad hoc; excluding it here protects
+                    // every query that didn't remember to.
+                    exclude: ['password', 'passwordShow'],
                 },
             },
             scopes: {

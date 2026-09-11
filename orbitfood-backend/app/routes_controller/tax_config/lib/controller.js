@@ -140,7 +140,7 @@ exports.getAllTenantTaxReport = async (req, res) => {
                     model: db.Tenant,
                     attributes: ['companyName'],
                     as: 'Tenant',
-                    disabletenantCondition: true,
+                    disableTenantCheck: true,
                 },
             ],
             order: [['createdAt', 'DESC']],

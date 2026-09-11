@@ -42,5 +42,14 @@ export type TenantSettingsPayload = Partial<
     | 'acceptOrders'
     | 'autoAcceptOrders'
     | 'preparationTimeMinutes'
+    | 'countryId'
+    | 'stateId'
+    | 'cityId'
+    | 'zipCode'
   >
 >;
+
+export interface TenantUpdateOptions {
+  logoFile?: File | null;
+  removeLogo?: boolean;
+}

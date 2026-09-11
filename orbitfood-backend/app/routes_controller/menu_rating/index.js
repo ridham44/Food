@@ -16,8 +16,8 @@ router.get('/menu-rating/report/:menuId', auth, controller.menuReviewDetails);
 //Report by combo
 router.get('/menu-rating/report-combo', auth, controller.comboMenuReport);
 
-//by customer
-router.get('/menu-rating/:customerId', auth, controller.getCustomerReviewHistory);
+//by customer — scoped to the caller's own id (see controller)
+router.get('/menu-rating/my-reviews', auth, controller.getCustomerReviewHistory);
 
 //count by menu
 router.get('/menu-rating/count/:menuId', auth, controller.getRatingDistribution);

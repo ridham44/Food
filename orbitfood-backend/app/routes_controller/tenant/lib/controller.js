@@ -140,6 +140,11 @@ exports.update = async (req, res) => {
         // dashboard header's open/closed switch), and the latter would
         // otherwise null out every other NOT NULL column.
         const pick = (key) => (body[key] !== undefined ? body[key] : tenant[key]);
+        const removeFrontImage = body.removeFrontImage === 'true' || body.removeFrontImage === true;
+        // Replacing or explicitly removing the photo — clean up the old file either way.
+        if ((files?.frontImage?.[0] || removeFrontImage) && tenant.frontImage && fs.existsSync(`.${tenant.frontImage}`)) {
+            fs.unlinkSync(`.${tenant.frontImage}`);
+        }
         // Approval-workflow fields — only an admin may change these here (a
         // regular tenant flipping their own `status`/`emailVerified` would
         // bypass the approval flow entirely). Non-admin callers keep the
@@ -162,7 +167,11 @@ exports.update = async (req, res) => {
             zipCode: pick('zipCode'),
             gstNumber: pick('gstNumber'),
             panNumber: pick('panNumber'),
-            frontImage: files?.frontImage?.[0] ? `/${files.frontImage[0].path.replace(/\\/g, '/')}` : tenant.frontImage,
+            frontImage: files?.frontImage?.[0]
+                ? `/${files.frontImage[0].path.replace(/\\/g, '/')}`
+                : removeFrontImage
+                  ? null
+                  : tenant.frontImage,
             backImage: files?.backImage?.[0] ? `/${files.backImage[0].path.replace(/\\/g, '/')}` : tenant.backImage,
             website: pick('website'),
             termAndCondition: pick('termAndCondition'),

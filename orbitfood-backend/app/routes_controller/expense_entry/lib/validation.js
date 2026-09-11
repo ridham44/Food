@@ -23,7 +23,7 @@ const createExpenseValidation = () => {
             .isIn(['Kitchen', 'Maintenance', 'Utilities', 'Other'])
             .withMessage('Invalid category!'),
 
-        body('payment_mode')
+        body('paymentMode')
             .optional()
             .isIn(['Cash', 'Card', 'UPI', 'Bank Transfer', 'Other'])
             .withMessage('Invalid payment mode!'),
@@ -57,7 +57,7 @@ const updateExpenseValidation = () => {
             .isIn(['Kitchen', 'Maintenance', 'Utilities', 'Other'])
             .withMessage('Invalid category!'),
 
-        body('payment_mode')
+        body('paymentMode')
             .optional()
             .isIn(['Cash', 'Card', 'UPI', 'Bank Transfer', 'Other'])
             .withMessage('Invalid payment mode!'),

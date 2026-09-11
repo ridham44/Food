@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useNavigate, useLocation, Navigate } from 'react-router-dom';
-import { Mail, Lock, ArrowRight } from 'lucide-react';
+import { useNavigate, useLocation, Navigate, Link } from 'react-router-dom';
+import { Mail, Lock, ArrowRight, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { GlassPanel } from '@/components/ui/GlassPanel/GlassPanel';
 import { Input } from '@/components/ui/Input/Input';
@@ -85,8 +85,16 @@ export default function LoginPage() {
       <div className="relative z-10 flex min-h-screen w-full items-center justify-center px-4 py-3 sm:px-6 lg:justify-end lg:px-10 lg:py-4 xl:px-14">
         <div className={cn('relative w-full max-w-[528px] animate-auth-panel-in', isEntering && 'auth-cinematic-card')}>
           <GlassPanel radius="dialog" className="auth-glass-card flex flex-col p-5">
+            <Link
+              to="/login"
+              className="inline-flex w-fit items-center gap-1 text-xs font-medium text-text-secondary transition-colors hover:text-text-primary"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+              Back to sign-in options
+            </Link>
+
             <div className="flex flex-col items-center text-center">
-              <BrandMark className="border border-white/10 shadow-[0_12px_30px_rgba(0,0,0,0.4)]" />
+              <BrandMark className="mt-2 border border-white/10 shadow-[0_12px_30px_rgba(0,0,0,0.4)]" />
               <h1 className="mt-2 text-xl font-bold text-text-primary">Welcome back</h1>
               <p className="mt-1 text-sm text-text-secondary">
                 Log in to continue managing your restaurant.

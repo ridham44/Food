@@ -3,16 +3,35 @@ const { status, common, findWithFilters } = require('../../../../utils');
 const db = require('../../../db/models');
 const { v4: uuidv4 } = require('uuid');
 
+// Permission has no tenantId column of its own — ownership is derived
+// transitively through Permission.roleId -> Role.tenantId. Every handler
+// below must join through Role to confirm the caller's own tenant owns the
+// role being granted/read/changed, or a tenant user could read/write another
+// tenant's entire permission matrix by roleId/permission id alone.
+const isPlatformAdmin = (user) => user?.Role?.type === '1';
+
 exports.create = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
-        const { roleId, menu_adminIds } = req.body;  
+        const { roleId, menu_adminIds } = req.body;
+
+        if (!roleId) {
+            await transaction.rollback();
+            return res.status(status.BadRequest).json({ message: 'roleId is required' });
+        }
 
         if (!Array.isArray(menu_adminIds) || menu_adminIds.length === 0) {
             await transaction.rollback();
             return res.status(status.BadRequest).json({
                 message: 'menu_adminIds must be a non-empty array',
             });
+        }
+
+        const roleScopeWhere = isPlatformAdmin(req.user) ? { id: roleId } : { id: roleId, tenantId: req.user.tenantId };
+        const role = await db.Role.findOne({ where: roleScopeWhere, transaction });
+        if (!role) {
+            await transaction.rollback();
+            return res.status(status.NotFound).json({ message: 'Role not found!' });
         }
 
         const validMenus = await db.MenuAdmin.findAll({
@@ -77,8 +96,11 @@ exports.update = async (req, res) => {
         const { id } = req.params;
         const { menu_adminId } = req.body;
 
-        const permission = await db.Permission.findByPk(id, { transaction });
-        if (!permission) {
+        const permission = await db.Permission.findByPk(id, {
+            include: [{ model: db.Role, as: 'Role', attributes: ['id', 'tenantId'], disableTenantCheck: true }],
+            transaction,
+        });
+        if (!permission || (!isPlatformAdmin(req.user) && permission.Role?.tenantId !== req.user.tenantId)) {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'Permission not found!' });
         }
@@ -104,8 +126,11 @@ exports.delete = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const permission = await db.Permission.findByPk(id, { transaction });
-        if (!permission) {
+        const permission = await db.Permission.findByPk(id, {
+            include: [{ model: db.Role, as: 'Role', attributes: ['id', 'tenantId'], disableTenantCheck: true }],
+            transaction,
+        });
+        if (!permission || (!isPlatformAdmin(req.user) && permission.Role?.tenantId !== req.user.tenantId)) {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'Permission not found!' });
         }
@@ -122,8 +147,12 @@ exports.delete = async (req, res) => {
 exports.findById = async (req, res) => {
     try {
         const { id } = req.params;
-        const permission = await db.Permission.findByPk(id);
-        if (!permission) return res.status(status.NotFound).json({ message: 'Permission not found!' });
+        const permission = await db.Permission.findByPk(id, {
+            include: [{ model: db.Role, as: 'Role', attributes: ['id', 'tenantId'], disableTenantCheck: true }],
+        });
+        if (!permission || (!isPlatformAdmin(req.user) && permission.Role?.tenantId !== req.user.tenantId)) {
+            return res.status(status.NotFound).json({ message: 'Permission not found!' });
+        }
         return res.status(status.OK).json({ data: permission });
     } catch (error) {
         return common.throwException(error, 'Find Permission By ID API', req, res);
@@ -132,7 +161,11 @@ exports.findById = async (req, res) => {
 
 exports.findAll = async (req, res) => {
     try {
-        const permissions = await db.Permission.findAll({ order: [['createdAt', 'DESC']] });
+        const roleWhere = isPlatformAdmin(req.user) ? {} : { tenantId: req.user.tenantId };
+        const permissions = await db.Permission.findAll({
+            include: [{ model: db.Role, as: 'Role', attributes: ['id', 'name', 'tenantId'], where: roleWhere, required: true, disableTenantCheck: true }],
+            order: [['createdAt', 'DESC']],
+        });
         return res.status(status.OK).json({ data: permissions });
     } catch (error) {
         return common.throwException(error, 'Find All Permissions API', req, res);
@@ -162,8 +195,11 @@ exports.filtration = async (req, res) => {
 
         const offset = (parseInt(page) - 1) * parseInt(limit);
 
+        const roleWhere = isPlatformAdmin(req.user) ? {} : { tenantId: req.user.tenantId };
+
         const result = await db.Permission.findAndCountAll({
             where: whereCondition,
+            include: [{ model: db.Role, as: 'Role', attributes: ['id', 'name', 'tenantId'], where: roleWhere, required: true, disableTenantCheck: true }],
             limit: parseInt(limit),
             offset,
             order: [['createdAt', 'DESC']],

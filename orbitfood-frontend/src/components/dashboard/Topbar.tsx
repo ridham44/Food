@@ -25,7 +25,7 @@ export function Topbar({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
 
   const handleToggleOpen = (checked: boolean) => {
     updateTenant.mutate(
-      { isOpen: checked },
+      { payload: { isOpen: checked } },
       {
         onSuccess: () => toast.success(checked ? 'Restaurant marked as open' : 'Restaurant marked as closed'),
         onError: (error) => toast.error(getTenantErrorMessage(error)),

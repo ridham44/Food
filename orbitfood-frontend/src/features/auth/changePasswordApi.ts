@@ -6,6 +6,11 @@ export interface ChangePasswordPayload {
   confirmPassword: string;
 }
 
-export async function changePassword(payload: ChangePasswordPayload): Promise<void> {
-  await apiClient.post('/change-password', payload);
+export interface ChangePasswordResult {
+  accessToken: string;
+}
+
+export async function changePassword(payload: ChangePasswordPayload): Promise<ChangePasswordResult> {
+  const { data } = await apiClient.post<ChangePasswordResult>('/change-password', payload);
+  return data;
 }

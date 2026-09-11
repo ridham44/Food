@@ -26,6 +26,11 @@ const authenticateCustomerOrTenant = async (req, res, next) => {
         });
 
         if (customer) {
+            // Server-side session invalidation — see middleware.js for
+            // the rationale; same watermark pattern for customer tokens.
+            if (customer.tokenValidAfter && decoded.iat * 1000 < new Date(customer.tokenValidAfter).getTime()) {
+                return res.status(status.Unauthorized).json({ message: 'Session expired. Please log in again.' });
+            }
             req.user = customer;
             req.userType = 'customer';
             return setContextValues(req, customer, next);
@@ -56,6 +61,10 @@ const authenticateCustomerOrTenant = async (req, res, next) => {
 
         if (!user) {
             return res.status(status.Unauthorized).json({ message: 'Unauthorized access.' });
+        }
+
+        if (user.tokenValidAfter && decoded.iat * 1000 < new Date(user.tokenValidAfter).getTime()) {
+            return res.status(status.Unauthorized).json({ message: 'Session expired. Please log in again.' });
         }
 
         req.user = user;

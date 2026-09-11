@@ -11,9 +11,11 @@ import { RouteLoadingFallback } from '@/components/RouteLoadingFallback';
 // Every page is loaded on demand (its own JS chunk) instead of one bundle —
 // a visitor to /login was otherwise downloading the admin, tenant, and
 // customer portals' code before seeing the sign-in form.
+const AuthEntryPage = lazy(() => import('@/features/auth/AuthEntryPage'));
 const LoginPage = lazy(() => import('@/features/auth/LoginPage'));
 const CustomerLoginPage = lazy(() => import('@/features/customerAuth/CustomerLoginPage'));
 const CustomerSignupPage = lazy(() => import('@/features/customerAuth/CustomerSignupPage'));
+const CustomerDashboardPage = lazy(() => import('@/pages/customer/DashboardPage'));
 const RestaurantsPage = lazy(() => import('@/pages/customer/RestaurantsPage'));
 const RestaurantDetailPage = lazy(() => import('@/pages/customer/RestaurantDetailPage'));
 const CartPage = lazy(() => import('@/pages/customer/CartPage'));
@@ -51,6 +53,10 @@ const withFallback = (element: ReactNode) => <Suspense fallback={<RouteLoadingFa
 export const router = createBrowserRouter([
   {
     path: '/login',
+    element: withFallback(<AuthEntryPage />),
+  },
+  {
+    path: '/login/business',
     element: withFallback(<LoginPage />),
   },
   {
@@ -69,7 +75,7 @@ export const router = createBrowserRouter([
       </CustomerProtectedRoute>
     ),
     children: [
-      { index: true, element: withFallback(<RestaurantsPage />) },
+      { index: true, element: withFallback(<CustomerDashboardPage />) },
       { path: 'restaurants', element: withFallback(<RestaurantsPage />) },
       { path: 'restaurants/:tenantId', element: withFallback(<RestaurantDetailPage />) },
       { path: 'cart', element: withFallback(<CartPage />) },

@@ -66,7 +66,17 @@ exports.update = async (req, res) => {
         }
         const oldData = JSON.parse(JSON.stringify(expense.get({ plain: true })));
 
-        const Expenseupdate = await expense.update(req.body, { transaction });
+        // Explicit allowlist instead of passing req.body straight into
+        // Sequelize's update() — that let a client overwrite tenantId
+        // (moving the expense to another tenant) or createdBy (spoofing the
+        // audit trail) via the same request.
+        const { title, amount, date, category, paymentMode, remarks } = req.body;
+        const updateData = { title, amount, date, category, paymentMode, remarks };
+        Object.keys(updateData).forEach((key) => {
+            if (updateData[key] === undefined) delete updateData[key];
+        });
+
+        const Expenseupdate = await expense.update(updateData, { transaction });
 
         await transaction.commit();
         await logActivity(req, 'update', Expenseupdate, oldData);

@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { ShoppingCart, ClipboardList, UserCircle, Store, LogOut } from 'lucide-react';
+import { ShoppingCart, ClipboardList, UserCircle, Store, LogOut, LayoutGrid } from 'lucide-react';
 import { BrandMark } from '@/features/auth/components/BrandMark';
 import { cn } from '@/lib/cn';
 import { useCustomerAuthStore } from '@/stores/customerAuthStore';
@@ -8,6 +8,7 @@ import { AlicaWidget } from '@/features/aiAssistant/AlicaWidget';
 import { customerApiClient } from '@/services/api/customerClient';
 
 const NAV_ITEMS = [
+  { label: 'Home', path: '/app', icon: LayoutGrid, end: true },
   { label: 'Restaurants', path: '/app/restaurants', icon: Store },
   { label: 'My orders', path: '/app/orders', icon: ClipboardList },
   { label: 'Profile', path: '/app/profile', icon: UserCircle },
@@ -30,7 +31,7 @@ export default function CustomerLayout() {
     <div className="flex min-h-screen w-full flex-col bg-bg-base">
       <header className="glass-panel sticky top-0 z-30 border-b border-border-subtle">
         <div className="mx-auto flex h-16 w-full max-w-5xl items-center gap-4 px-4 sm:px-6">
-          <NavLink to="/app/restaurants" className="flex items-center gap-2 shrink-0">
+          <NavLink to="/app" end className="flex items-center gap-2 shrink-0">
             <BrandMark className="h-10 w-12" />
           </NavLink>
 
@@ -39,6 +40,7 @@ export default function CustomerLayout() {
               <NavLink
                 key={item.path}
                 to={item.path}
+                end={item.end}
                 className={({ isActive }) =>
                   cn(
                     'flex items-center gap-1.5 rounded-control px-3 py-2 text-sm font-medium transition-colors',
@@ -97,6 +99,7 @@ export default function CustomerLayout() {
           <NavLink
             key={item.path}
             to={item.path}
+            end={item.end}
             className={({ isActive }) =>
               cn(
                 'flex flex-col items-center gap-0.5 rounded-control px-4 py-1.5 text-[11px] font-medium transition-colors',

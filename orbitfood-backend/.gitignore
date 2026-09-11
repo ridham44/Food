@@ -2,6 +2,7 @@
 .eslintcache
 .DS_Store
 /uploads
+/private_uploads
 .env
 *.log
 /access-logs

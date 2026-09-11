@@ -254,12 +254,6 @@ exports.changePassword = async (req, res) => {
             });
         }
 
-        req.user.set({
-            password: body.newPassword,
-            passwordShow: body.newPassword,
-            updatedBy: req.user.id,
-        });
-
         const payload = {
             user: {
                 id: req.user.id,
@@ -269,6 +263,18 @@ exports.changePassword = async (req, res) => {
         };
 
         const token = jwt.sign({ ...payload, exp: decoded?.exp || process.env.TOKEN_EXPIRE_MIN }, process.env.JWT_SECRET_ADMIN);
+
+        // Invalidate every other token issued before this one (see
+        // auth/lib/controller.js's changePassword for the same pattern/
+        // rationale) — the watermark is derived from the freshly-signed
+        // token's own `iat` so it can't ever reject the token being handed
+        // back in this same response.
+        req.user.set({
+            password: body.newPassword,
+            passwordShow: body.newPassword,
+            updatedBy: req.user.id,
+            tokenValidAfter: new Date(jwt.decode(token).iat * 1000),
+        });
 
         await req.user.save();
 
@@ -291,8 +297,11 @@ exports.userFiltration = async (req, res) => {
         let userFilter = {};
         if (body) userFilter = await findWithFilters.findWithFilters(body, db.User);
 
+        const isPlatformAdmin = user?.Role?.type === '1';
+
         let whereCondition = {
             id: { [Op.ne]: user.id },
+            ...(isPlatformAdmin ? {} : { tenantId: user.tenantId }),
             ...userFilter.filterCondition,
         };
 
@@ -404,8 +413,10 @@ exports.findById = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
         const { id } = req.params;
+        const isPlatformAdmin = req.user?.Role?.type === '1';
+        const scopeWhere = isPlatformAdmin ? { id } : { id, tenantId: req.user.tenantId };
         const userData = await db.User.findOne({
-            where: { id },
+            where: scopeWhere,
             attributes: {
                 exclude: ['passwordShow'],
             },
@@ -468,6 +479,11 @@ exports.create = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
         const { body, file, user } = req;
+        const isPlatformAdmin = user?.Role?.type === '1';
+        // A tenant user creating staff must never be able to plant the new
+        // account in a different tenant — only a platform admin may target
+        // an arbitrary tenantId (e.g. onboarding a tenant's first user).
+        const targetTenantId = isPlatformAdmin ? body.tenantId : user.tenantId;
 
         const checkExist = await db.User.findOne({
             where: {
@@ -484,11 +500,17 @@ exports.create = async (req, res) => {
             });
         }
 
+        // Role assignment must stay within the target tenant, and a tenant
+        // user must never be able to grant a platform-admin ('1') role to
+        // staff they create.
+        const roleScopeWhere = { id: body.roleId, status: enums.Status.Active.value };
+        if (!isPlatformAdmin) {
+            roleScopeWhere.tenantId = targetTenantId;
+            roleScopeWhere.type = { [Op.ne]: '1' };
+        }
+
         const checkRoleExist = await db.Role.findOne({
-            where: {
-                id: body.roleId,
-                status: enums.Status.Active.value,
-            },
+            where: roleScopeWhere,
             disableTenantCheck: true,
             transaction,
         });
@@ -506,7 +528,7 @@ exports.create = async (req, res) => {
             password: body.password,
             passwordShow: body.password,
             //storeId: user?.storeId,
-            tenantId: body.tenantId,
+            tenantId: targetTenantId,
             roleId: body.roleId,
             shortCode: body.shortCode || 'MYCOPOS00010',
             gender: body.gender,
@@ -541,11 +563,14 @@ exports.update = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
         const { params, body, file, user } = req;
+        const isPlatformAdmin = user?.Role?.type === '1';
 
+        // A tenant user must only ever be able to reach staff within their
+        // own tenant — without this, `id` alone let any tenant edit any
+        // other tenant's user by guessing/enumerating an id.
+        const targetScopeWhere = isPlatformAdmin ? { id: params.id } : { id: params.id, tenantId: user.tenantId };
         const checkExist = await db.User.findOne({
-            where: {
-                id: params.id,
-            },
+            where: targetScopeWhere,
             disableTenantCheck: true,
             transaction,
         });
@@ -596,18 +621,25 @@ exports.update = async (req, res) => {
             });
         }
 
-        const checkRoleExist = await db.Role.findOne({
-            where: {
-                id: body.roleId,
-                status: enums.Status.Active.value,
-            },
-            disableTenantCheck: true,
-            transaction,
-        });
+        // Same rationale as create(): role reassignment must stay inside the
+        // target's own tenant, and a non-admin caller may never promote
+        // someone to a platform-admin ('1') role.
+        if (body.roleId) {
+            const roleScopeWhere = { id: body.roleId, status: enums.Status.Active.value };
+            if (!isPlatformAdmin) {
+                roleScopeWhere.tenantId = checkExist.tenantId;
+                roleScopeWhere.type = { [Op.ne]: '1' };
+            }
+            const checkRoleExist = await db.Role.findOne({
+                where: roleScopeWhere,
+                disableTenantCheck: true,
+                transaction,
+            });
 
-        if (!checkRoleExist) {
-            await transaction.rollback();
-            return res.status(status.NotFound).json({ message: 'Role not found!' });
+            if (!checkRoleExist) {
+                await transaction.rollback();
+                return res.status(status.NotFound).json({ message: 'Role not found!' });
+            }
         }
 
         if ((file && checkExist.profileImage) || (!body.profileImage && checkExist.profileImage)) {
@@ -657,11 +689,11 @@ exports.delete = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
         const { id } = req.params;
+        const isPlatformAdmin = req.user?.Role?.type === '1';
+        const targetScopeWhere = isPlatformAdmin ? { id } : { id, tenantId: req.user.tenantId };
 
         const checkExist = await db.User.findOne({
-            where: {
-                id,
-            },
+            where: targetScopeWhere,
             disableTenantCheck: true,
             transaction,
         });
@@ -690,11 +722,11 @@ exports.updateStatus = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     try {
         const { params, user } = req;
+        const isPlatformAdmin = user?.Role?.type === '1';
+        const targetScopeWhere = isPlatformAdmin ? { id: params.id } : { id: params.id, tenantId: user.tenantId };
 
         const checkExist = await db.User.findOne({
-            where: {
-                id: params.id,
-            },
+            where: targetScopeWhere,
             disableTenantCheck: true,
             transaction,
         });
@@ -723,44 +755,18 @@ exports.updateStatus = async (req, res) => {
     }
 };
 
-const generateRandomPassword = (length = 8) => {
-    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()';
-    let password = '';
-    for (let i = 0; i < length; i++) {
-        password += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return password;
-};
-
+// Disabled: this used to reset ANY user's password to a random value given
+// only their email — completely unauthenticated, with no verification step
+// (no reset token/link, no OTP) and no channel that ever told the real
+// account owner the new password. That made it both an account-takeover-
+// adjacent bug and a trivial denial-of-service (anyone who knows/guesses a
+// tenant admin's email could lock them out on demand). It isn't wired up
+// from the frontend (no caller found), so disabling it is not a functional
+// regression. Re-enable only behind a proper flow: generate a single-use,
+// short-expiry reset token, email it as a link (never the password itself),
+// and only accept a new password submitted together with that valid token.
 exports.forgotPassword = async (req, res) => {
-    try {
-        const { body } = req;
-
-        if (!body?.email) {
-            return res.status(status.BadRequest).json({ message: 'Email is required' });
-        }
-
-        // Check if user exists
-        const user = await db.User.findOne({ where: { email: body?.email }, disableTenantCheck: true });
-
-        if (!user) {
-            return res.status(status.NotFound).json({ message: 'Invalid Email Address' });
-        }
-
-        // Generate new password
-        const newPassword = generateRandomPassword();
-
-        // Update password in the database
-        await db.User.update(
-            {
-                password: newPassword,
-                passwordShow: newPassword,
-            },
-            { where: { id: user.id } }
-        );
-
-        return res.status(status.OK).json({ message: 'Password Change Successfully' });
-    } catch (err) {
-        return common.throwException(err, 'Send Mail Api', req, res);
-    }
+    return res.status(status.NotImplemented || 501).json({
+        message: 'Self-service password reset is not available. Please contact your administrator to reset your password.',
+    });
 };

@@ -443,8 +443,16 @@ exports.getFullOrderDetails = async (req, res) => {
     try {
         const { orderListId } = req.body;
 
+        // Route is reachable by either a tenant staff token or a customer
+        // token (CustomerMiddlewear) — scope by whichever identity is
+        // present so neither can pull another tenant's/customer's order by
+        // guessing orderListId.
+        const ownershipWhere = req.user.tenantId
+            ? { id: orderListId, tenantId: req.user.tenantId }
+            : { id: orderListId, customerId: req.user.id };
+
         const order = await db.OrderList.findOne({
-            where: { id: orderListId },
+            where: ownershipWhere,
             include: [
                 {
                     model: db.Customer,

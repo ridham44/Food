@@ -1,9 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, type ChangeEvent } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
-import { LogOut, MapPin } from 'lucide-react';
+import { Camera, LogOut, MapPin, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { GlassPanel } from '@/components/ui/GlassPanel/GlassPanel';
 import { Input } from '@/components/ui/Input/Input';
@@ -17,6 +17,8 @@ import { useCustomerAuthStore } from '@/stores/customerAuthStore';
 import {
   useMyProfile,
   useUpdateMyProfile,
+  useUploadProfileImage,
+  useRemoveProfileImage,
   getCustomerAuthErrorMessage,
 } from '@/features/customerAuth/useCustomerAuth';
 import type { CustomerProfileInput } from '@/features/customerAuth/types';
@@ -55,8 +57,34 @@ const EMPTY_VALUES: FormValues = {
 export default function ProfilePage() {
   const { data: profile, isLoading, isError, refetch } = useMyProfile();
   const updateProfile = useUpdateMyProfile();
+  const uploadProfileImage = useUploadProfileImage();
+  const removeProfileImage = useRemoveProfileImage();
   const logout = useCustomerAuthStore((state) => state.logout);
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePickPhoto = () => fileInputRef.current?.click();
+
+  const handlePhotoSelected = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
+      toast.error('Please choose a PNG or JPEG image');
+      return;
+    }
+    uploadProfileImage.mutate(file, {
+      onSuccess: () => toast.success('Profile picture updated'),
+      onError: (error) => toast.error(getCustomerAuthErrorMessage(error)),
+    });
+  };
+
+  const handleRemovePhoto = () => {
+    removeProfileImage.mutate(undefined, {
+      onSuccess: () => toast.success('Profile picture removed'),
+      onError: (error) => toast.error(getCustomerAuthErrorMessage(error)),
+    });
+  };
 
   const {
     register,
@@ -147,11 +175,41 @@ export default function ProfilePage() {
       <h1 className="text-2xl font-bold text-text-primary">Profile</h1>
 
       <GlassPanel radius="card" className="flex items-center gap-4 p-5">
-        <Avatar src={profile.profileImage} name={profile.fullName || profile.firstName} size="lg" />
+        <div className="group relative shrink-0">
+          <Avatar src={profile.profileImage} name={profile.fullName || profile.firstName} size="lg" />
+          <button
+            type="button"
+            onClick={handlePickPhoto}
+            disabled={uploadProfileImage.isPending}
+            aria-label="Change profile picture"
+            className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border border-border-subtle bg-primary text-white shadow-lg transition-transform hover:scale-105 disabled:opacity-60"
+          >
+            <Camera className="h-3.5 w-3.5" aria-hidden="true" />
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg"
+            className="hidden"
+            onChange={handlePhotoSelected}
+          />
+        </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-lg font-bold text-text-primary">{profile.fullName}</p>
           <p className="truncate text-sm text-text-muted">{profile.phoneNo}</p>
         </div>
+        {profile.profileImage && (
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={handleRemovePhoto}
+            loading={removeProfileImage.isPending}
+            className="shrink-0"
+          >
+            <X className="h-4 w-4" aria-hidden="true" />
+            <span className="hidden sm:inline">Remove photo</span>
+          </Button>
+        )}
       </GlassPanel>
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5" noValidate>

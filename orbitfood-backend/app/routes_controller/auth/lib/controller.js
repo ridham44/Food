@@ -1,10 +1,15 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const fs = require('fs');
 const db = require('../../../db/models');
 const { status, findWithFilters } = require('../../../../utils');
 const { Op } = require('sequelize');
 const Enums = require('../../../../utils/lib/enums');
 const common = require('../../../../utils/lib/common-function');
+
+const OTP_TTL_MS = 5 * 60 * 1000; // OTP valid for 5 minutes after being sent
+const OTP_RESEND_COOLDOWN_MS = 60 * 1000; // 60s between sends, on top of authLimiter's per-IP cap
+const OTP_MAX_ATTEMPTS = 5; // wrong guesses allowed before the OTP is invalidated and a fresh one is required
 
 exports.customerlogin = async (req, res) => {
     const transaction = await db.sequelize.transaction();
@@ -16,11 +21,12 @@ exports.customerlogin = async (req, res) => {
             return res.status(status.BadRequest).json({ message: 'Email or mobile number and OTP are required.' });
         }
 
-        const customer = await db.Customer.findOne({
+        const customer = await db.Customer.scope('withOtp').findOne({
             where: {
                 [Op.or]: [{ email: identifier }, { phoneNo: identifier }],
                 verified: activeStatus,
             },
+            transaction,
         });
 
         if (!customer) {
@@ -28,14 +34,35 @@ exports.customerlogin = async (req, res) => {
             return res.status(status.Unauthorized).json({ message: 'Invalid email or mobile number.' });
         }
 
-        if (!customer.otp || otp !== customer.otp) {
+        const isExpired = !customer.otpExpiresAt || new Date(customer.otpExpiresAt).getTime() < Date.now();
+
+        if (!customer.otp || isExpired) {
             await transaction.rollback();
+            return res.status(status.Unauthorized).json({ message: 'OTP has expired. Please request a new one.' });
+        }
+
+        if (customer.otpAttempts >= OTP_MAX_ATTEMPTS) {
+            customer.otp = null;
+            customer.otpExpiresAt = null;
+            await customer.save({ transaction });
+            await transaction.commit();
+            return res.status(status.Unauthorized).json({ message: 'Too many incorrect attempts. Please request a new OTP.' });
+        }
+
+        if (otp !== customer.otp) {
+            customer.otpAttempts += 1;
+            await customer.save({ transaction });
+            await transaction.commit();
             return res.status(status.Unauthorized).json({ message: 'Invalid OTP.' });
         }
 
         const token = jwt.sign({ user: { id: customer.id } }, process.env.JWT_SECRET_ADMIN, { expiresIn: '1d' });
 
+        // Single-use: clear the OTP (and its expiry/attempt state) the
+        // moment it's successfully verified so it can never be replayed.
         customer.otp = null;
+        customer.otpExpiresAt = null;
+        customer.otpAttempts = 0;
         await customer.save({ transaction });
 
         await transaction.commit();
@@ -69,12 +96,12 @@ exports.sendOtp = async (req, res) => {
             return res.status(status.BadRequest).json({ message: 'Email or mobile number is required.' });
         }
 
-        const customer = await db.Customer.findOne({
+        const customer = await db.Customer.scope('withOtp').findOne({
             where: {
                 [Op.or]: [{ email: identifier }, { phoneNo: identifier }],
                 verified: activeStatus,
             },
-            transaction
+            transaction,
         });
 
         if (!customer) {
@@ -82,17 +109,32 @@ exports.sendOtp = async (req, res) => {
             return res.status(status.NotFound).json({ message: 'Customer not found.' });
         }
 
+        if (customer.otpLastSentAt && Date.now() - new Date(customer.otpLastSentAt).getTime() < OTP_RESEND_COOLDOWN_MS) {
+            await transaction.rollback();
+            const waitSeconds = Math.ceil((OTP_RESEND_COOLDOWN_MS - (Date.now() - new Date(customer.otpLastSentAt).getTime())) / 1000);
+            return res.status(status.TooManyRequests || 429).json({ message: `Please wait ${waitSeconds}s before requesting another OTP.` });
+        }
+
         // Generate a random 4-digit OTP
         const otp = Math.floor(1000 + Math.random() * 9000).toString();
-        
+
         customer.otp = otp;
+        customer.otpExpiresAt = new Date(Date.now() + OTP_TTL_MS);
+        customer.otpAttempts = 0;
+        customer.otpLastSentAt = new Date();
         await customer.save({ transaction });
         await transaction.commit();
 
-        return res.status(status.OK).json({
-            message: 'OTP sent successfully',
-            otp: otp // Returning OTP for demo purposes
-        });
+        const response = { message: 'OTP sent successfully' };
+        // The app has no SMS/email gateway wired up in this build — the OTP
+        // is surfaced in the response only outside production so local/demo
+        // login keeps working. In production this must never be echoed back;
+        // it has to go out over a real out-of-band channel (SMS/email).
+        if (process.env.NODE_ENV !== 'production') {
+            response.otp = otp;
+        }
+
+        return res.status(status.OK).json(response);
     } catch (error) {
         await transaction.rollback();
         return res.status(status.BadRequest).json({
@@ -157,6 +199,20 @@ exports.create = async (req, res) => {
     }
 };
 
+// Customer has no tenantId column, so a tenant staff member editing/deleting
+// a customer record must be restricted to customers who have actually
+// ordered from their tenant (mirrors customerProfile's derivation below) —
+// otherwise any authenticated tenant's staff could edit or delete ANY
+// customer on the whole platform by id. Platform admins are exempt.
+const assertCustomerManageable = async (req, customerId, transaction) => {
+    const isPlatformAdmin = req.user?.Role?.type === '1';
+    if (isPlatformAdmin) return true;
+    const tenantId = req.user.tenantId;
+    if (!tenantId) return false;
+    const hasOrdered = await db.OrderList.findOne({ where: { tenantId, customerId }, attributes: ['id'], transaction });
+    return Boolean(hasOrdered);
+};
+
 exports.update = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     const { id } = req.params;
@@ -168,6 +224,11 @@ exports.update = async (req, res) => {
         if (!customer) {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'Customer not found!' });
+        }
+
+        if (!(await assertCustomerManageable(req, id, transaction))) {
+            await transaction.rollback();
+            return res.status(status.Forbidden).json({ message: 'This customer does not belong to your tenant.' });
         }
 
         const existing = await db.Customer.findOne({
@@ -222,6 +283,11 @@ exports.delete = async (req, res) => {
         if (!customer) {
             await transaction.rollback();
             return res.status(status.NotFound).json({ message: 'Customer not found!' });
+        }
+
+        if (!(await assertCustomerManageable(req, id, transaction))) {
+            await transaction.rollback();
+            return res.status(status.Forbidden).json({ message: 'This customer does not belong to your tenant.' });
         }
 
         await db.Customer.destroy({ where: { id }, transaction });
@@ -354,19 +420,53 @@ exports.changePassword = async (req, res) => {
             return res.status(status.BadRequest).json({ message: 'New Password and Confirm Password do not match' });
         }
 
+        // Invalidate every token issued before this one (stops a stolen/old
+        // session from continuing to work once the password is changed),
+        // then hand the caller who just authenticated with oldPassword a
+        // fresh token so their own session keeps working without forcing an
+        // immediate re-login. The watermark is derived from the new token's
+        // own `iat` (rather than a separately-captured `Date.now()`) so it
+        // can never accidentally round up past the token it's meant to allow
+        // — jwt `iat` is second-precision, so a millisecond-later Date.now()
+        // would otherwise sometimes reject the token that was just issued.
+        const accessToken = jwt.sign({ user: { id: user.id } }, process.env.JWT_SECRET_ADMIN, { expiresIn: '1d' });
+        const newTokenIssuedAt = new Date(jwt.decode(accessToken).iat * 1000);
+
         user.set({
             password: newPassword,
             passwordShow: newPassword,
             updatedBy: user.id,
+            tokenValidAfter: newTokenIssuedAt,
         });
 
         await user.save({ transaction });
         await transaction.commit();
 
-        return res.status(status.OK).json({ message: 'Password updated successfully.' });
+        return res.status(status.OK).json({ message: 'Password updated successfully.', accessToken });
     } catch (err) {
         await transaction.rollback();
         return common.throwException(err, 'Change Password API', req, res);
+    }
+};
+
+// Backend-authoritative logout: previously "logout" only cleared client-side
+// state while the JWT (up to 1 day) stayed fully valid server-side. Stamping
+// tokenValidAfter makes every token issued up to now unusable from here on.
+exports.logout = async (req, res) => {
+    try {
+        await db.User.update({ tokenValidAfter: new Date() }, { where: { id: req.user.id } });
+        return res.status(status.OK).json({ message: 'Logged out successfully.' });
+    } catch (error) {
+        return common.throwException(error, 'Logout API', req, res);
+    }
+};
+
+exports.customerLogout = async (req, res) => {
+    try {
+        await db.Customer.update({ tokenValidAfter: new Date() }, { where: { id: req.user.id } });
+        return res.status(status.OK).json({ message: 'Logged out successfully.' });
+    } catch (error) {
+        return common.throwException(error, 'Customer Logout API', req, res);
     }
 };
 
@@ -676,5 +776,63 @@ exports.updateMe = async (req, res) => {
     } catch (error) {
         await transaction.rollback();
         return common.throwException(error, 'Customer Update Me API', req, res);
+    }
+};
+
+exports.uploadProfileImage = async (req, res) => {
+    try {
+        if (req.userType !== 'customer') {
+            if (req.file?.path && fs.existsSync(req.file.path)) {
+                fs.unlinkSync(req.file.path);
+            }
+            return res.status(status.Forbidden).json({ message: 'Customer access only' });
+        }
+
+        if (!req.file) {
+            return res.status(status.BadRequest).json({ message: 'profileImage file is required' });
+        }
+
+        const customer = await db.Customer.findByPk(req.user.id);
+        if (!customer) {
+            fs.unlinkSync(req.file.path);
+            return res.status(status.NotFound).json({ message: 'Customer not found' });
+        }
+
+        if (customer.profileImage && fs.existsSync(`.${customer.profileImage}`)) {
+            fs.unlinkSync(`.${customer.profileImage}`);
+        }
+
+        customer.profileImage = `/${req.file.path.replace(/\\/g, '/')}`;
+        await customer.save();
+
+        return res.status(status.OK).json({ message: 'Profile picture updated', data: { profileImage: customer.profileImage } });
+    } catch (error) {
+        if (req.file?.path && fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
+        return common.throwException(error, 'Upload Customer Profile Image API', req, res);
+    }
+};
+
+exports.removeProfileImage = async (req, res) => {
+    try {
+        if (req.userType !== 'customer') {
+            return res.status(status.Forbidden).json({ message: 'Customer access only' });
+        }
+
+        const customer = await db.Customer.findByPk(req.user.id);
+        if (!customer) {
+            return res.status(status.NotFound).json({ message: 'Customer not found' });
+        }
+
+        if (customer.profileImage && fs.existsSync(`.${customer.profileImage}`)) {
+            fs.unlinkSync(`.${customer.profileImage}`);
+        }
+        customer.profileImage = null;
+        await customer.save();
+
+        return res.status(status.OK).json({ message: 'Profile picture removed', data: { profileImage: null } });
+    } catch (error) {
+        return common.throwException(error, 'Remove Customer Profile Image API', req, res);
     }
 };

@@ -4,12 +4,20 @@ const { customerLoginValidator, createCustomerValidator, validateUpdate } = requ
 const auth = require('../../middlewares/middleware');
 const authCustomer = require('../../middlewares/CustomerMiddlewear');
 const { authLimiter } = require('../../middlewares/rateLimiters');
+const { createImageUpload, handleUploadErrors } = require('../../../utils/lib/imageUpload');
+
+const profileImageUploads = createImageUpload('customerProfile');
+const profileImageMulterMiddleware = handleUploadErrors;
 
 // Login route
 router.post('/login', authLimiter, controller.login);
 
 // Change password route
 router.post('/change-password', auth, controller.changePassword);
+
+// Logout — server-side session invalidation (see middleware.js/CustomerMiddlewear.js)
+router.post('/logout', auth, controller.logout);
+router.post('/customer/logout', authCustomer, controller.customerLogout);
 
 // Finding with date
 router.post('/user/common-filter', auth, controller.filtration);
@@ -36,5 +44,15 @@ router.get('/customer/:id/profile', auth, controller.customerProfile);
 // Customer app self-service profile — scoped to the caller's own id
 router.get('/customer/me', authCustomer, controller.me);
 router.put('/customer/me', authCustomer, controller.updateMe);
+
+// Customer profile picture — separate from the JSON profile update above
+router.post(
+    '/customer/me/profile-image',
+    authCustomer,
+    profileImageUploads.single('profileImage'),
+    profileImageMulterMiddleware,
+    controller.uploadProfileImage
+);
+router.delete('/customer/me/profile-image', authCustomer, controller.removeProfileImage);
 
 module.exports = router;

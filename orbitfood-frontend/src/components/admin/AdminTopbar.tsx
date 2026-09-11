@@ -20,7 +20,7 @@ export function AdminTopbar({ onOpenMobileNav }: { onOpenMobileNav: () => void }
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate('/login/business');
   };
 
   return (

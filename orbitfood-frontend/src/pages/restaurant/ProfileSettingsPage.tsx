@@ -25,6 +25,7 @@ type FormValues = z.infer<typeof schema>;
 
 export default function ProfileSettingsPage() {
   const user = useAuthStore((state) => state.user);
+  const setSession = useAuthStore((state) => state.setSession);
   const {
     register,
     handleSubmit,
@@ -34,7 +35,14 @@ export default function ProfileSettingsPage() {
 
   const mutation = useMutation({
     mutationFn: changePassword,
-    onSuccess: () => {
+    onSuccess: (result) => {
+      // The backend invalidates every token issued before this password
+      // change (including the one that was just used to make this request)
+      // and issues a fresh one in its place — persist it so this session
+      // keeps working instead of getting logged out on the very next call.
+      if (user) {
+        setSession(result.accessToken, user);
+      }
       toast.success('Password updated');
       reset();
     },

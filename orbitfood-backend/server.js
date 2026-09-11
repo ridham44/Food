@@ -122,9 +122,16 @@ const allowedOrigins = [
 
 app.use(
     cors({
+        // Previously also trusted any origin ending in `.onrender.com` —
+        // that's an entire public PaaS domain, not just this project's own
+        // deployment, so any other tenant's app hosted there would also
+        // pass CORS. The actual configured frontend origin lives in
+        // CORS_ALLOW_TENNAT_URL (comma-separated) — add a specific preview
+        // URL there if one is genuinely needed, rather than trusting the
+        // whole shared domain.
         origin: (origin, callback) => {
             const normalizedOrigin = normalizeOrigin(origin);
-            if (!origin || allowedOrigins.includes(normalizedOrigin) || (normalizedOrigin && normalizedOrigin.endsWith('.onrender.com'))) {
+            if (!origin || allowedOrigins.includes(normalizedOrigin)) {
                 return callback(null, true);
             }
             return callback(new Error('Not allowed by CORS'));

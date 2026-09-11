@@ -17,11 +17,22 @@ interface CustomerAuthState {
 
 export const useCustomerAuthStore = create<CustomerAuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       accessToken: null,
       customer: null,
       setSession: (accessToken, customer) => set({ accessToken, customer }),
-      logout: () => set({ accessToken: null, customer: null }),
+      logout: () => {
+        // Best-effort server-side session invalidation — see authStore.ts's
+        // logout for the same rationale.
+        const token = get().accessToken;
+        if (token) {
+          fetch(`${import.meta.env.VITE_API_BASE_URL}/customer/logout`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+          }).catch(() => {});
+        }
+        set({ accessToken: null, customer: null });
+      },
     }),
     { name: 'orbitfood-customer-auth' }
   )

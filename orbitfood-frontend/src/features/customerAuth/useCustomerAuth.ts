@@ -2,10 +2,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import {
   fetchMyProfile,
+  removeProfileImage,
   requestCustomerLogin,
   requestSendOtp,
   signupCustomer,
   updateMyProfile,
+  uploadProfileImage,
 } from '@/features/customerAuth/customerAuthApi';
 import type { CustomerProfileInput, CustomerSignupInput } from '@/features/customerAuth/types';
 import { useCustomerAuthStore } from '@/stores/customerAuthStore';
@@ -44,6 +46,22 @@ export function useUpdateMyProfile() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: CustomerProfileInput) => updateMyProfile(payload),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['customer-me'] }),
+  });
+}
+
+export function useUploadProfileImage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => uploadProfileImage(file),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['customer-me'] }),
+  });
+}
+
+export function useRemoveProfileImage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => removeProfileImage(),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['customer-me'] }),
   });
 }

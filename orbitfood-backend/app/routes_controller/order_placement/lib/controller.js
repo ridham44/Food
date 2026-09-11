@@ -20,14 +20,19 @@ exports.orderCustomer = async (req, res) => {
         const menuIds = items.filter((i) => i.menuId).map((i) => i.menuId);
         const comboIds = items.filter((i) => i.comboId).map((i) => i.comboId);
 
+        // menuId/comboId must belong to the tenant the customer is ordering
+        // from, or a request could mix in another tenant's (possibly
+        // inactive/private) menu items into this order — same gap already
+        // closed in utils/lib/orderPricing.js's priceCartItems for the
+        // Razorpay checkout path.
         const menus = await db.Menu.findAll({
-            where: { id: menuIds, isAvailable: '1' },
+            where: { id: menuIds, isAvailable: '1', tenantId },
             raw: true,
             disableTenantCheck: true,
         });
 
         const combos = await db.ComboGroup.findAll({
-            where: { id: comboIds },
+            where: { id: comboIds, tenantId },
             raw: true,
             disableTenantCheck: true,
         });
@@ -257,14 +262,16 @@ exports.tenantPlaceOrder = async (req, res) => {
         const menuIds = items.filter((i) => i.menuId).map((i) => i.menuId);
         const comboIds = items.filter((i) => i.comboId).map((i) => i.comboId);
 
+        // Same tenant-ownership check as orderCustomer — otherwise staff
+        // could bill a walk-in customer for another tenant's menu items.
         const menus = await db.Menu.findAll({
-            where: { id: menuIds, isAvailable: '1' },
+            where: { id: menuIds, isAvailable: '1', tenantId },
             raw: true,
             disableTenantCheck: true,
         });
 
         const combos = await db.ComboGroup.findAll({
-            where: { id: comboIds },
+            where: { id: comboIds, tenantId },
             raw: true,
             disableTenantCheck: true,
         });
@@ -461,6 +468,7 @@ exports.addOrderItem = async (req, res) => {
             where: {
                 id: menuId,
                 isAvailable: '1',
+                tenantId: orderList.tenantId,
             },
             disableTenantCheck: true,
         });
@@ -798,6 +806,200 @@ exports.myOrders = async (req, res) => {
         return res.status(status.OK).json({ data: { rows: data, count } });
     } catch (error) {
         return common.throwException(error, 'My Orders API', req, res);
+    }
+};
+
+// Customer app home dashboard — cross-tenant stats, favourites, active order,
+// and light recommendations, all derived from the caller's own order history.
+exports.myDashboard = async (req, res) => {
+    try {
+        const customerId = req.user.id;
+
+        const orders = await db.OrderList.findAll({
+            where: { customerId },
+            include: [
+                {
+                    model: db.Tenant,
+                    as: 'Tenant',
+                    attributes: ['id', 'companyName', 'frontImage'],
+                    disableTenantCheck: true,
+                },
+                {
+                    model: db.OrderItem,
+                    as: 'OrderItem',
+                    attributes: ['menuId', 'quantity', 'totalPrice'],
+                    disableTenantCheck: true,
+                },
+                {
+                    model: db.OrderBill,
+                    as: 'OrderBill',
+                    attributes: ['finalAmount', 'status'],
+                    required: false,
+                    disableTenantCheck: true,
+                },
+            ],
+            order: [['createdAt', 'DESC']],
+        });
+
+        const plainOrders = orders.map((o) => o.get({ plain: true }));
+        const validOrders = plainOrders.filter((o) => o.status !== '3');
+
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const isThisMonth = (createdAt) => new Date(createdAt) >= monthStart;
+
+        const billTotal = (o) => {
+            const bill = o.OrderBill && o.OrderBill[0] ? o.OrderBill[0] : null;
+            return bill?.finalAmount ? parseFloat(bill.finalAmount) : 0;
+        };
+
+        const ordersThisMonth = validOrders.filter((o) => isThisMonth(o.createdAt));
+        const billedOrders = validOrders.filter((o) => o.status === '2');
+        const spendThisMonth = billedOrders.filter((o) => isThisMonth(o.createdAt)).reduce((sum, o) => sum + billTotal(o), 0);
+        const totalSpentAllTime = billedOrders.reduce((sum, o) => sum + billTotal(o), 0);
+
+        const itemCounts = {};
+        const tenantCounts = {};
+        const tenantSpend = {};
+        const tenantInfo = {};
+
+        validOrders.forEach((o) => {
+            tenantCounts[o.tenantId] = (tenantCounts[o.tenantId] || 0) + 1;
+            tenantSpend[o.tenantId] = (tenantSpend[o.tenantId] || 0) + billTotal(o);
+            if (o.Tenant) tenantInfo[o.tenantId] = { name: o.Tenant.companyName, image: o.Tenant.frontImage };
+
+            (o.OrderItem || []).forEach((item) => {
+                if (!item.menuId) return;
+                itemCounts[item.menuId] = (itemCounts[item.menuId] || 0) + item.quantity;
+            });
+        });
+
+        let favoriteRestaurant = null;
+        const favoriteTenantId = Object.keys(tenantCounts).sort(
+            (a, b) => tenantCounts[b] - tenantCounts[a] || tenantSpend[b] - tenantSpend[a]
+        )[0];
+        if (favoriteTenantId) {
+            favoriteRestaurant = {
+                tenantId: favoriteTenantId,
+                name: tenantInfo[favoriteTenantId]?.name ?? null,
+                image: tenantInfo[favoriteTenantId]?.image ?? null,
+                orderCount: tenantCounts[favoriteTenantId],
+            };
+        }
+
+        const topMenuIds = Object.entries(itemCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5)
+            .map(([menuId]) => menuId);
+
+        const topMenus = topMenuIds.length
+            ? await db.Menu.findAll({
+                  where: { id: topMenuIds },
+                  attributes: ['id', 'name', 'filePath', 'price', 'tenantId'],
+                  disableTenantCheck: true,
+              })
+            : [];
+
+        const mostOrderedItems = topMenus
+            .map((m) => ({
+                menuId: m.id,
+                name: m.name,
+                image: m.filePath,
+                price: m.price != null ? parseFloat(m.price) : null,
+                tenantId: m.tenantId,
+                tenantName: tenantInfo[m.tenantId]?.name ?? null,
+                orderCount: itemCounts[m.id],
+            }))
+            .sort((a, b) => b.orderCount - a.orderCount);
+
+        const recentOrders = plainOrders.slice(0, 5).map((o) => {
+            const itemCount = (o.OrderItem || []).reduce((sum, i) => sum + i.quantity, 0);
+            const bill = o.OrderBill && o.OrderBill[0] ? o.OrderBill[0] : null;
+            return {
+                id: o.id,
+                tenantId: o.tenantId,
+                restaurantName: o.Tenant?.companyName ?? null,
+                restaurantImage: o.Tenant?.frontImage ?? null,
+                itemCount,
+                total: bill ? parseFloat(bill.finalAmount) : null,
+                orderType: o.orderType,
+                status: o.status,
+                kitchenStatus: o.kitchenStatus,
+                createdAt: o.createdAt,
+            };
+        });
+
+        const activeOrderRow = plainOrders.find((o) => o.status === '1' || (o.status === '2' && o.kitchenStatus !== 'completed'));
+        let activeOrder = null;
+        if (activeOrderRow) {
+            const menuIds = (activeOrderRow.OrderItem || []).filter((i) => i.menuId).map((i) => i.menuId);
+            const menus = menuIds.length
+                ? await db.Menu.findAll({ where: { id: menuIds }, attributes: ['id', 'name'], disableTenantCheck: true })
+                : [];
+            const menuNameById = Object.fromEntries(menus.map((m) => [m.id, m.name]));
+            activeOrder = {
+                id: activeOrderRow.id,
+                tenantId: activeOrderRow.tenantId,
+                restaurantName: activeOrderRow.Tenant?.companyName ?? null,
+                restaurantImage: activeOrderRow.Tenant?.frontImage ?? null,
+                status: activeOrderRow.status,
+                kitchenStatus: activeOrderRow.kitchenStatus,
+                orderType: activeOrderRow.orderType,
+                createdAt: activeOrderRow.createdAt,
+                items: (activeOrderRow.OrderItem || []).map((i) => ({
+                    menuId: i.menuId,
+                    name: i.menuId ? (menuNameById[i.menuId] ?? null) : null,
+                    quantity: i.quantity,
+                })),
+            };
+        }
+
+        let recommendations = [];
+        if (favoriteRestaurant) {
+            const orderedMenuIds = Object.keys(itemCounts);
+            recommendations = await db.Menu.findAll({
+                where: {
+                    tenantId: favoriteRestaurant.tenantId,
+                    isAvailable: '1',
+                    parentId: { [Op.ne]: null }, // leaf items only — a null parentId is a category header, not an orderable dish
+                    ...(orderedMenuIds.length ? { id: { [Op.notIn]: orderedMenuIds } } : {}),
+                },
+                attributes: ['id', 'name', 'filePath', 'price', 'tenantId'],
+                limit: 4,
+                disableTenantCheck: true,
+            });
+            recommendations = recommendations.map((m) => ({
+                menuId: m.id,
+                name: m.name,
+                image: m.filePath,
+                price: m.price != null ? parseFloat(m.price) : null,
+                tenantId: m.tenantId,
+                tenantName: favoriteRestaurant.name,
+            }));
+        }
+
+        return res.status(status.OK).json({
+            data: {
+                customer: {
+                    fullName: `${req.user.firstName} ${req.user.lastName}`.trim(),
+                    profileImage: req.user.profileImage,
+                },
+                stats: {
+                    ordersThisMonth: ordersThisMonth.length,
+                    totalOrdersAllTime: validOrders.length,
+                    spendThisMonth,
+                    totalSpentAllTime,
+                    distinctItemsOrdered: Object.keys(itemCounts).length,
+                },
+                favoriteRestaurant,
+                mostOrderedItems,
+                recentOrders,
+                activeOrder,
+                recommendations,
+            },
+        });
+    } catch (error) {
+        return common.throwException(error, 'Customer Dashboard API', req, res);
     }
 };
 

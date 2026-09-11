@@ -5,12 +5,28 @@ const path = require('path');
 const db = require('../../../db/models');
 const { status, common } = require('../../../../utils');
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 exports.generateInvoicePDF = async (req, res) => {
     try {
         const { orderId } = req.body;
+        // orderId is embedded directly in a filesystem path below —
+        // requiring UUID shape before it's ever used there is a defense-in-
+        // depth backstop against path traversal, on top of the ownership
+        // check (the OrderList.id column type already makes a non-UUID
+        // lookup fail, but don't rely solely on incidental DB behavior).
+        if (!UUID_RE.test(orderId || '')) {
+            return res.status(status.BadRequest).json({ message: 'Invalid orderId' });
+        }
+        const isPlatformAdmin = req.user?.Role?.type === '1';
+
+        // Without this, any authenticated tenant's staff could generate/view
+        // another tenant's invoice (customer PII, GST number, full bill
+        // breakdown) just by supplying an arbitrary orderId.
+        const orderScopeWhere = isPlatformAdmin ? { id: orderId } : { id: orderId, tenantId: req.user.tenantId };
 
         const order = await db.OrderList.findOne({
-            where: { id: orderId },
+            where: orderScopeWhere,
             include: [
                 {
                     model: db.Customer,
@@ -104,8 +120,19 @@ exports.generateInvoicePDF = async (req, res) => {
         };
 
         // ===== Generate PDF and Save =====
+        // Saved under private_uploads (NOT under uploads/, which server.js
+        // serves publicly via `express.static`) — invoices contain customer
+        // PII and full billing detail, and orderId is routinely returned to
+        // customers/staff in plain JSON, so a predictable public URL would
+        // let anyone who ever saw an orderId download that bill with zero
+        // auth. Retrieval instead goes through the authenticated
+        // GET /bill-pdf/:orderId route below, which re-checks ownership.
         const fileName = `receipt_${orderId}.pdf`;
-        const invoicePath = path.join(__dirname, '../../../../uploads/pdf', fileName);
+        const privateDir = path.join(__dirname, '../../../../private_uploads/pdf');
+        if (!fs.existsSync(privateDir)) {
+            fs.mkdirSync(privateDir, { recursive: true });
+        }
+        const invoicePath = path.join(privateDir, fileName);
         const doc = new PDFDocument({ margin: 10, size: [316, 500] });
         doc.pipe(fs.createWriteStream(invoicePath));
 
@@ -234,10 +261,45 @@ exports.generateInvoicePDF = async (req, res) => {
 
         return res.status(status.OK).json({
             message: 'Invoice data generated successfully',
-            file: `/bill-pdf/pdf/${fileName}`,
+            file: `/bill-pdf/${orderId}/download`,
             invoice,
         });
     } catch (error) {
         return common.throwException(error, 'Generate Invoice PDF', req, res);
+    }
+};
+
+// Streams a previously-generated invoice PDF back to an authorized caller
+// only — staff of the owning tenant, the customer who placed the order, or
+// a platform admin. Never served as a static file (see storage comment
+// above), so there is no unauthenticated path to another party's invoice.
+exports.downloadInvoicePDF = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        if (!UUID_RE.test(orderId || '')) {
+            return res.status(status.BadRequest).json({ message: 'Invalid orderId' });
+        }
+        const isPlatformAdmin = req.user?.Role?.type === '1';
+
+        const ownershipWhere = isPlatformAdmin
+            ? { id: orderId }
+            : req.user.tenantId
+              ? { id: orderId, tenantId: req.user.tenantId }
+              : { id: orderId, customerId: req.user.id };
+
+        const order = await db.OrderList.findOne({ where: ownershipWhere, attributes: ['id'] });
+        if (!order) {
+            return res.status(status.NotFound).json({ message: 'Order not found' });
+        }
+
+        const fileName = `receipt_${orderId}.pdf`;
+        const invoicePath = path.join(__dirname, '../../../../private_uploads/pdf', fileName);
+        if (!fs.existsSync(invoicePath)) {
+            return res.status(status.NotFound).json({ message: 'Invoice has not been generated yet' });
+        }
+
+        return res.download(invoicePath, fileName);
+    } catch (error) {
+        return common.throwException(error, 'Download Invoice PDF', req, res);
     }
 };

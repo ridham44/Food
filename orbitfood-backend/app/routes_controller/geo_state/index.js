@@ -1,17 +1,19 @@
 const router = require('express').Router();
 const controller = require('./lib/controller');
 const auth = require('../../middlewares/middleware');
+const adminOnly = require('../../middlewares/adminMiddleware');
 const { expressValidate } = require('../../../utils/lib/common-function');
 const { validationRules, updateValidations } = require('./lib/validation');
 
+// Shared platform reference data (no tenantId column) — admin-only writes
 //create state
-router.post('/state', auth, validationRules(), expressValidate, controller.create);
+router.post('/state', auth, adminOnly, validationRules(), expressValidate, controller.create);
 
 //update state
-router.put('/state/:id', auth, updateValidations(), expressValidate, controller.update);
+router.put('/state/:id', auth, adminOnly, updateValidations(), expressValidate, controller.update);
 
 //delete state
-router.delete('/state/:id', auth, controller.delete);
+router.delete('/state/:id', auth, adminOnly, controller.delete);
 
 //get all with filter
 router.post('/state-filter', auth, controller.stateFiltration);
@@ -35,7 +37,7 @@ router.get('/state/options', auth, controller.findAll);
 router.get('/state/:id', auth, controller.findById);
 
 //update state status
-router.put('/state/status/:id', auth, controller.updateStatus);
+router.put('/state/status/:id', auth, adminOnly, controller.updateStatus);
 
 // Finding with date
 router.post('/state/filter', auth, controller.filtration);
