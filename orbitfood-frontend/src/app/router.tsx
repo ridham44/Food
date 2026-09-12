@@ -7,6 +7,7 @@ import { CustomerProtectedRoute } from '@/app/CustomerProtectedRoute';
 import AdminLayout from '@/app/AdminLayout';
 import { AdminProtectedRoute } from '@/app/AdminProtectedRoute';
 import { RouteLoadingFallback } from '@/components/RouteLoadingFallback';
+import { RouteErrorBoundary } from '@/app/RouteErrorBoundary';
 
 // Every page is loaded on demand (its own JS chunk) instead of one bundle —
 // a visitor to /login was otherwise downloading the admin, tenant, and
@@ -52,82 +53,90 @@ const withFallback = (element: ReactNode) => <Suspense fallback={<RouteLoadingFa
 
 export const router = createBrowserRouter([
   {
-    path: '/login',
-    element: withFallback(<AuthEntryPage />),
-  },
-  {
-    path: '/login/business',
-    element: withFallback(<LoginPage />),
-  },
-  {
-    path: '/app/login',
-    element: withFallback(<CustomerLoginPage />),
-  },
-  {
-    path: '/app/signup',
-    element: withFallback(<CustomerSignupPage />),
-  },
-  {
-    path: '/app',
-    element: (
-      <CustomerProtectedRoute>
-        <CustomerLayout />
-      </CustomerProtectedRoute>
-    ),
+    // Pathless wrapper — its only job is to give every route below a shared
+    // errorElement, since react-router only bubbles a route error up to the
+    // nearest ancestor route that defines one.
+    errorElement: <RouteErrorBoundary />,
     children: [
-      { index: true, element: withFallback(<CustomerDashboardPage />) },
-      { path: 'restaurants', element: withFallback(<RestaurantsPage />) },
-      { path: 'restaurants/:tenantId', element: withFallback(<RestaurantDetailPage />) },
-      { path: 'cart', element: withFallback(<CartPage />) },
-      { path: 'checkout', element: withFallback(<CheckoutPage />) },
-      { path: 'orders', element: withFallback(<CustomerOrdersPage />) },
-      { path: 'orders/:id', element: withFallback(<CustomerOrderDetailPage />) },
-      { path: 'profile', element: withFallback(<CustomerMyProfilePage />) },
-      { path: 'addresses', element: withFallback(<CustomerAddressesPage />) },
-    ],
-  },
-  {
-    path: '/',
-    element: (
-      <ProtectedRoute>
-        <DashboardLayout />
-      </ProtectedRoute>
-    ),
-    children: [
-      { index: true, element: withFallback(<DashboardHome />) },
-      { path: 'orders', element: withFallback(<OrdersPage />) },
-      { path: 'kitchen', element: withFallback(<KitchenPage />) },
-      { path: 'menu', element: withFallback(<MenuPage />) },
-      { path: 'categories', element: withFallback(<CategoriesPage />) },
-      { path: 'combos', element: withFallback(<CombosPage />) },
-      { path: 'inventory', element: withFallback(<InventoryPage />) },
-      { path: 'tables', element: withFallback(<TablesPage />) },
-      { path: 'customers', element: withFallback(<CustomersPage />) },
-      { path: 'customers/:id', element: withFallback(<CustomerProfilePage />) },
-      { path: 'staff', element: withFallback(<StaffPage />) },
-      { path: 'vendors', element: withFallback(<VendorsPage />) },
-      { path: 'expenses', element: withFallback(<ExpensesPage />) },
-      { path: 'coupons', element: withFallback(<CouponsPage />) },
-      { path: 'payments', element: withFallback(<PaymentsPage />) },
-      { path: 'reports', element: withFallback(<ReportsPage />) },
-      { path: 'settings/restaurant', element: withFallback(<RestaurantSettingsPage />) },
-      { path: 'settings/activity-log', element: withFallback(<ActivityLogPage />) },
-      { path: 'settings/profile', element: withFallback(<ProfileSettingsPage />) },
-    ],
-  },
-  {
-    path: '/admin',
-    element: (
-      <AdminProtectedRoute>
-        <AdminLayout />
-      </AdminProtectedRoute>
-    ),
-    children: [
-      { index: true, element: withFallback(<AdminDashboardPage />) },
-      { path: 'tenants', element: withFallback(<AdminTenantsPage />) },
-      { path: 'reports', element: withFallback(<AdminReportsPage />) },
-      { path: 'activity-log', element: withFallback(<ActivityLogPage />) },
-      { path: 'settings', element: withFallback(<AdminSettingsPage />) },
+      {
+        path: '/login',
+        element: withFallback(<AuthEntryPage />),
+      },
+      {
+        path: '/login/business',
+        element: withFallback(<LoginPage />),
+      },
+      {
+        path: '/app/login',
+        element: withFallback(<CustomerLoginPage />),
+      },
+      {
+        path: '/app/signup',
+        element: withFallback(<CustomerSignupPage />),
+      },
+      {
+        path: '/app',
+        element: (
+          <CustomerProtectedRoute>
+            <CustomerLayout />
+          </CustomerProtectedRoute>
+        ),
+        children: [
+          { index: true, element: withFallback(<CustomerDashboardPage />) },
+          { path: 'restaurants', element: withFallback(<RestaurantsPage />) },
+          { path: 'restaurants/:tenantId', element: withFallback(<RestaurantDetailPage />) },
+          { path: 'cart', element: withFallback(<CartPage />) },
+          { path: 'checkout', element: withFallback(<CheckoutPage />) },
+          { path: 'orders', element: withFallback(<CustomerOrdersPage />) },
+          { path: 'orders/:id', element: withFallback(<CustomerOrderDetailPage />) },
+          { path: 'profile', element: withFallback(<CustomerMyProfilePage />) },
+          { path: 'addresses', element: withFallback(<CustomerAddressesPage />) },
+        ],
+      },
+      {
+        path: '/',
+        element: (
+          <ProtectedRoute>
+            <DashboardLayout />
+          </ProtectedRoute>
+        ),
+        children: [
+          { index: true, element: withFallback(<DashboardHome />) },
+          { path: 'orders', element: withFallback(<OrdersPage />) },
+          { path: 'kitchen', element: withFallback(<KitchenPage />) },
+          { path: 'menu', element: withFallback(<MenuPage />) },
+          { path: 'categories', element: withFallback(<CategoriesPage />) },
+          { path: 'combos', element: withFallback(<CombosPage />) },
+          { path: 'inventory', element: withFallback(<InventoryPage />) },
+          { path: 'tables', element: withFallback(<TablesPage />) },
+          { path: 'customers', element: withFallback(<CustomersPage />) },
+          { path: 'customers/:id', element: withFallback(<CustomerProfilePage />) },
+          { path: 'staff', element: withFallback(<StaffPage />) },
+          { path: 'vendors', element: withFallback(<VendorsPage />) },
+          { path: 'expenses', element: withFallback(<ExpensesPage />) },
+          { path: 'coupons', element: withFallback(<CouponsPage />) },
+          { path: 'payments', element: withFallback(<PaymentsPage />) },
+          { path: 'reports', element: withFallback(<ReportsPage />) },
+          { path: 'settings/restaurant', element: withFallback(<RestaurantSettingsPage />) },
+          { path: 'settings/activity-log', element: withFallback(<ActivityLogPage />) },
+          { path: 'settings/profile', element: withFallback(<ProfileSettingsPage />) },
+        ],
+      },
+      {
+        path: '/admin',
+        element: (
+          <AdminProtectedRoute>
+            <AdminLayout />
+          </AdminProtectedRoute>
+        ),
+        children: [
+          { index: true, element: withFallback(<AdminDashboardPage />) },
+          { path: 'tenants', element: withFallback(<AdminTenantsPage />) },
+          { path: 'reports', element: withFallback(<AdminReportsPage />) },
+          { path: 'activity-log', element: withFallback(<ActivityLogPage />) },
+          { path: 'settings', element: withFallback(<AdminSettingsPage />) },
+        ],
+      },
     ],
   },
 ]);

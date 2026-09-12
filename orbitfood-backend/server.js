@@ -120,7 +120,16 @@ const allowedOrigins = [
     'http://localhost:4173'
 ].map(normalizeOrigin).filter(Boolean);
 
+// Scoped to the API prefix only — this is a browser cross-origin *API call*
+// gate, not a gate on this server's own static/HTML responses. Applying it
+// globally used to also intercept the production frontend's own asset
+// requests: Vite marks its <script>/<link> tags `crossorigin`, which makes
+// the browser attach an Origin header even when loading this same server's
+// own bundle, so every JS/CSS request got rejected as "Not allowed by CORS"
+// unless this exact origin happened to be allowlisted — the production
+// symptom was a blank white page, since nothing not-under-cors ever loaded.
 app.use(
+    V1Routes,
     cors({
         // Previously also trusted any origin ending in `.onrender.com` —
         // that's an entire public PaaS domain, not just this project's own
@@ -150,8 +159,30 @@ app.use(V1Routes, require('./app/routes_controller'));
 // development Vite still runs independently and proxies API requests here.
 const frontendDist = path.resolve(__dirname, '../orbitfood-frontend/dist');
 if (fs.existsSync(frontendDist)) {
-    app.use(express.static(frontendDist));
-    app.get('*', (req, res) => res.sendFile(path.join(frontendDist, 'index.html')));
+    // `index.html` must never be cached — it's the only file whose *name* stays
+    // the same across every deploy while its *content* (the hashed asset
+    // filenames it references) changes every time. A cached copy of an old
+    // index.html points at JS/CSS chunks a new deploy has already deleted,
+    // so a browser using it gets 404s on every asset and — since this app has
+    // no top-level error boundary — silently renders a blank white page.
+    // The hashed asset files themselves (index: false below) are safe to let
+    // browsers cache aggressively, since a content change always means a new URL.
+    app.use(
+        express.static(frontendDist, {
+            index: false,
+            // Filenames under assets/ are content-hashed by Vite — the same URL
+            // never changes content, so these can be cached for a long time.
+            setHeaders: (res, filePath) => {
+                if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+                    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+                }
+            },
+        })
+    );
+    app.get('*', (req, res) => {
+        res.setHeader('Cache-Control', 'no-store');
+        res.sendFile(path.join(frontendDist, 'index.html'));
+    });
 } else {
     app.get('/', (req, res) => {
         return res.json({ message: 'Server running.', lastUpdated: '20/01/2025' });
