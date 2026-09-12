@@ -858,6 +858,31 @@ exports.myDashboard = async (req, res) => {
         const spendThisMonth = billedOrders.filter((o) => isThisMonth(o.createdAt)).reduce((sum, o) => sum + billTotal(o), 0);
         const totalSpentAllTime = billedOrders.reduce((sum, o) => sum + billTotal(o), 0);
 
+        // Last 6 calendar months (oldest first), keyed the same way orders are bucketed below.
+        const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const trendMonths = Array.from({ length: 6 }, (_, i) => {
+            const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+            return { key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`, label: MONTH_LABELS[d.getMonth()] };
+        });
+        const monthKey = (createdAt) => {
+            const d = new Date(createdAt);
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        };
+
+        const spendByMonth = {};
+        billedOrders.forEach((o) => {
+            const key = monthKey(o.createdAt);
+            spendByMonth[key] = (spendByMonth[key] || 0) + billTotal(o);
+        });
+        const spendTrend = trendMonths.map(({ key, label }) => ({ month: key, label, total: spendByMonth[key] || 0 }));
+
+        const ordersByMonth = {};
+        validOrders.forEach((o) => {
+            const key = monthKey(o.createdAt);
+            ordersByMonth[key] = (ordersByMonth[key] || 0) + 1;
+        });
+        const orderFrequencyTrend = trendMonths.map(({ key, label }) => ({ month: key, label, count: ordersByMonth[key] || 0 }));
+
         const itemCounts = {};
         const tenantCounts = {};
         const tenantSpend = {};
@@ -978,6 +1003,42 @@ exports.myDashboard = async (req, res) => {
             }));
         }
 
+        // Real per-item ratings (from customers who rated a completed order) for
+        // whatever menu items are already about to be shown — one grouped query,
+        // no fabricated stars.
+        const ratedMenuIds = [...new Set([...mostOrderedItems, ...recommendations].map((item) => item.menuId))];
+        const ratingByMenuId = {};
+        if (ratedMenuIds.length) {
+            const ratings = await db.MenuRating.findAll({
+                where: { menuId: ratedMenuIds },
+                attributes: [
+                    'menuId',
+                    [db.Sequelize.fn('AVG', db.Sequelize.col('rating')), 'avgRating'],
+                    [db.Sequelize.fn('COUNT', db.Sequelize.col('rating')), 'reviewCount'],
+                ],
+                group: ['menuId'],
+                raw: true,
+            });
+            ratings.forEach((r) => {
+                ratingByMenuId[r.menuId] = {
+                    rating: parseFloat(parseFloat(r.avgRating).toFixed(1)),
+                    reviewCount: parseInt(r.reviewCount, 10),
+                };
+            });
+        }
+        const withRating = (item) => ({ ...item, ...(ratingByMenuId[item.menuId] ?? { rating: null, reviewCount: 0 }) });
+
+        // Month-over-month change for the two stat tiles that are genuinely a
+        // time series (orders count, spend) — mirrors the tenant dashboard's
+        // today-vs-yesterday pctChange in report/lib/controller.js.
+        const prevMonthKey = monthKey(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+        const pctChange = (curr, prev) => {
+            if (!prev) return curr > 0 ? 100 : 0;
+            return parseFloat((((curr - prev) / prev) * 100).toFixed(1));
+        };
+        const ordersChangePct = pctChange(ordersThisMonth.length, ordersByMonth[prevMonthKey] || 0);
+        const spendChangePct = pctChange(spendThisMonth, spendByMonth[prevMonthKey] || 0);
+
         return res.status(status.OK).json({
             data: {
                 customer: {
@@ -986,16 +1047,20 @@ exports.myDashboard = async (req, res) => {
                 },
                 stats: {
                     ordersThisMonth: ordersThisMonth.length,
+                    ordersChangePct,
                     totalOrdersAllTime: validOrders.length,
                     spendThisMonth,
+                    spendChangePct,
                     totalSpentAllTime,
                     distinctItemsOrdered: Object.keys(itemCounts).length,
                 },
                 favoriteRestaurant,
-                mostOrderedItems,
+                mostOrderedItems: mostOrderedItems.map(withRating),
                 recentOrders,
                 activeOrder,
-                recommendations,
+                recommendations: recommendations.map(withRating),
+                spendTrend,
+                orderFrequencyTrend,
             },
         });
     } catch (error) {

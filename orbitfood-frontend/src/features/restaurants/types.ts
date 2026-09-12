@@ -1,3 +1,10 @@
+export interface RestaurantOffer {
+  code: string;
+  type: 'flat' | 'percent';
+  value: number;
+  description: string | null;
+}
+
 export interface Restaurant {
   id: string;
   companyName: string;
@@ -9,6 +16,7 @@ export interface Restaurant {
   countryId: string | null;
   stateId: string | null;
   cityId: string | null;
+  cityName: string | null;
   zipCode: string | null;
   frontImage: string | null;
   website: string | null;
@@ -16,6 +24,13 @@ export interface Restaurant {
   openingTime: string | null;
   closingTime: string | null;
   acceptOrders: boolean;
+  preparationTimeMinutes: number | null;
+  /** null means nobody has rated any of this restaurant's menu items yet. */
+  rating: number | null;
+  reviewCount: number;
+  /** Real menu-category names for this tenant (e.g. "Starters", "Beverages") — not a curated cuisine taxonomy. */
+  categories: string[];
+  activeOffer: RestaurantOffer | null;
 }
 
 /** One row of the flat menu list returned by GET /menu-customer/:tenantId. */

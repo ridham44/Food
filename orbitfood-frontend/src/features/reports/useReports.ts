@@ -25,15 +25,21 @@ export function useOrdersReportData(days: number) {
     cutoff.setDate(cutoff.getDate() - days);
     const inRange = rows.filter((r) => new Date(r.createdAt) >= cutoff);
 
-    const byDay = new Map<string, { orders: number; revenue: number }>();
+    const byDay = new Map<string, { sortKey: string; orders: number; revenue: number }>();
     inRange.forEach((row) => {
-      const key = new Date(row.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      const entry = byDay.get(key) ?? { orders: 0, revenue: 0 };
+      const created = new Date(row.createdAt);
+      const sortKey = created.toISOString().slice(0, 10);
+      const label = created.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const entry = byDay.get(label) ?? { sortKey, orders: 0, revenue: 0 };
       entry.orders += 1;
       entry.revenue += row.total ?? 0;
-      byDay.set(key, entry);
+      byDay.set(label, entry);
     });
-    const series = Array.from(byDay.entries()).map(([date, v]) => ({ date, ...v }));
+    // Sort chronologically — Map iteration order otherwise follows first-encountered
+    // order in `inRange`, which the orders API doesn't guarantee is date-ascending.
+    const series = Array.from(byDay.entries())
+      .sort((a, b) => a[1].sortKey.localeCompare(b[1].sortKey))
+      .map(([date, { orders, revenue }]) => ({ date, orders, revenue }));
 
     const byType = new Map<OrderType, number>();
     inRange.forEach((row) => byType.set(row.orderType, (byType.get(row.orderType) ?? 0) + 1));

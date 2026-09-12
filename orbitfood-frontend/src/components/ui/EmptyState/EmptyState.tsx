@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/cn';
+import { Button } from '@/components/ui/Button/Button';
 
 interface EmptyStateProps {
   icon?: LucideIcon;
@@ -47,13 +48,9 @@ export function ErrorState({ title = 'Something went wrong', description, onRetr
         {description && <p className="text-xs text-text-muted">{description}</p>}
       </div>
       {onRetry && (
-        <button
-          type="button"
-          onClick={onRetry}
-          className="rounded-control border border-border-subtle bg-surface-glass px-3.5 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:border-border-active hover:text-text-primary"
-        >
+        <Button variant="secondary" onClick={onRetry} className="h-8 px-3.5 text-xs">
           Try again
-        </button>
+        </Button>
       )}
     </div>
   );

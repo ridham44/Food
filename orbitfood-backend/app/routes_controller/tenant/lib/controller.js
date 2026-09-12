@@ -523,7 +523,86 @@ const PUBLIC_TENANT_ATTRIBUTES = [
     'openingTime',
     'closingTime',
     'acceptOrders',
+    'preparationTimeMinutes',
 ];
+
+/**
+ * Batches the extra per-tenant info the storefront cards want (rating,
+ * real menu-derived category tags, one currently-valid public offer) into
+ * three grouped queries — real data, not fabricated placeholders — keyed
+ * by tenantId so publicList/publicById can attach it without N+1 queries.
+ */
+async function attachStorefrontExtras(tenants) {
+    const tenantIds = tenants.map((t) => t.id);
+    if (tenantIds.length === 0) return tenants;
+
+    const [ratings, categoryRows, offers] = await Promise.all([
+        db.MenuRating.findAll({
+            attributes: [
+                [db.Sequelize.col('Menu.tenantId'), 'tenantId'],
+                [db.Sequelize.fn('AVG', db.Sequelize.col('MenuRating.rating')), 'avgRating'],
+                [db.Sequelize.fn('COUNT', db.Sequelize.col('MenuRating.rating')), 'reviewCount'],
+            ],
+            include: [{ model: db.Menu, as: 'Menu', attributes: [], where: { tenantId: tenantIds }, required: true }],
+            group: ['Menu.tenantId'],
+            raw: true,
+            // Menu.hasTenant is true, so the audit-logger's beforeFind hook would
+            // otherwise overwrite the Menu include's own `where.tenantId` with
+            // whatever tenant (or nothing, for this public/unauthenticated route)
+            // is in the request's CLS namespace — disableTenantCheck here skips
+            // that entirely; setting it only on the include (as elsewhere in this
+            // codebase) does NOT work, since the hook only checks it at this
+            // top-level `instance`, before it ever walks `instance.include`.
+            disableTenantCheck: true,
+        }),
+        db.Menu.findAll({
+            where: { tenantId: tenantIds, parentId: null },
+            attributes: ['tenantId', 'name'],
+            raw: true,
+            disableTenantCheck: true,
+        }),
+        db.DiscountCoupon.findAll({
+            where: {
+                tenantId: tenantIds,
+                isPublic: true,
+                isActive: '1',
+                validFrom: { [Op.lte]: new Date() },
+                validTo: { [Op.gte]: new Date() },
+            },
+            attributes: ['tenantId', 'code', 'type', 'value', 'description'],
+            order: [['value', 'DESC']],
+            raw: true,
+            disableTenantCheck: true,
+        }),
+    ]);
+
+    const ratingByTenant = Object.fromEntries(
+        ratings.map((r) => [r.tenantId, { rating: parseFloat(parseFloat(r.avgRating).toFixed(1)), reviewCount: parseInt(r.reviewCount, 10) }])
+    );
+    const categoriesByTenant = {};
+    categoryRows.forEach((row) => {
+        (categoriesByTenant[row.tenantId] ??= new Set()).add(row.name);
+    });
+    const offerByTenant = {};
+    offers.forEach((o) => {
+        if (!offerByTenant[o.tenantId]) offerByTenant[o.tenantId] = o; // highest-value public offer first (sorted above)
+    });
+
+    return tenants.map((t) => ({
+        ...t,
+        rating: ratingByTenant[t.id]?.rating ?? null,
+        reviewCount: ratingByTenant[t.id]?.reviewCount ?? 0,
+        categories: Array.from(categoriesByTenant[t.id] ?? []),
+        activeOffer: offerByTenant[t.id]
+            ? {
+                  code: offerByTenant[t.id].code,
+                  type: offerByTenant[t.id].type,
+                  value: parseFloat(offerByTenant[t.id].value),
+                  description: offerByTenant[t.id].description,
+              }
+            : null,
+    }));
+}
 
 // Public, unauthenticated restaurant directory for the customer app —
 // approved tenants only, and only fields safe to show on a public storefront
@@ -540,10 +619,17 @@ exports.publicList = async (req, res) => {
         const tenants = await db.Tenant.findAll({
             where: whereCondition,
             attributes: PUBLIC_TENANT_ATTRIBUTES,
+            include: [{ model: db.GeoCity, as: 'GeoCity', attributes: ['name'], required: false, disableTenantCheck: true }],
             order: [['companyName', 'ASC']],
         });
 
-        return res.status(status.OK).json({ data: tenants });
+        const plain = tenants.map((t) => {
+            const row = t.get({ plain: true });
+            return { ...row, cityName: row.GeoCity?.name ?? null, GeoCity: undefined };
+        });
+        const withExtras = await attachStorefrontExtras(plain);
+
+        return res.status(status.OK).json({ data: withExtras });
     } catch (error) {
         return common.throwException(error, 'Public Tenant List API', req, res);
     }

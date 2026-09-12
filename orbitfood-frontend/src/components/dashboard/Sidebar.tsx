@@ -1,10 +1,11 @@
 import { NavLink } from 'react-router-dom';
-import { ChevronsLeft, ChevronsRight, LogOut, Circle } from 'lucide-react';
+import { ChevronsLeft, ChevronsRight, LogOut, Circle, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useAuthStore } from '@/stores/authStore';
 import { SidebarLogo } from '@/components/dashboard/SidebarLogo';
 import { NAV_SECTIONS } from '@/components/dashboard/navConfig';
 import { Tooltip } from '@/components/ui/Tooltip/Tooltip';
+import growBusinessImage from '../../../images/good food brighter days card.png';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -78,6 +79,29 @@ export function Sidebar({ collapsed, onToggleCollapsed, onNavigate }: SidebarPro
           </div>
         ))}
       </nav>
+
+      {!collapsed && (
+        <div className="mx-2.5 mb-3 shrink-0">
+          <div
+            className="relative flex flex-col justify-end gap-2 overflow-hidden rounded-card border border-border-subtle bg-cover bg-center p-3.5"
+            style={{ backgroundImage: `url(${growBusinessImage})`, aspectRatio: '3 / 4' }}
+          >
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-bg-deep via-bg-deep/60 to-transparent" aria-hidden="true" />
+            <div className="relative">
+              <p className="text-sm font-bold text-white">Grow Your Business</p>
+              <p className="mt-1 text-[11px] text-white/75">Add new offers and attract more customers.</p>
+            </div>
+            <NavLink
+              to="/coupons"
+              onClick={onNavigate}
+              className="relative flex items-center justify-center gap-1.5 rounded-control bg-gradient-to-b from-primary to-primary-deep py-2 text-xs font-semibold text-white transition-colors hover:from-primary-hover"
+            >
+              Create Offer
+              <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+            </NavLink>
+          </div>
+        </div>
+      )}
 
       <div className="h-px shrink-0 bg-border-subtle" />
 

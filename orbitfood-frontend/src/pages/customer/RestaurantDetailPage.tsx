@@ -17,7 +17,7 @@ function MenuItemRow({ item }: { item: MenuCategoryItem }) {
   const cartQuantity = useCartStore((s) => s.items.find((i) => i.id === item.id && !i.isCombo)?.quantity ?? 0);
 
   return (
-    <GlassPanel radius="card" className="flex items-center gap-3 p-3">
+    <GlassPanel radius="card" className="flex items-center gap-3 p-3 transition-colors hover:border-border-active">
       <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-control bg-surface-glass">
         {image ? (
           <img src={image} alt={item.name} className="h-full w-full object-cover" />
@@ -112,8 +112,10 @@ export default function RestaurantDetailPage() {
     );
   }, [menuData, search]);
 
-  const categorized = filteredMenu.filter((item) => item.parentId !== null);
-  const uncategorized = filteredMenu.filter((item) => item.parentId === null);
+  // parentId links a leaf item to its category header row; items with no
+  // parent are root-level (no category to group them under).
+  const itemsInCategory = filteredMenu.filter((item) => item.parentId !== null);
+  const rootLevelItems = filteredMenu.filter((item) => item.parentId === null);
 
   if (isError) {
     return <ErrorState onRetry={() => refetch()} description={getRestaurantsErrorMessage(error)} />;
@@ -204,21 +206,21 @@ export default function RestaurantDetailPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-5">
-          {categorized.length > 0 && (
+          {itemsInCategory.length > 0 && (
             <div className="flex flex-col gap-3">
               <h3 className="text-sm font-semibold text-text-secondary">Menu</h3>
               <div className="flex flex-col gap-3">
-                {categorized.map((item) => (
+                {itemsInCategory.map((item) => (
                   <MenuItemRow key={item.id} item={item} />
                 ))}
               </div>
             </div>
           )}
-          {uncategorized.length > 0 && (
+          {rootLevelItems.length > 0 && (
             <div className="flex flex-col gap-3">
-              {categorized.length > 0 && <h3 className="text-sm font-semibold text-text-secondary">Other items</h3>}
+              {itemsInCategory.length > 0 && <h3 className="text-sm font-semibold text-text-secondary">Other items</h3>}
               <div className="flex flex-col gap-3">
-                {uncategorized.map((item) => (
+                {rootLevelItems.map((item) => (
                   <MenuItemRow key={item.id} item={item} />
                 ))}
               </div>

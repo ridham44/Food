@@ -893,26 +893,58 @@ exports.dashboardSummary = async (req, res) => {
             return parseFloat(sum || 0);
         };
 
-        const [todayOrders, yesterdayOrders, todayRevenue, yesterdayRevenue, activeOrders, customersToday, customersYesterday] =
-            await Promise.all([
-                db.OrderList.count({ where: { tenantId, createdAt: { [Op.between]: [startOfToday, endOfToday] } } }),
-                db.OrderList.count({ where: { tenantId, createdAt: { [Op.between]: [startOfYesterday, endOfYesterday] } } }),
-                revenueFor(startOfToday, endOfToday),
-                revenueFor(startOfYesterday, endOfYesterday),
-                db.OrderList.count({
-                    where: { tenantId, status: '2', kitchenStatus: { [Op.in]: ['new', 'preparing', 'ready'] } },
-                }),
-                db.OrderList.count({
-                    where: { tenantId, createdAt: { [Op.between]: [startOfToday, endOfToday] } },
-                    distinct: true,
-                    col: 'customerId',
-                }),
-                db.OrderList.count({
-                    where: { tenantId, createdAt: { [Op.between]: [startOfYesterday, endOfYesterday] } },
-                    distinct: true,
-                    col: 'customerId',
-                }),
-            ]);
+        const ratingFor = async (start, end) => {
+            const row = await db.MenuRating.findOne({
+                attributes: [
+                    [fn('AVG', col('MenuRating.rating')), 'avg'],
+                    [fn('COUNT', col('MenuRating.id')), 'count'],
+                ],
+                include: [{ model: db.OrderList, as: 'OrderList', attributes: [], where: { tenantId } }],
+                where: start && end ? { createdAt: { [Op.between]: [start, end] } } : undefined,
+                raw: true,
+            });
+            return { avg: row?.avg != null ? parseFloat(row.avg) : null, count: parseInt(row?.count || 0, 10) };
+        };
+
+        const startOfThisWeek = new Date(startOfToday);
+        startOfThisWeek.setDate(startOfThisWeek.getDate() - 6);
+        const startOfPrevWeek = new Date(startOfThisWeek);
+        startOfPrevWeek.setDate(startOfPrevWeek.getDate() - 7);
+        const endOfPrevWeek = new Date(startOfThisWeek.getTime() - 1000);
+
+        const [
+            todayOrders,
+            yesterdayOrders,
+            todayRevenue,
+            yesterdayRevenue,
+            activeOrders,
+            customersToday,
+            customersYesterday,
+            overallRating,
+            thisWeekRating,
+            prevWeekRating,
+        ] = await Promise.all([
+            db.OrderList.count({ where: { tenantId, createdAt: { [Op.between]: [startOfToday, endOfToday] } } }),
+            db.OrderList.count({ where: { tenantId, createdAt: { [Op.between]: [startOfYesterday, endOfYesterday] } } }),
+            revenueFor(startOfToday, endOfToday),
+            revenueFor(startOfYesterday, endOfYesterday),
+            db.OrderList.count({
+                where: { tenantId, status: '2', kitchenStatus: { [Op.in]: ['new', 'preparing', 'ready'] } },
+            }),
+            db.OrderList.count({
+                where: { tenantId, createdAt: { [Op.between]: [startOfToday, endOfToday] } },
+                distinct: true,
+                col: 'customerId',
+            }),
+            db.OrderList.count({
+                where: { tenantId, createdAt: { [Op.between]: [startOfYesterday, endOfYesterday] } },
+                distinct: true,
+                col: 'customerId',
+            }),
+            ratingFor(null, null),
+            ratingFor(startOfThisWeek, endOfToday),
+            ratingFor(startOfPrevWeek, endOfPrevWeek),
+        ]);
 
         return res.status(status.OK).json({
             data: {
@@ -923,6 +955,12 @@ exports.dashboardSummary = async (req, res) => {
                 activeOrders,
                 customersCount: customersToday,
                 customersChangePct: pctChange(customersToday, customersYesterday),
+                averageRating: overallRating.avg != null ? parseFloat(overallRating.avg.toFixed(1)) : null,
+                ratingCount: overallRating.count,
+                ratingChange:
+                    thisWeekRating.avg != null && prevWeekRating.avg != null
+                        ? parseFloat((thisWeekRating.avg - prevWeekRating.avg).toFixed(1))
+                        : null,
             },
         });
     } catch (error) {

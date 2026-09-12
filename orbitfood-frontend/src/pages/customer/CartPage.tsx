@@ -15,7 +15,7 @@ function CartLineItem({ item }: { item: CartItem }) {
   const removeItem = useCartStore((state) => state.removeItem);
 
   return (
-    <GlassPanel radius="card" className="flex items-center gap-3 p-3 sm:p-4">
+    <GlassPanel radius="card" className="flex items-center gap-3 p-3 transition-colors hover:border-border-active sm:p-4">
       <div className="h-16 w-16 shrink-0 overflow-hidden rounded-control bg-surface-hover">
         {item.image ? (
           <img src={item.image} alt={item.name} className="h-full w-full object-cover" />
