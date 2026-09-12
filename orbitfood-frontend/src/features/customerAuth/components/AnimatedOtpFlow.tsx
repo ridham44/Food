@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ArrowRight, Phone, Check, MessageSquare } from 'lucide-react';
 import { Input } from '@/components/ui/Input/Input';
 import { Button } from '@/components/ui/Button/Button';
+import { CinematicPortal } from '@/features/auth/components/CinematicPortal';
 import { cn } from '@/lib/cn';
 import './AnimatedOtpFlow.css';
 
@@ -32,6 +33,7 @@ export function AnimatedOtpFlow({
   const [otp, setOtp] = useState(['', '', '', '']);
   const [isRequestingOtp, setIsRequestingOtp] = useState(false);
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
+  const animationStartedAt = useRef(0);
 
   // Wrong OTP sends the user back to the phone step to request a fresh code.
   useEffect(() => {
@@ -48,15 +50,24 @@ export function AnimatedOtpFlow({
     if (!identifier.trim() || isRequestingOtp) return;
     onResetStatus();
     setIsRequestingOtp(true);
+    animationStartedAt.current = Date.now();
     try {
       await onRequestOtp(identifier);
-      setStep('otp');
+      // Same "walk through the doorway" beat as the business login button —
+      // hold the button state until the portal animation has actually had
+      // time to play, since the OTP request itself usually resolves faster
+      // than the ~2.35s walk-in/door-close sequence.
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const remaining = Math.max(0, (reducedMotion ? 80 : 2350) - (Date.now() - animationStartedAt.current));
       setTimeout(() => {
-        inputsRef.current[0]?.focus();
-      }, 100);
+        setIsRequestingOtp(false);
+        setStep('otp');
+        setTimeout(() => {
+          inputsRef.current[0]?.focus();
+        }, 100);
+      }, remaining);
     } catch {
       // Error toast is already surfaced by the caller.
-    } finally {
       setIsRequestingOtp(false);
     }
   };
@@ -152,9 +163,20 @@ export function AnimatedOtpFlow({
             value={identifier}
             onChange={(e) => setIdentifier(e.target.value)}
           />
-          <Button type="submit" className="w-full mt-2" disabled={!identifier.trim() || isRequestingOtp}>
-            {isRequestingOtp ? 'Sending code...' : 'Continue'}
-            <ArrowRight className="h-4 w-4" />
+          <Button
+            type="submit"
+            className="auth-submit-btn relative w-full mt-2 disabled:opacity-100"
+            disabled={!identifier.trim() || isRequestingOtp}
+          >
+            {isRequestingOtp ? (
+              'Sending code...'
+            ) : (
+              <>
+                Continue
+                <ArrowRight className="h-4 w-4" />
+              </>
+            )}
+            <CinematicPortal isActive={isRequestingOtp} />
           </Button>
         </form>
       )}
