@@ -6,7 +6,10 @@ const { expressValidate } = require('../../../utils/lib/common-function');
 const { validationRules, updateValidations } = require('./lib/validation');
 const { createImageUpload, handleUploadErrors } = require('../../../utils/lib/imageUpload');
 
-const uploads = createImageUpload('tenant');
+// Restaurant front/back images are shown at small storefront-card sizes, so a
+// 50 KB cap keeps them light (an optimized .webp comfortably fits this) without
+// touching the 10 MB default other upload routes (menu, profile, flags) still use.
+const uploads = createImageUpload('tenant', { maxFileSizeBytes: 50 * 1024 });
 const multerMiddleware = handleUploadErrors;
 
 // Create tenant

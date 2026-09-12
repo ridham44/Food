@@ -39,11 +39,16 @@ import { useInventoryItems } from '@/features/inventory/useInventory';
 import { StockStatusBadge } from '@/features/inventory/components/StockStatusBadge';
 import { useCurrentTenant } from '@/features/tenant/useTenant';
 
+type DashboardPeriod = 'today' | 'week' | 'month' | 'year';
+
 interface DashboardSummary {
-  todayOrders: number;
-  todayOrdersChangePct: number;
-  todayRevenue: number;
-  todayRevenueChangePct: number;
+  period: DashboardPeriod;
+  /** Human-readable comparison window for every changePct/change below, e.g. "vs yesterday" or "vs last month". */
+  comparisonLabel: string;
+  orders: number;
+  ordersChangePct: number;
+  revenue: number;
+  revenueChangePct: number;
   activeOrders: number;
   customersCount: number;
   customersChangePct: number;
@@ -52,11 +57,26 @@ interface DashboardSummary {
   ratingChange: number | null;
 }
 
-function useDashboardSummary() {
+const PERIOD_OPTIONS: { value: DashboardPeriod; label: string }[] = [
+  { value: 'today', label: 'Today' },
+  { value: 'week', label: 'This Week' },
+  { value: 'month', label: 'This Month' },
+  { value: 'year', label: 'This Year' },
+];
+
+/** Possessive noun used in KPI labels, e.g. "Today's Orders" / "This Month's Revenue". */
+const PERIOD_POSSESSIVE: Record<DashboardPeriod, string> = {
+  today: "Today's",
+  week: "This Week's",
+  month: "This Month's",
+  year: "This Year's",
+};
+
+function useDashboardSummary(period: DashboardPeriod) {
   return useQuery({
-    queryKey: ['dashboard-summary'],
+    queryKey: ['dashboard-summary', period],
     queryFn: async () => {
-      const { data } = await apiClient.get<{ data: DashboardSummary }>('/report/dashboard-summary');
+      const { data } = await apiClient.get<{ data: DashboardSummary }>('/report/dashboard-summary', { params: { period } });
       return data.data;
     },
   });
@@ -165,7 +185,8 @@ function RestaurantHeroCard({
 export default function DashboardHome() {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
-  const { data: summary, isLoading: summaryLoading } = useDashboardSummary();
+  const [period, setPeriod] = useState<DashboardPeriod>('today');
+  const { data: summary, isLoading: summaryLoading } = useDashboardSummary(period);
   const [days, setDays] = useState(7);
   const { series, isLoading: chartLoading } = useOrdersReportData(days);
 
@@ -204,30 +225,54 @@ export default function DashboardHome() {
         <p className="hidden text-sm text-text-muted sm:block">{today}</p>
       </div>
 
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold text-text-secondary">Performance overview</h2>
+        <div className="inline-flex items-center gap-1 rounded-control border border-border-subtle bg-surface-glass p-1">
+          {PERIOD_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setPeriod(opt.value)}
+              className={cn(
+                'rounded-control px-3 py-1.5 text-xs font-medium transition-colors',
+                period === opt.value
+                  ? 'bg-gradient-to-r from-primary to-primary-deep text-white'
+                  : 'text-text-secondary hover:text-text-primary'
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <KpiCard
-          label="Today's orders"
-          value={String(summary?.todayOrders ?? 0)}
+          label={`${PERIOD_POSSESSIVE[period]} Orders`}
+          value={String(summary?.orders ?? 0)}
           icon={ShoppingBag}
-          changePct={summary?.todayOrdersChangePct}
+          changePct={summary?.ordersChangePct}
+          changeLabel={summary?.comparisonLabel}
           loading={summaryLoading}
           tone="purple"
-          sparkline={series.length > 1 ? series.map((s) => s.orders) : [2, 3, 2.4, 3.6, 3, summary?.todayOrders || 4]}
+          sparkline={series.length > 1 ? series.map((s) => s.orders) : [2, 3, 2.4, 3.6, 3, summary?.orders || 4]}
         />
         <KpiCard
-          label="Today's revenue"
-          value={`$${(summary?.todayRevenue ?? 0).toFixed(0)}`}
+          label={`${PERIOD_POSSESSIVE[period]} Revenue`}
+          value={`$${(summary?.revenue ?? 0).toFixed(0)}`}
           icon={DollarSign}
-          changePct={summary?.todayRevenueChangePct}
+          changePct={summary?.revenueChangePct}
+          changeLabel={summary?.comparisonLabel}
           loading={summaryLoading}
           tone="blue"
-          sparkline={series.length > 1 ? series.map((s) => s.revenue) : [2, 2.8, 2.2, 3.4, 2.6, summary?.todayRevenue || 4]}
+          sparkline={series.length > 1 ? series.map((s) => s.revenue) : [2, 2.8, 2.2, 3.4, 2.6, summary?.revenue || 4]}
         />
         <KpiCard
-          label="Total customers"
+          label={`${PERIOD_POSSESSIVE[period]} Customers`}
           value={String(summary?.customersCount ?? 0)}
           icon={Users}
           changePct={summary?.customersChangePct}
+          changeLabel={summary?.comparisonLabel}
           loading={summaryLoading}
           tone="pink"
           sparkline={[3, 2.5, 4, 3.2, 4.5, summary?.customersCount || 4]}
@@ -237,7 +282,7 @@ export default function DashboardHome() {
           value={summary?.averageRating != null ? summary.averageRating.toFixed(1) : '—'}
           icon={Star}
           changePct={summary?.ratingChange ?? undefined}
-          changeLabel="vs last week"
+          changeLabel={summary?.comparisonLabel}
           changeUnit="value"
           loading={summaryLoading}
           tone="orange"

@@ -36,8 +36,11 @@ const fileFilter = (req, file, cb) => {
 
 /**
  * @param {string} subdir - folder under ./uploads (e.g. 'menu', 'tenant')
+ * @param {{ maxFileSizeBytes?: number }} [options] - per-route override of the default 10 MB cap
  */
-const createImageUpload = (subdir) => {
+const createImageUpload = (subdir, options = {}) => {
+    const { maxFileSizeBytes = 10 * 1024 * 1024 } = options;
+
     const storage = multer.diskStorage({
         destination: (req, file, cb) => {
             const dir = `./uploads/${subdir}`;
@@ -55,7 +58,7 @@ const createImageUpload = (subdir) => {
     return multer({
         storage,
         fileFilter,
-        limits: { fileSize: 10 * 1024 * 1024 },
+        limits: { fileSize: maxFileSizeBytes },
     });
 };
 
@@ -75,6 +78,9 @@ const removeUploadedFileOnError = (req) => {
 const handleUploadErrors = (err, req, res, next) => {
     if (err instanceof multer.MulterError) {
         removeUploadedFileOnError(req);
+        if (err.code === 'LIMIT_FILE_SIZE') {
+            return res.status(status.BadRequest).json({ message: 'Image is too large. Please upload a smaller file.' });
+        }
         return res.status(status.InternalServerError).json({ message: 'File upload error!', error: err.message });
     }
     if (req.fileValidationError) {

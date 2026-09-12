@@ -15,6 +15,7 @@ import {
   UtensilsCrossed,
 } from 'lucide-react';
 import { GlassPanel } from '@/components/ui/GlassPanel/GlassPanel';
+import heroBanner from '../../../images/greatfoodbanner.png';
 import { Badge } from '@/components/ui/Badge/Badge';
 import { Select } from '@/components/ui/Select/Select';
 import { Switch } from '@/components/ui/Switch/Switch';
@@ -317,6 +318,19 @@ export default function RestaurantsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="relative overflow-hidden rounded-dialog p-6 sm:p-10">
+        <div
+          className="pointer-events-none absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url(${heroBanner})` }}
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              'linear-gradient(90deg, rgba(8,11,20,0.92) 0%, rgba(8,11,20,0.78) 42%, rgba(8,11,20,0.35) 75%, rgba(8,11,20,0.15) 100%)',
+          }}
+          aria-hidden="true"
+        />
         <div
           className="pointer-events-none absolute inset-0"
           style={{

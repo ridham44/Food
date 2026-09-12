@@ -35,9 +35,15 @@ export const requestSendOtp = async (identifier: string) => {
 export async function uploadProfileImage(file: File): Promise<{ profileImage: string | null }> {
   const formData = new FormData();
   formData.append('profileImage', file);
+  // The instance default forces Content-Type: application/json (see
+  // customerClient.ts) — that has to be cleared here so axios lets the
+  // browser set `multipart/form-data; boundary=...` itself. Leaving the
+  // json default in place sends this FormData body with a JSON content
+  // type, so multer never parses out req.file.
   const { data } = await customerApiClient.post<{ data: { profileImage: string | null } }>(
     '/customer/me/profile-image',
-    formData
+    formData,
+    { headers: { 'Content-Type': undefined } }
   );
   return data.data;
 }

@@ -865,6 +865,18 @@ exports.getBreakdown = async (req, res) => {
     }
 };
 
+// Trailing-window length (in days) for each selectable period, and the label used
+// to describe what the KPI deltas are compared against. Using trailing windows
+// (rather than calendar week/month/year boundaries) keeps the "current vs previous"
+// comparison an apples-to-apples equal-length range for every period.
+const DASHBOARD_PERIOD_DAYS = { today: 1, week: 7, month: 30, year: 365 };
+const DASHBOARD_PERIOD_COMPARISON_LABEL = {
+    today: 'vs yesterday',
+    week: 'vs last week',
+    month: 'vs last month',
+    year: 'vs last year',
+};
+
 exports.dashboardSummary = async (req, res) => {
     try {
         const tenantId = req.user.tenantId;
@@ -872,13 +884,15 @@ exports.dashboardSummary = async (req, res) => {
             return res.status(status.Forbidden).json({ message: 'Tenant access only' });
         }
 
+        const period = Object.prototype.hasOwnProperty.call(DASHBOARD_PERIOD_DAYS, req.query.period) ? req.query.period : 'today';
+        const periodDays = DASHBOARD_PERIOD_DAYS[period];
+
         const now = new Date();
-        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-        const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-        const startOfYesterday = new Date(startOfToday);
-        startOfYesterday.setDate(startOfYesterday.getDate() - 1);
-        const endOfYesterday = new Date(endOfToday);
-        endOfYesterday.setDate(endOfYesterday.getDate() - 1);
+        const periodEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+        const periodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (periodDays - 1), 0, 0, 0);
+        const prevPeriodEnd = new Date(periodStart.getTime() - 1);
+        const prevPeriodStart = new Date(periodStart);
+        prevPeriodStart.setDate(prevPeriodStart.getDate() - periodDays);
 
         const pctChange = (curr, prev) => {
             if (!prev) return curr > 0 ? 100 : 0;
@@ -900,67 +914,48 @@ exports.dashboardSummary = async (req, res) => {
                     [fn('COUNT', col('MenuRating.id')), 'count'],
                 ],
                 include: [{ model: db.OrderList, as: 'OrderList', attributes: [], where: { tenantId } }],
-                where: start && end ? { createdAt: { [Op.between]: [start, end] } } : undefined,
+                where: { createdAt: { [Op.between]: [start, end] } },
                 raw: true,
             });
             return { avg: row?.avg != null ? parseFloat(row.avg) : null, count: parseInt(row?.count || 0, 10) };
         };
 
-        const startOfThisWeek = new Date(startOfToday);
-        startOfThisWeek.setDate(startOfThisWeek.getDate() - 6);
-        const startOfPrevWeek = new Date(startOfThisWeek);
-        startOfPrevWeek.setDate(startOfPrevWeek.getDate() - 7);
-        const endOfPrevWeek = new Date(startOfThisWeek.getTime() - 1000);
-
-        const [
-            todayOrders,
-            yesterdayOrders,
-            todayRevenue,
-            yesterdayRevenue,
-            activeOrders,
-            customersToday,
-            customersYesterday,
-            overallRating,
-            thisWeekRating,
-            prevWeekRating,
-        ] = await Promise.all([
-            db.OrderList.count({ where: { tenantId, createdAt: { [Op.between]: [startOfToday, endOfToday] } } }),
-            db.OrderList.count({ where: { tenantId, createdAt: { [Op.between]: [startOfYesterday, endOfYesterday] } } }),
-            revenueFor(startOfToday, endOfToday),
-            revenueFor(startOfYesterday, endOfYesterday),
+        const [orders, prevOrders, revenue, prevRevenue, activeOrders, customers, prevCustomers, rating, prevRating] = await Promise.all([
+            db.OrderList.count({ where: { tenantId, createdAt: { [Op.between]: [periodStart, periodEnd] } } }),
+            db.OrderList.count({ where: { tenantId, createdAt: { [Op.between]: [prevPeriodStart, prevPeriodEnd] } } }),
+            revenueFor(periodStart, periodEnd),
+            revenueFor(prevPeriodStart, prevPeriodEnd),
             db.OrderList.count({
                 where: { tenantId, status: '2', kitchenStatus: { [Op.in]: ['new', 'preparing', 'ready'] } },
             }),
             db.OrderList.count({
-                where: { tenantId, createdAt: { [Op.between]: [startOfToday, endOfToday] } },
+                where: { tenantId, createdAt: { [Op.between]: [periodStart, periodEnd] } },
                 distinct: true,
                 col: 'customerId',
             }),
             db.OrderList.count({
-                where: { tenantId, createdAt: { [Op.between]: [startOfYesterday, endOfYesterday] } },
+                where: { tenantId, createdAt: { [Op.between]: [prevPeriodStart, prevPeriodEnd] } },
                 distinct: true,
                 col: 'customerId',
             }),
-            ratingFor(null, null),
-            ratingFor(startOfThisWeek, endOfToday),
-            ratingFor(startOfPrevWeek, endOfPrevWeek),
+            ratingFor(periodStart, periodEnd),
+            ratingFor(prevPeriodStart, prevPeriodEnd),
         ]);
 
         return res.status(status.OK).json({
             data: {
-                todayOrders,
-                todayOrdersChangePct: pctChange(todayOrders, yesterdayOrders),
-                todayRevenue,
-                todayRevenueChangePct: pctChange(todayRevenue, yesterdayRevenue),
+                period,
+                comparisonLabel: DASHBOARD_PERIOD_COMPARISON_LABEL[period],
+                orders,
+                ordersChangePct: pctChange(orders, prevOrders),
+                revenue,
+                revenueChangePct: pctChange(revenue, prevRevenue),
                 activeOrders,
-                customersCount: customersToday,
-                customersChangePct: pctChange(customersToday, customersYesterday),
-                averageRating: overallRating.avg != null ? parseFloat(overallRating.avg.toFixed(1)) : null,
-                ratingCount: overallRating.count,
-                ratingChange:
-                    thisWeekRating.avg != null && prevWeekRating.avg != null
-                        ? parseFloat((thisWeekRating.avg - prevWeekRating.avg).toFixed(1))
-                        : null,
+                customersCount: customers,
+                customersChangePct: pctChange(customers, prevCustomers),
+                averageRating: rating.avg != null ? parseFloat(rating.avg.toFixed(1)) : null,
+                ratingCount: rating.count,
+                ratingChange: rating.avg != null && prevRating.avg != null ? parseFloat((rating.avg - prevRating.avg).toFixed(1)) : null,
             },
         });
     } catch (error) {

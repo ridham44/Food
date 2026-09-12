@@ -18,6 +18,7 @@ import { BrandMark } from '@/features/auth/components/BrandMark';
 import promoImage from '../../images/good food brighter days card.png';
 import { cn } from '@/lib/cn';
 import { useCustomerAuthStore } from '@/stores/customerAuthStore';
+import { useMyProfile } from '@/features/customerAuth/useCustomerAuth';
 import { useCartCount } from '@/features/cart/cartStore';
 import { AlicaWidget } from '@/features/aiAssistant/AlicaWidget';
 import { customerApiClient } from '@/services/api/customerClient';
@@ -46,8 +47,12 @@ const ALICA_SUGGESTIONS = ["What's the status of my last order?", 'How many loya
 function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="flex h-full flex-col">
-      <NavLink to="/app" end onClick={onNavigate} className="flex items-center gap-2 px-5 py-5">
+      <NavLink to="/app" end onClick={onNavigate} className="flex items-center gap-2.5 px-5 py-5">
         <BrandMark width={44} height={36} />
+        <span className="text-lg font-extrabold leading-none">
+          <span className="text-white">Orbit</span>
+          <span className="text-info">Food</span>
+        </span>
       </NavLink>
 
       <nav className="flex flex-col gap-1 px-3">
@@ -149,6 +154,14 @@ export default function CustomerLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  // `customer` is only the login-time snapshot (name/no picture) held in
+  // the auth store — it never changes again after sign-in. The header has
+  // to reflect edits made on the profile page (name, picture) without a
+  // re-login, so it reads the live `/customer/me` query instead, which the
+  // profile mutations already invalidate on save.
+  const { data: profile } = useMyProfile();
+  const displayName = profile?.fullName ?? customer?.fullName ?? '';
+  const displayImage = profile?.profileImage ?? null;
   // The dashboard has its own inline "Meet Alicia" panel — the floating
   // launcher would otherwise sit directly on top of it (and, on narrow
   // screens, on top of the stat cards behind it).
@@ -193,8 +206,9 @@ export default function CustomerLayout() {
             <NavLink to="/app" end className="flex shrink-0 items-center gap-2 lg:hidden">
               <BrandMark width={40} height={34} />
               <span className="hidden flex-col leading-tight sm:flex">
-                <span className="bg-gradient-to-r from-primary to-danger bg-clip-text text-sm font-extrabold text-transparent">
-                  OrbitFood
+                <span className="text-sm font-extrabold">
+                  <span className="text-white">Orbit</span>
+                  <span className="text-info">Food</span>
                 </span>
                 <span className="text-[10px] text-text-muted">Food Ordering. Simplified.</span>
               </span>
@@ -219,9 +233,9 @@ export default function CustomerLayout() {
                       type="button"
                       className="flex items-center gap-2 rounded-control py-1 pl-1.5 pr-2 transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
                     >
-                      <Avatar name={customer.fullName} size="sm" />
+                      <Avatar src={displayImage} name={displayName} size="sm" />
                       <span className="hidden flex-col items-start leading-tight sm:flex">
-                        <span className="text-sm font-semibold text-text-primary">{customer.fullName.split(' ')[0]}</span>
+                        <span className="text-sm font-semibold text-text-primary">{displayName.split(' ')[0]}</span>
                         <span className="text-[11px] text-text-muted">View profile</span>
                       </span>
                       <ChevronDown className="hidden h-3.5 w-3.5 text-text-muted sm:block" aria-hidden="true" />

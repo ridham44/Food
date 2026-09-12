@@ -22,8 +22,8 @@ Lands on `/admin` after login.
 |---|---|---|---|
 | OrbitFood (default demo tenant) | manager@orbitfood.test | manager@123 | 9998887777 |
 | Sunset Grill & Bar | owner@sunsetgrillbar.test | tenant@123 | 3105550101 |
-| Empire Bistro | owner@empirebistro.test | tenant@123 | 2125550102 |
-| Lone Star Diner | owner@lonestardiner.test | tenant@123 | 5125550103 |
+| Oilve Garden | owner@oilvegarden.test | tenant@123 | 2125550102 |
+| Verana Diner | owner@veranadiner.test | tenant@123 | 5125550103 |
 
 Each of the 3 seeded restaurants above also has a waiter/staff login:
 `waiter@<restaurant-slug>.test` / `waiter@123` (mobile is randomly generated

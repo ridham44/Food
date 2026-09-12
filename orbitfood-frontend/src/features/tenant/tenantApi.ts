@@ -22,7 +22,12 @@ export async function updateTenant(
     } else if (opts.removeLogo) {
       formData.append('removeFrontImage', 'true');
     }
-    const { data } = await apiClient.put<{ data: Tenant }>(`/tenant/${id}`, formData);
+    // apiClient defaults Content-Type to application/json (see client.ts) —
+    // override it here so axios lets the browser set the multipart boundary
+    // itself instead of sending this FormData body as JSON.
+    const { data } = await apiClient.put<{ data: Tenant }>(`/tenant/${id}`, formData, {
+      headers: { 'Content-Type': undefined },
+    });
     return data.data;
   }
 

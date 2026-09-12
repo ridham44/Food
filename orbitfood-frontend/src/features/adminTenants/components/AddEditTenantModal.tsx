@@ -8,6 +8,7 @@ import { useCreateTenant, useUpdateTenant, getAdminTenantsErrorMessage } from '@
 import type { AdminTenant } from '@/features/adminTenants/types';
 import { useCityOptions, useCountryOptions, useStateOptions } from '@/features/geo/useGeo';
 import { assetUrl } from '@/lib/assetUrl';
+import { RESTAURANT_IMAGE_ACCEPT, RESTAURANT_IMAGE_MAX_SIZE_KB, validateRestaurantImage } from '@/lib/restaurantImage';
 
 export function AddEditTenantModal({
   open,
@@ -101,10 +102,15 @@ export function AddEditTenantModal({
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'frontImage' | 'backImage') => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (field === 'frontImage') setFrontImage(file);
-      else setBackImage(file);
+    e.target.value = '';
+    if (!file) return;
+    const error = validateRestaurantImage(file);
+    if (error) {
+      toast.error(error);
+      return;
     }
+    if (field === 'frontImage') setFrontImage(file);
+    else setBackImage(file);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -220,14 +226,16 @@ export function AddEditTenantModal({
             {isEdit && tenant?.frontImage && !frontImage && (
               <img src={assetUrl(tenant.frontImage)} alt="Front" className="w-full h-32 object-cover rounded-md mb-2 bg-bg-surface" />
             )}
-            <input type="file" accept=".png,.jpg,.jpeg" onChange={(e) => handleFileChange(e, 'frontImage')} className="text-sm" />
+            <input type="file" accept={RESTAURANT_IMAGE_ACCEPT} onChange={(e) => handleFileChange(e, 'frontImage')} className="text-sm" />
+            <p className="mt-1 text-xs text-text-muted">PNG, JPEG, or WEBP · {RESTAURANT_IMAGE_MAX_SIZE_KB}KB max.</p>
           </div>
           <div>
             <label className="text-sm font-medium text-text-secondary block mb-2">Back Image</label>
             {isEdit && tenant?.backImage && !backImage && (
               <img src={assetUrl(tenant.backImage)} alt="Back" className="w-full h-32 object-cover rounded-md mb-2 bg-bg-surface" />
             )}
-            <input type="file" accept=".png,.jpg,.jpeg" onChange={(e) => handleFileChange(e, 'backImage')} className="text-sm" />
+            <input type="file" accept={RESTAURANT_IMAGE_ACCEPT} onChange={(e) => handleFileChange(e, 'backImage')} className="text-sm" />
+            <p className="mt-1 text-xs text-text-muted">PNG, JPEG, or WEBP · {RESTAURANT_IMAGE_MAX_SIZE_KB}KB max.</p>
           </div>
         </div>
 

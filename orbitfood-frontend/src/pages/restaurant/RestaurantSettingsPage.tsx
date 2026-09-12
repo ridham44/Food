@@ -16,6 +16,7 @@ import type { TenantSettingsPayload } from '@/features/tenant/types';
 import { useTaxConfig, useTaxConfigMutations, getTaxConfigErrorMessage } from '@/features/taxConfig/useTaxConfig';
 import type { TaxConfigInput } from '@/features/taxConfig/types';
 import { useCityOptions, useCountryOptions, useStateOptions } from '@/features/geo/useGeo';
+import { RESTAURANT_IMAGE_ACCEPT, RESTAURANT_IMAGE_MAX_SIZE_KB, validateRestaurantImage } from '@/lib/restaurantImage';
 
 type TaxFormValues = {
   gst: string;
@@ -169,8 +170,9 @@ export default function RestaurantSettingsPage() {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
-    if (!['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
-      toast.error('Please choose a PNG or JPEG image');
+    const error = validateRestaurantImage(file);
+    if (error) {
+      toast.error(error);
       return;
     }
     setLogoFile(file);
@@ -227,6 +229,7 @@ export default function RestaurantSettingsPage() {
         <GlassPanel radius="card" className="p-5">
           <h3 className="text-sm font-semibold text-text-primary">Restaurant photo</h3>
           <p className="mt-1 text-xs text-text-muted">Shown to customers on your restaurant card and menu page.</p>
+          <p className="mt-0.5 text-xs text-text-muted">PNG, JPEG, or WEBP · {RESTAURANT_IMAGE_MAX_SIZE_KB}KB max.</p>
           <div className="mt-4 flex items-center gap-4">
             <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-card border border-border-subtle bg-surface-glass">
               {currentLogoUrl ? (
@@ -249,7 +252,7 @@ export default function RestaurantSettingsPage() {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/png,image/jpeg"
+                accept={RESTAURANT_IMAGE_ACCEPT}
                 className="hidden"
                 onChange={handleLogoSelected}
               />

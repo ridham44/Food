@@ -22,12 +22,19 @@ export async function updateTenantStatus(id: string, payload: UpdateTenantStatus
 }
 
 export async function createTenant(payload: FormData): Promise<AdminTenant> {
-  const { data } = await apiClient.post<{ message: string; data: AdminTenant }>('/tenant', payload);
+  // apiClient defaults Content-Type to application/json (see client.ts) —
+  // override it here so axios lets the browser set the multipart boundary
+  // itself instead of sending this FormData body as JSON.
+  const { data } = await apiClient.post<{ message: string; data: AdminTenant }>('/tenant', payload, {
+    headers: { 'Content-Type': undefined },
+  });
   return data.data;
 }
 
 export async function updateTenant(id: string, payload: FormData): Promise<AdminTenant> {
-  const { data } = await apiClient.put<{ message: string; data: AdminTenant }>(`/tenant/${id}`, payload);
+  const { data } = await apiClient.put<{ message: string; data: AdminTenant }>(`/tenant/${id}`, payload, {
+    headers: { 'Content-Type': undefined },
+  });
   return data.data;
 }
 
