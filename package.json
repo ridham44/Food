@@ -2,11 +2,11 @@
   "name": "orbitfood",
   "private": true,
   "scripts": {
-    "dev": "concurrently -n backend,frontend -c yellow,cyan \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "dev:backend": "cross-env PORT=5003 npm --prefix orbitfood-backend run server",
-    "dev:frontend": "npm --prefix orbitfood-frontend run dev",
-    "build": "npm install --prefix orbitfood-backend --include=dev && npm install --prefix orbitfood-frontend --include=dev && npm --prefix orbitfood-frontend run build",
-    "start": "npm --prefix orbitfood-backend start"
+    "dev": "node init && concurrently -n backend,frontend -c yellow,cyan \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "node init && cross-env PORT=5003 npm --prefix orbitfood-backend run server",
+    "dev:frontend": "node init && npm --prefix orbitfood-frontend run dev",
+    "build": "node init && npm install --prefix orbitfood-backend --include=dev && npm install --prefix orbitfood-frontend --include=dev && npm --prefix orbitfood-frontend run build",
+    "start": "node init && npm --prefix orbitfood-backend start"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",
